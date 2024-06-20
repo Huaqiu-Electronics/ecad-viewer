@@ -1,0 +1,72 @@
+{
+    "editor.formatOnSave": true,
+    "css.format.spaceAroundSelectorSeparator": true,
+    "css.lint.float": "warning",
+    "css.lint.ieHack": "error",
+    "css.lint.important": "warning",
+    "eslint.alwaysShowStatus": false,
+    "files.exclude": {
+        "**/*.js": {
+            "when": "$(basename).ts"
+        },
+        "build/": true
+    },
+    "cSpell.words": [
+        "Adhes",
+        "bboxes",
+        "decidegrees",
+        "desaturate",
+        "descr",
+        "disableapertmacros",
+        "Dwgs",
+        "dxfimperialunits",
+        "dxfpolygonmode",
+        "dxfusepcbnewfont",
+        "eeschema",
+        "gfx",
+        "hpglpendiameter",
+        "hpglpennumber",
+        "hpglpenspeed",
+        "KCUI",
+        "listify",
+        "pcbplotparams",
+        "psnegative",
+        "resizer",
+        "rratio",
+        "sexpr",
+        "svgprecision",
+        "svgstore",
+        "svguseinch",
+        "tedit",
+        "Tesselator",
+        "tstamp",
+        "typefn"
+    ],
+    "debug.console.closeOnEnd": true,
+    "debug.terminal.clearBeforeReusing": true,
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+    },
+    "[markdown]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+    },
+    "[yaml]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+    },
+    "[html]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+    },
+}

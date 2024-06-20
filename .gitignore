@@ -1,0 +1,6 @@
+build/
+node_modules/
+dist/
+coverage/
+esbuild-meta.json
+ecad_viewer
