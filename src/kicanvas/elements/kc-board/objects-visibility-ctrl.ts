@@ -71,6 +71,16 @@ export class ObjVisibilityCtrlList extends KCUIElement {
                             for (const it of layers.fp_txt_layers()) {
                                 if (it) it.opacity = p ? 1 : 0;
                             }
+
+                            this.shadowRoot!.querySelectorAll(
+                                "ecad-visibility-ctrl",
+                            ).forEach((e) => {
+                                const b = e as ObjVisibilityCtrl;
+
+                                if (b.obj_name !== ObjVisibilities.FP_Txt) {
+                                    b.obj_visible = p;
+                                }
+                            });
                         }
                         break;
                     case ObjVisibilities.FP_Values:
