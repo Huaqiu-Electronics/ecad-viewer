@@ -1,3 +1,7 @@
+# Adapted from https://gitlab.com/kicad/kicad-ci/kicad-cli-docker
+
+
+
 FROM debian:bookworm AS build
 
 RUN sh -c 'echo "deb http://ftp.de.debian.org/debian sid main" >> /etc/apt/sources.list'
@@ -71,14 +75,6 @@ RUN set -ex; \
     ninja; \
     cmake --install . --prefix=/usr/installtemp/
 
-# Now test the build, shipping a broken image doesn't help us
-# Maybe we should only run the cli tests but all of them is fine for now
-# RUN set -ex; \
-#     pip3 install -r ./qa/tests/requirements.txt --break-system-packages; \
-#     cd build/linux; \
-#     ctest --output-on-failure
-
-# Continue library installs
 RUN set -ex; \
     cd /src/kicad-symbols; \
     cmake \
@@ -115,7 +111,7 @@ RUN set -ex; \
 
 RUN rm -rf /src/kicad-symbols && rm -rf /src/kicad-footprints && rm -rf /src/kicad-templates && rm -rf /src/kicad
 
-FROM debian:bookworm-slim AS runtime
+FROM ghcr.io/huaqiu-electronics/kicad:full AS runtime
 ARG USER_NAME=kicad
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
@@ -124,7 +120,7 @@ ARG USER_GID=$USER_UID
 LABEL org.opencontainers.image.authors='https://groups.google.com/a/kicad.org/g/devlist' \
     org.opencontainers.image.url='https://kicad.org' \
     org.opencontainers.image.documentation='https://docs.kicad.org/' \
-    org.opencontainers.image.source='https://gitlab.com/kicad/kicad-ci/kicad-cli-docker' \
+    org.opencontainers.image.source='https://github.com/Huaqiu-Electronics/ecad-viewer' \
     org.opencontainers.image.vendor='KiCad' \
     org.opencontainers.image.licenses='GPL-3.0-or-later' \
     org.opencontainers.image.description='Image containing KiCad EDA, python and the stock symbol and footprint libraries for use in automation workflows'
