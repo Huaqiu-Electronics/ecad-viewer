@@ -113,7 +113,7 @@ export class BomViewer extends KCUIElement {
             <tr>
                 <td>${index}</td>
                 <td>${bomItem.Name}</td>
-                <td>N/A</td>
+                <!-- <td>N/A</td> -->
                 <td>${bomItem.Description}</td>
                 <td>${bomItem.Footprint}</td>
                 <td>${bomItem.Reference}</td>
@@ -127,7 +127,7 @@ export class BomViewer extends KCUIElement {
                 <tr>
                     <th>No</th>
                     <th>Value</th>
-                    <th>Price</th>
+                    <!-- <th>Price</th> -->
                     <th>Description</th>
                     <th>Footprint</th>
                     <th>Designator</th>
