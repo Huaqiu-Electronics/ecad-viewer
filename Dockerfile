@@ -47,10 +47,9 @@ WORKDIR /src/meshoptimizer
 # We want the built install prefix in /usr to match normal system installed software
 # However to aid in docker copying only our files, we redirect the prefix in the cmake install
 RUN set -ex; \
-    cmake --preset linux-release -CMAKE_INSTALL_PREFIX=/usr/installtemp/ \
-    cmake --build build/linux/ \
-    cmake --install build/linux/ --prefix=/usr/installtemp/
-
+    cmake --preset linux-release -CMAKE_INSTALL_PREFIX=/usr/installtemp/ ; \
+    cmake --build build/linux/  ; \
+    cmake --install build/linux/ --prefix=/usr/installtemp/ ;
 
 WORKDIR /src/kicad
 
