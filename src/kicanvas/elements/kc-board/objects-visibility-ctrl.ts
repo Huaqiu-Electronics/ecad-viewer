@@ -77,7 +77,11 @@ export class ObjVisibilityCtrlList extends KCUIElement {
                             ).forEach((e) => {
                                 const b = e as ObjVisibilityCtrl;
 
-                                if (b.obj_name !== ObjVisibilities.FP_Txt) {
+                                if (
+                                    b.obj_name ===
+                                        ObjVisibilities.FP_Reference ||
+                                    b.obj_name === ObjVisibilities.FP_Values
+                                ) {
                                     b.obj_visible = p;
                                 }
                             });
