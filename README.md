@@ -1,16 +1,5 @@
 # ECAD-Viewer
 
-Original Repository
+View Kicad and Altium designs interactively in the browser while extracting bom from the schematics and generating a 3D model from the PCB.
 
-https://github.com/theacodes/kicanvas.git
-
-## Dev
-
-npm install
-npm run serve
-
-## Publish
-
-npm run build
-
-## Embedded
+![ECAD Viewer](docs/ecad-viewer-preview.gif)
