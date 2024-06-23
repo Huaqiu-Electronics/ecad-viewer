@@ -14,6 +14,6 @@ We are a [KiCad Platinum Sponsor](https://www.nextpcb.com/blog/kicad-nextpcb-pla
 
 This project is based on the following projects:
 
--   [KiCad] (https://www.kicad.org/)
--   [kicanvas] (https://github.com/theacodes/kicanvas)
--   [Three.js](https://threejs.org/)
+-   [KiCad](https://www.kicad.org/): A Cross Platform and Open Source Electronics Design Automation Suite
+-   [kicanvas](https://github.com/theacodes/kicanvas):The KiCAD web viewer
+-   [Three.js](https://threejs.org/):3D force-directed graph component using ThreeJS/WebGL
