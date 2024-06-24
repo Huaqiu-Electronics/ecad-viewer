@@ -4,7 +4,7 @@
 
 FROM debian:bookworm AS build
 
-RUN sh -c 'echo "deb http://ftp.de.debian.org/debian sid main" >> /etc/apt/sources.list'
+RUN sh -c 'echo "deb http://ftp.de.debian.org/debian sid main" > /etc/apt/sources.list'
 # install build dependencies
 RUN apt-get update && \
     apt-get install -y build-essential cmake libbz2-dev libcairo2-dev libglu1-mesa-dev \
@@ -129,7 +129,7 @@ RUN set -ex; \
 
 RUN rm -rf /src/kicad-symbols && rm -rf /src/kicad-footprints && rm -rf /src/kicad-templates && rm -rf /src/kicad
 
-FROM ghcr.io/huaqiu-electronics/kicad:full AS runtime
+FROM debian:bookworm AS runtime
 ARG USER_NAME=kicad
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
@@ -143,7 +143,7 @@ LABEL org.opencontainers.image.authors='https://groups.google.com/a/kicad.org/g/
     org.opencontainers.image.licenses='GPL-3.0-or-later' \
     org.opencontainers.image.description='Image containing KiCad EDA, python and the stock symbol and footprint libraries for use in automation workflows'
 
-RUN sh -c 'echo "deb http://ftp.de.debian.org/debian sid main" >> /etc/apt/sources.list'
+RUN sh -c 'echo "deb http://ftp.de.debian.org/debian sid main" > /etc/apt/sources.list'
 
 # install runtime dependencies
 RUN apt-get update && \
