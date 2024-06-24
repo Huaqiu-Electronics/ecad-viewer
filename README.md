@@ -31,9 +31,9 @@ Then start the container:
 ```bash
 
 # Uncomment the below line to run the full version in case you pulled the full version
-# docker run --rm -p 7676:7676 -p 8989:8989 -p 8012:8012 ghcr.io/huaqiu-electronics/kicad:full
+# docker run --rm -p 7676:7676 -p 8989:8989 -p 8012:8012 ghcr.io/huaqiu-electronics/ecad-viewer:full
 # Run the lite version
-docker run --rm -p 7676:7676 -p 8989:8989 -p 8012:8012 ghcr.io/huaqiu-electronics/kicad:lite
+docker run --rm -p 7676:7676 -p 8989:8989 -p 8012:8012 ghcr.io/huaqiu-electronics/ecad-viewer:lite
 
 ```
 
