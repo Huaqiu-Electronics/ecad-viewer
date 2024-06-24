@@ -47,9 +47,9 @@ RUN set -ex;            \
     git clone --depth 1  https://gitlab.com/kicad/libraries/kicad-symbols.git; \
     git clone --depth 1  https://gitlab.com/kicad/libraries/kicad-footprints.git; \
     git clone --depth 1  https://gitlab.com/kicad/libraries/kicad-templates.git; \
-    git clone --depth 1  https://github.com/liangtie/meshoptimizer.git \
-    git clone --depth 1  https://github.com/Huaqiu-Electronics/ecad-viewer.git \
-    git clone --depth 1  https://github.com/Huaqiu-Electronics/ecad-viewer-docker-scripts.git
+    git clone --depth 1  https://github.com/liangtie/meshoptimizer.git;\
+    git clone --depth 1  https://github.com/Huaqiu-Electronics/ecad-viewer.git;\
+    git clone --depth 1  https://github.com/Huaqiu-Electronics/ecad-viewer-docker-scripts.git;
 
 WORKDIR /src/ecad-viewer
 
