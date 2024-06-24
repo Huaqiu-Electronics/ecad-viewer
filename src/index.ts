@@ -30,7 +30,6 @@ import { KCBoardAppElement } from "./kicanvas/elements/kc-board/app";
 import { Online3dViewer } from "./3d-viewer/online_3d_viewer";
 import { KCSchematicAppElement } from "./kicanvas/elements/kc-schematic/app";
 import { ECadViewerEmbedded } from "./ecad-viewer/ecad_viewer_embedded ";
-import { ECadStandaloneBom } from "./ecad-viewer/ecad_standalone_bom";
 import { html } from "./base/web-components/html";
 
 export {
@@ -38,7 +37,6 @@ export {
     html,
     KCSchematicAppElement,
     KCBoardAppElement,
-    ECadStandaloneBom,
     ECadViewer,
     find_root_sch_from_content,
     find_root_sch_from_urls,
@@ -56,5 +54,4 @@ export default {
     KCBoardAppElement,
     KCSchematicAppElement,
     Online3dViewer,
-    ECadStandaloneBom,
 };

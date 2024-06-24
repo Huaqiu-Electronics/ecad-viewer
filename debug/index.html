@@ -44,7 +44,7 @@
     <script>
         window.addEventListener("pcb:board_content:ready", function (event) {
             // URL of the API endpoint
-            const apiUrl = "http://localhost:8989/convert_pcb_to_glb";
+            const convert_pcb_to_glb_url = "http://localhost:8989/convert_pcb_to_glb";
 
             // Data to be sent in the POST request (you can format this according to your API requirements)
             const postData = {
@@ -62,7 +62,7 @@
             };
 
             // Make the POST request using fetch
-            fetch(apiUrl, fetchOptions)
+            fetch(convert_pcb_to_glb_url, fetchOptions)
                 .then((response) => {
                     if (!response.ok) {
                         throw new Error("Network response was not ok");
