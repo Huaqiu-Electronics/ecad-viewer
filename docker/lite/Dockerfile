@@ -4,7 +4,7 @@
 
 FROM debian:bookworm AS build
 
-RUN sh -c 'echo "deb http://ftp.de.debian.org/debian sid main" > /etc/apt/sources.list'
+RUN sh -c 'echo "deb http://ftp.de.debian.org/debian sid main" >> /etc/apt/sources.list'
 # install build dependencies
 RUN apt-get update && \
     apt-get install -y build-essential cmake libbz2-dev libcairo2-dev libglu1-mesa-dev \
@@ -143,7 +143,7 @@ LABEL org.opencontainers.image.authors='https://groups.google.com/a/kicad.org/g/
     org.opencontainers.image.licenses='GPL-3.0-or-later' \
     org.opencontainers.image.description='Image containing KiCad EDA, python and the stock symbol and footprint libraries for use in automation workflows'
 
-RUN sh -c 'echo "deb http://ftp.de.debian.org/debian sid main" > /etc/apt/sources.list'
+RUN sh -c 'echo "deb http://ftp.de.debian.org/debian sid main" >> /etc/apt/sources.list'
 
 # install runtime dependencies
 RUN apt-get update && \
