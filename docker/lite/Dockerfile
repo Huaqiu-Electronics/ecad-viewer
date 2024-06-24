@@ -4,7 +4,7 @@
 
 FROM debian:bookworm AS build
 
-RUN sh -c 'echo "deb http://ftp.de.debian.org/debian sid main" >> /etc/apt/sources.list'
+RUN sh -c 'echo "deb http://ftp.de.debian.org/debian sid main" > /etc/apt/sources.list'
 # install build dependencies
 RUN apt-get update && \
     apt-get install -y build-essential cmake libbz2-dev libcairo2-dev libglu1-mesa-dev \
@@ -36,6 +36,9 @@ RUN apt-get update && \
     libprotobuf-dev \
     protobuf-compiler
 
+RUN sh -c 'curl -fsSL https://deb.nodesource.com/setup_20.x | bash - ' ;\
+    apt-get install -y nodejs ;
+
 
 WORKDIR /src
 
@@ -44,7 +47,22 @@ RUN set -ex;            \
     git clone --depth 1  https://gitlab.com/kicad/libraries/kicad-symbols.git; \
     git clone --depth 1  https://gitlab.com/kicad/libraries/kicad-footprints.git; \
     git clone --depth 1  https://gitlab.com/kicad/libraries/kicad-templates.git; \
-    git clone --depth 1  https://github.com/liangtie/meshoptimizer.git
+    git clone --depth 1  https://github.com/liangtie/meshoptimizer.git \
+    git clone --depth 1  https://github.com/Huaqiu-Electronics/ecad-viewer.git \
+    git clone --depth 1  https://github.com/Huaqiu-Electronics/kicad-cli-python.git
+
+WORKDIR /src/ecad-viewer
+
+RUN set -ex; \
+    npm install; \
+    npm run build; \
+    move debug /app; \
+    move build /app/ecad_viewer;
+
+RUN set -ex; \
+    mv /src/kicad-cli-python /app/scripts;\
+    rm -rf /app/scripts/.git;
+
 
 WORKDIR /src/meshoptimizer
 
@@ -157,15 +175,10 @@ RUN apt-get update && \
     curl \
     sudo
 
-
 COPY --from=build /usr/installtemp/bin /usr/bin
 COPY --from=build /usr/installtemp/share /usr/share
 COPY --from=build /usr/installtemp/lib /usr/lib
-
-RUN set -ex;            \
-    git clone --depth 1  https://gitlab.com/kicad/libraries/kicad-packages3D.git /usr/share/kicad/3dmodels;
-
-RUN rm -rf /usr/share/kicad/3dmodels/.git
+COPY --from=build /app /app
 
 # fix the linkage to libkicad_3dsg
 RUN ldconfig -l /usr/bin/_pcbnew.kiface
@@ -181,11 +194,6 @@ RUN groupadd --gid $USER_GID $USER_NAME \
     && usermod -aG sudo $USER_NAME \
     && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-RUN sudo sh -c 'echo "export KICAD6_3DMODEL_DIR=/usr/share/kicad/3dmodels" >> /etc/profile'
-RUN sudo sh -c 'echo "export KICAD7_3DMODEL_DIR=/usr/share/kicad/3dmodels" >> /etc/profile'
-RUN sudo sh -c 'echo "export KICAD8_3DMODEL_DIR=/usr/share/kicad/3dmodels" >> /etc/profile'
-
-
 # Copy over the lib tables to the user config directory
 RUN mkdir -p /home/$USER_NAME/.config/kicad/$(kicad-cli -v | cut -d . -f 1,2)
 
@@ -193,5 +201,7 @@ RUN mv /usr/share/kicad/template/*-lib-table /home/$USER_NAME/.config/kicad/$(ki
 
 RUN chown -R $USER_NAME:$USER_NAME /home/$USER_NAME/.config
 RUN chown -R $USER_NAME:$USER_NAME /tmp/org.kicad.kicad || true
+RUN chmod -R 777 /app
 
 USER $USER_NAME
+ENTRYPOINT [ "/app/scripts/start_all.sh" ]
