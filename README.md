@@ -4,7 +4,7 @@ View Kicad and Altium designs interactively in the browser while extracting bom 
 
 ![ECAD Viewer](docs/ecad-viewer-preview.gif)
 
-## About HQ PCB / NextPCB
+## About us
 
 HQ PCB specializes in reliable multilayer PCB manufacture and assembly, and like KiCad, our goal is to enable engineers to build tomorrow's electronics. NextPCB is working with KiCad to provide smart tools to simplify the progression from design to physical product. With 3 major factories catering to prototyping, mass production and PCB assembly, and over 15 years of engineering expertise, NextPCB believes our industrial experience will prove invaluable to KiCad users and the PCB design community.
 
@@ -12,8 +12,7 @@ We are a [KiCad Platinum Sponsor](https://www.nextpcb.com/blog/kicad-nextpcb-pla
 
 ## Credits
 
-This project is based on the following projects:
+This project contains copies or makes use of other works. These works and their respective license and terms are:
 
--   [KiCad](https://www.kicad.org/):A Cross Platform and Open Source Electronics Design Automation Suite
--   [kicanvas](https://github.com/theacodes/kicanvas):The KiCAD web viewer
--   [three-gltf-viewer](https://github.com/donmccurdy/three-gltf-viewer):Drag-and-drop preview for glTF 2.0 models in WebGL using three.js.
+-   [kicanvas](https://github.com/theacodes/kicanvas) is under the [MIT license](https://github.com/theacodes/kicanvas/blob/main/LICENSE.md)
+-   [three-gltf-viewer](https://github.com/donmccurdy/three-gltf-viewer) is under the [MIT license](https://github.com/donmccurdy/three-gltf-viewer/blob/main/LICENSE)
