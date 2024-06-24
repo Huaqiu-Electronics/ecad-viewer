@@ -101,7 +101,7 @@ Check out the [Embedded example](debug/embedded.html)
 
 kicad-cli is needed for both converting AD designs to KiCad and the 3D model generation.
 
-### kicad-cli docker image
+#### kicad-cli docker image
 
 Here is the [docker image](https://github.com/orgs/Huaqiu-Electronics/packages/container/package/kicad) built upon the [Kicad branch](https://github.com/Huaqiu-Electronics/kicad) we maintain.
 
@@ -113,7 +113,7 @@ docker pull ghcr.io/huaqiu-electronics/kicad:full
 docker pull ghcr.io/huaqiu-electronics/kicad:lite
 ```
 
-### kicad-cli-python
+#### kicad-cli-python
 
 [kicad-cli-python](https://github.com/Huaqiu-Electronics/kicad-cli-python) is a python wrapper for kicad-cli. Assuming you have pulled the kicad-cli docker image mentioned above, you can start the file server and the cli server as follows:
 
