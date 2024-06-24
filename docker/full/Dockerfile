@@ -214,3 +214,4 @@ RUN chown -R $USER_NAME:$USER_NAME /tmp/org.kicad.kicad || true
 RUN chmod -R 777 /app
 
 USER $USER_NAME
+ENTRYPOINT [ "/app/scripts/start_all.sh" ]
