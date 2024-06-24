@@ -12,8 +12,6 @@ Features:
 -   Generate 3D model from PCB
 -   Generate BOM from schematic
 
-Visit our website at https://www.nextpcb.com/ecad-viewer to see how it can be integrated into your business processes.
-
 ![ECAD Viewer](docs/ecad-viewer-preview.gif)
 
 ## Quick start
@@ -25,7 +23,7 @@ npm install
 npm run serve
 ```
 
-Open http://localhost:8080 , you will see the ECAD Viewer.
+Open http://localhost:8080 to check the demo.
 
 ## Credits
 
