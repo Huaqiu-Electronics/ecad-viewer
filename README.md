@@ -16,6 +16,33 @@ Features:
 
 ## Quick start
 
+We have prepared a full version (all kicad official 3D models are included, so the image size is much larger) and a streamlined version of the docker image for you to try. You can download the docker image from the following command.
+
+```bash
+# The full version
+docker pull ghcr.io/huaqiu-electronics/ecad-viewer:full
+# The streamlined version
+docker pull ghcr.io/huaqiu-electronics/ecad-viewer:lite
+
+```
+
+Then start the container:
+
+```bash
+
+# The full version
+docker run --rm -p 7676:7676 -p 8989:8989 -p 8012:8012 ghcr.io/huaqiu-electronics/kicad:full
+# The streamlined version
+docker run --rm -p 7676:7676 -p 8989:8989 -p 8012:8012 ghcr.io/huaqiu-electronics/kicad:lite
+
+```
+
+The app will be available at http://localhost:8012
+
+## Local development
+
+Download and install nodejs (version >= 18) from https://nodejs.org/en/download/
+
 ```bash
 git https://github.com/Huaqiu-Electronics/ecad-viewer.git
 cd ecad-viewer
@@ -23,7 +50,7 @@ npm install
 npm run serve
 ```
 
-Open http://localhost:8080 to check the app.
+Try to modify the code and open http://localhost:8080 to inspect the change
 
 ## Usage
 
