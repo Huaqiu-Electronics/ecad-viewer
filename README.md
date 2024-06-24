@@ -1,14 +1,31 @@
 # ECAD-Viewer
 
-View Kicad and Altium designs interactively in the browser while extracting bom from the schematics and generating a 3D model from the PCB.
+View your electronic designs interactively in the browser.
+
+Live demo: https://www.eda.cn/ecad-viewer
+
+Features:
+
+-   Support for KiCad and Altium designs
+-   Inspect all the components and their properties
+-   Check the nets in the PCB and check the label references in the schematic
+-   Generate 3D model from PCB
+-   Generate BOM from schematic
+
+Visit our website at https://www.nextpcb.com/ecad-viewer to see how it can be integrated into your business processes.
 
 ![ECAD Viewer](docs/ecad-viewer-preview.gif)
 
-## About us
+## Quick start
 
-HQ PCB specializes in reliable multilayer PCB manufacture and assembly, and like KiCad, our goal is to enable engineers to build tomorrow's electronics. NextPCB is working with KiCad to provide smart tools to simplify the progression from design to physical product. With 3 major factories catering to prototyping, mass production and PCB assembly, and over 15 years of engineering expertise, NextPCB believes our industrial experience will prove invaluable to KiCad users and the PCB design community.
+```bash
+git https://github.com/Huaqiu-Electronics/ecad-viewer.git
+cd ecad-viewer
+npm install
+npm run serve
+```
 
-We are a [KiCad Platinum Sponsor](https://www.nextpcb.com/blog/kicad-nextpcb-platinum-sponsorship).
+Open http://localhost:8080 , you will see the ECAD Viewer.
 
 ## Credits
 
