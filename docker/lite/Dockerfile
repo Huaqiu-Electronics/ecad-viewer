@@ -60,7 +60,7 @@ RUN set -ex; \
     mv build /app/ecad_viewer;
 
 RUN set -ex; \
-    mv /src/kicad-cli-python /app/scripts;\
+    mv /src/ecad-viewer-docker-scripts /app/scripts;\
     rm -rf /app/scripts/.git;
 
 
