@@ -38,6 +38,7 @@ docker run --rm -p 7676:7676 -p 8989:8989 -p 8012:8012 ghcr.io/huaqiu-electronic
 ```
 
 The app will be available at http://localhost:8012
+![Quick start](docs/quick-start.gif)
 
 ## Local development
 
