@@ -56,8 +56,8 @@ WORKDIR /src/ecad-viewer
 RUN set -ex; \
     npm install; \
     npm run build; \
-    move debug /app; \
-    move build /app/ecad_viewer;
+    mv debug /app; \
+    mv build /app/ecad_viewer;
 
 RUN set -ex; \
     mv /src/kicad-cli-python /app/scripts;\
