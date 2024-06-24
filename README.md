@@ -19,9 +19,9 @@ Features:
 We have prepared a full version (all kicad official 3D models are included, so the image size is much larger) and a streamlined version of the docker image for you to try. You can download the docker image from the following command.
 
 ```bash
-# The full version
-docker pull ghcr.io/huaqiu-electronics/ecad-viewer:full
-# The streamlined version
+# Uncomment the below line to pull the full version
+# docker pull ghcr.io/huaqiu-electronics/ecad-viewer:full
+# The lite version
 docker pull ghcr.io/huaqiu-electronics/ecad-viewer:lite
 
 ```
@@ -30,9 +30,9 @@ Then start the container:
 
 ```bash
 
-# The full version
-docker run --rm -p 7676:7676 -p 8989:8989 -p 8012:8012 ghcr.io/huaqiu-electronics/kicad:full
-# The streamlined version
+# Uncomment the below line to run the full version in case you pulled the full version
+# docker run --rm -p 7676:7676 -p 8989:8989 -p 8012:8012 ghcr.io/huaqiu-electronics/kicad:full
+# Run the lite version
 docker run --rm -p 7676:7676 -p 8989:8989 -p 8012:8012 ghcr.io/huaqiu-electronics/kicad:lite
 
 ```
