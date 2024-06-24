@@ -30,7 +30,8 @@ derivative works.
 This project contains copies or makes use of other works. These works and their respective
 license and terms are:
 
--   kicanvas by Alethea Katherine Flowers, licensed under theMIT License. Retrieved from https://github.com/theacodes/kicanvas
+-   kicanvas by Alethea Katherine Flowers, licensed under the MIT License. Retrieved from https://github.com/theacodes/kicanvas
+-   three-gltf-viewer by Don McCurdy, licensed under the MIT License. Retrieved from https://github.com/donmccurdy/three-gltf-viewer
 -   Earcut by Mapbox, licensed under the ISC license. Retrived from https://github.com/mapbox/earcut.
 -   Newstroke by Vladimir Uryvaev, Lingdong Huang, Adobe, and KiCAD contributors. Originally licensed under Creative Commons CC0 1.0, amended with an MIT-like license, and utilizes glyphs that are licensed under the SIL Open Font License Version 1.1.
 -   Material Symbols by Google, licensed under the Apache License, Version 2.0. Retrieved from https://github.com/google/material-design-icons.
