@@ -1,4 +1,4 @@
-Copyright (c) 2024 华秋电子
+Copyright (c) 2024 深圳华秋电子有限公司
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
