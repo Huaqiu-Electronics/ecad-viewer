@@ -97,7 +97,7 @@ Explanation:
 
 Check out the [Embedded example](debug/embedded.html)
 
-### kiCad-cli server
+### kicad-cli server
 
 kicad-cli is needed for both converting AD designs to KiCad and the 3D model generation.
 
