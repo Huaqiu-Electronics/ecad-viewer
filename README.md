@@ -25,8 +25,6 @@ npm run serve
 
 Open http://localhost:8080 to check the app.
 
-## Setup kicad-ci-server for 3D model converting and AD designs support
-
 ## Usage
 
 ### Standalone
@@ -67,8 +65,8 @@ Open http://localhost:8080 to check the app.
 Explanation:
 
 -   `cli_server_addr`: URL of the API endpoint for converting AD designs to KiCad
--   `ecad-source`: URL of the KiCad PCB or AD file
--   `ecad-3d-source`: URL of the 3D model
+-   `ecad-source`: Customer tag in which the either Kicad or AD design url is stored in the `src` attribute
+-   `ecad-3d-source`: Customer tag in which the 3D model url is stored in the `src` attribute
 -   `convert_pcb_to_glb_url`: URL of the API endpoint for converting KiCad PCB to 3D model
 
 Check out the [Standalone example](debug/index.html)
@@ -92,7 +90,41 @@ Check out the [Standalone example](debug/index.html)
 <script type="module" src="./ecad_viewer/ecad-viewer.js"></script>
 ```
 
+Explanation:
+
+-   `url`: URL of the KiCad PCB or AD design or multiple KiCad PCB or AD designs separated by semicolon
+-   `is-bom`: If set to true, the embedded viewer will show the BOM instead of the schematic
+
 Check out the [Embedded example](debug/embedded.html)
+
+### kiCad-cli server
+
+kicad-cli is needed for both converting AD designs to KiCad and the 3D model generation.
+
+### kicad-cli docker image
+
+Here is the [docker image](https://github.com/orgs/Huaqiu-Electronics/packages/container/package/kicad) built upon the [Kicad branch](https://github.com/Huaqiu-Electronics/kicad) we maintain.
+
+```bash
+# The full image in which all the kicad official 3d models are shipped
+docker pull ghcr.io/huaqiu-electronics/kicad:full
+
+# The minimal image in which only the kicad-cli is shipped
+docker pull ghcr.io/huaqiu-electronics/kicad:lite
+```
+
+### kicad-cli-python
+
+[kicad-cli-python](https://github.com/Huaqiu-Electronics/kicad-cli-python) is a python wrapper for kicad-cli. Assuming you have pulled the kicad-cli docker image mentioned above, you can start the file server and the cli server as follows:
+
+```bash
+git clone https://github.com/Huaqiu-Electronics/kicad-cli-python.git
+cd kicad-cli-python
+pip install -r ./requirements.txt
+# Start the file server and the cli server
+python file_srv.py
+python cli_srv.py
+```
 
 ## Credits
 
