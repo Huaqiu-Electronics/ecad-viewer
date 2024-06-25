@@ -23,7 +23,7 @@
 我们准备了完整版（包含所有kicad官方3D模型，镜像尺寸要大得多）和精简版docker镜像供您尝试，可以通过以下命令下载 docker 镜像：
 
 ```bash
-# 取消注释以下行以获取完整版本
+# 取消下面的注释以拉取完整版本
 # docker pull registry.cn-shanghai.aliyuncs.com/kicad/ecad-viewer:full
 # 精简版
 docker pull registry.cn-shanghai.aliyuncs.com/kicad/ecad-viewer:lite
@@ -33,14 +33,14 @@ docker pull registry.cn-shanghai.aliyuncs.com/kicad/ecad-viewer:lite
 
 ```bash
 
-# 取消注释以下行以拉取完整版本
+# 取消注释下面的以运行完整版本
 # docker run --rm -p 7676:7676 -p 8989:8989 -p 8012:8012  registry.cn-shanghai.aliyuncs.com/kicad/ecad-viewer:full
 # 运行精简版
 docker run --rm -p 7676:7676 -p 8989:8989 -p 8012:8012 registry.cn-shanghai.aliyuncs.com/kicad/ecad-viewer:lite
 
 ```
 
-打开 http://localhost:8012 即可看到APP
+打开 http://localhost:8012 查看项目运行效果
 ![Quick start](docs/quick-start.gif)
 
 ## 本地开发
@@ -54,7 +54,7 @@ npm install
 npm run serve
 ```
 
-尝试修改代码并打开 http://localhost:8080 验证修改
+修改代码并打开 http://localhost:8080 验证修改
 
 ## 使用
 
@@ -96,8 +96,8 @@ npm run serve
 参数说明：
 
 -   `cli_server_addr`：用于将AD设计转换为KiCad的服务URL
--   `ecad-source`：HTML自定义标签，`src`为Kicad或AD设计的url
--   `ecad-3d-source`：HTML自定义标签，`src`为3D模型的url
+-   `ecad-source`：HTML自定义标签，`src`为Kicad或AD设计的URL
+-   `ecad-3d-source`：HTML自定义标签，`src`为3D模型的URL
 -   `convert_pcb_to_glb_url`：用于将KiCad PCB转换为3D模型的服务URL
 
 查看完整示例 [Standalone example](debug/index.html)
@@ -123,7 +123,7 @@ npm run serve
 
 参数说明：
 
--   `url`：KiCad或AD的设计的url（多个url以分号分隔）
+-   `url`：KiCad或AD的设计的URL（多个URL以分号分隔）
 -   `is-bom`：如果设置为 true，嵌入式查看器将显示BOM而不是原理图
 
 查看完整示例 [Embedded example](debug/embedded.html)
