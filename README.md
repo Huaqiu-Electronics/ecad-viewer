@@ -1,5 +1,9 @@
 # ECAD-Viewer
 
+<p>
+    English |<a href="README_zh.md">中文<a/>
+</p>
+
 View your electronic designs interactively in the browser.
 
 Live demo: https://www.eda.cn/ecad-viewer
