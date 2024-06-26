@@ -158,6 +158,11 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         const vfs = new FetchFileSystem(files);
         await this.#setup_project({ vfs, blobs });
     }
+    override renderedCallback() {
+        if (this.loaded) {
+            this.#spinner.hidden = true;
+        }
+    }
 
     async #setup_project(sources: EcadSources) {
         this.loaded = false;
@@ -192,9 +197,9 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             id="fileInput"
             style="display: none"
             multiple />` as HTMLInputElement;
-        this.#spinner = html`<ecad-spinner></ecad-spinner>` as HTMLElement;
+        if (!this.#spinner)
+            this.#spinner = html`<ecad-spinner></ecad-spinner>` as HTMLElement;
         if (!this.loaded) return this.#spinner;
-        this.#spinner.hidden = true;
         this.#tab_contents = {};
 
         this.#tab_header = new TabHeaderElement({
