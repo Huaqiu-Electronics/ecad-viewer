@@ -119,30 +119,32 @@ export class Project extends EventTarget implements IDisposable {
 
         await Promise.all(promises);
 
-        if (this.has_schematics) this.#determine_schematic_hierarchy();
+        let has_root_sch = false;
+
+        if (this.has_schematics)
+            has_root_sch = this.#determine_schematic_hierarchy();
 
         const bom_items = (() => {
             if (this.has_schematics) {
-                const visitor = new SchematicBomVisitor();
-                for (const page of this.pages) {
-                    const doc = page.document;
-                    if (doc instanceof KicadSch) visitor.visit(doc);
+                const sch_visitor = new SchematicBomVisitor();
+                if (has_root_sch) {
+                    for (const page of this.pages) {
+                        const doc = page.document;
+                        if (doc instanceof KicadSch) sch_visitor.visit(doc);
+                    }
+                } else {
+                    for (const sch of this.schematics()) {
+                        sch_visitor.visit(sch);
+                    }
                 }
 
-                if (!visitor.bom_list.length)
-                    for (const sch of this.schematics()) {
-                        visitor.visit(sch);
-                    }
-
-                this.#designator_refs = visitor.designator_refs;
-                if (visitor.bom_list.length) return visitor.bom_list;
+                this.#designator_refs = sch_visitor.designator_refs;
+                if (sch_visitor.bom_list.length) return sch_visitor.bom_list;
             }
-
             if (this.has_boards) {
                 const visitor = new BoardBomItemVisitor();
                 for (const b of this.boards()) visitor.visit(b);
                 this.#designator_refs = visitor.designator_refs;
-
                 return visitor.bom_list;
             }
             return [];
@@ -398,6 +400,7 @@ export class Project extends EventTarget implements IDisposable {
         );
 
         let root: KicadSch | undefined;
+        let found_root = false;
         for (const path of paths) {
             const parent_path = path.split("/").slice(0, -1).join("/");
 
@@ -408,6 +411,7 @@ export class Project extends EventTarget implements IDisposable {
             root = paths_to_schematics.get(parent_path);
 
             if (root) {
+                found_root = true;
                 break;
             }
         }
@@ -470,6 +474,7 @@ export class Project extends EventTarget implements IDisposable {
 
         // Finally, if no root schematic was found, just use the first one we saw.
         this.#root_schematic_page = first(this.#pages_by_path.values());
+        return found_root;
     }
 }
 
