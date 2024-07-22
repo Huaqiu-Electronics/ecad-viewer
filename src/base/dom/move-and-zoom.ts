@@ -9,14 +9,18 @@ import { BBox, Camera2, Vec2 } from "../math";
 const line_delta_multiplier = 8;
 const page_delta_multiplier = 24;
 const zoom_speed = 0.005;
+const pan_speed = 1;
 
 export type MoveAndZoomCallback = () => void;
 
 /**
- * Interactive Move and Zoom helper
+ * Interactive Pan and Zoom helper
  */
 export class MoveAndZoom {
     #rect: DOMRect;
+
+    #startDistance: number | null = null;
+    #startPosition: TouchList | null = null;
 
     /**
      * Create an interactive pan and zoom helper
@@ -30,8 +34,8 @@ export class MoveAndZoom {
         public readonly target: HTMLElement,
         public camera: Camera2,
         public callback: MoveAndZoomCallback,
-        public min_zoom: number = 0.5,
-        public max_zoom: number = 10,
+        public min_zoom = 0.5,
+        public max_zoom = 10,
         public bounds?: BBox,
     ) {
         this.target.addEventListener(
@@ -39,6 +43,58 @@ export class MoveAndZoom {
             (e: WheelEvent) => this.#on_wheel(e),
             { passive: false },
         );
+
+        this.target.addEventListener("touchstart", (e: TouchEvent) => {
+            if (e.touches.length === 2) {
+                this.#startDistance = this.#getDistanceBetweenTouches(
+                    e.touches,
+                );
+            } else if (e.touches.length === 1) {
+                this.#startPosition = e.touches;
+            }
+        });
+
+        this.target.addEventListener("touchmove", (e: TouchEvent) => {
+            if (e.touches.length === 2) {
+                if (this.#startDistance !== null) {
+                    const currentDistance = this.#getDistanceBetweenTouches(
+                        e.touches,
+                    );
+                    if (Math.abs(this.#startDistance - currentDistance) < 10) {
+                        const scale =
+                            (currentDistance / this.#startDistance) * 5;
+                        if (this.#startDistance < currentDistance) {
+                            this.#handle_zoom(scale * -1);
+                        } else {
+                            this.#handle_zoom(scale);
+                        }
+                    }
+                    this.#startDistance = currentDistance;
+                }
+            } else if (e.touches.length === 1 && this.#startPosition !== null) {
+                const sx = this.#startPosition[0]?.clientX ?? 0;
+                const sy = this.#startPosition[0]?.clientY ?? 0;
+                const ex = e.touches[0]?.clientX ?? 0;
+                const ey = e.touches[0]?.clientY ?? 0;
+                this.#handle_pan(sx - ex, sy - ey);
+
+                this.#startPosition = e.touches;
+            }
+        });
+
+        this.target.addEventListener("touchend", () => {
+            this.#startDistance = null;
+            this.#startPosition = null;
+        });
+    }
+
+    #getDistanceBetweenTouches(touches: TouchList) {
+        if (touches[0] && touches[1]) {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        return 0;
     }
 
     #on_wheel(e: WheelEvent) {
@@ -83,19 +139,39 @@ export class MoveAndZoom {
         );
     }
 
-    #handle_zoom(delta: number, mouse: Vec2) {
-        const mouse_world = this.camera.screen_to_world(mouse);
+    #handle_pan(dx: number, dy: number) {
+        const delta = new Vec2(dx * pan_speed, dy * pan_speed).multiply(
+            1 / this.camera.zoom,
+        );
 
+        let center = this.camera.center.add(delta);
+
+        if (this.bounds) {
+            // FIXME
+            // center = this.bounds.constrain_point(center);
+        }
+
+        this.camera.center.set(center);
+
+        if (this.callback) {
+            this.callback();
+        }
+    }
+
+    #handle_zoom(delta: number, mouse?: Vec2) {
         this.camera.zoom *= Math.exp(delta * -zoom_speed);
         this.camera.zoom = Math.min(
             this.max_zoom,
             Math.max(this.camera.zoom, this.min_zoom),
         );
 
-        const new_world = this.camera.screen_to_world(mouse);
-        const center_delta = mouse_world.sub(new_world);
+        if (mouse != null) {
+            const mouse_world = this.camera.screen_to_world(mouse);
+            const new_world = this.camera.screen_to_world(mouse);
+            const center_delta = mouse_world.sub(new_world);
 
-        this.camera.translate(center_delta);
+            this.camera.translate(center_delta);
+        }
 
         if (this.callback) {
             this.callback();
