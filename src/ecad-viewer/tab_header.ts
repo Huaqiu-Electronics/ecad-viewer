@@ -24,7 +24,7 @@ const is_kicad = (name: string) =>
 export class TabHeaderElement extends KCUIElement {
     #elements: Map<Sections, Map<TabKind, HTMLElement>>;
     #current_tab?: TabKind;
-    #open_file_btn = html` <tab-button
+    #open_file_btn = html`<tab-button
         icon="svg:open_file"
         class="end"
         title="Open local file">
@@ -63,64 +63,51 @@ export class TabHeaderElement extends KCUIElement {
                 display: flex;
                 height: 100%;
                 width: 100%;
-
                 background-color: transparent;
                 overflow: hidden;
             }
-
             .bar-section {
                 height: 100%;
                 flex: 1;
             }
-
-            .beginning {
-                background-color: var(--panel-bg);
-                display: flex;
-                align-items: left;
-                justify-content: left;
-            }
-
-            .middle {
-                background-color: var(--panel-bg);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
+            .beginning,
+            .middle,
             .end {
                 background-color: var(--panel-bg);
                 display: flex;
-                align-items: right;
+                align-items: center;
+            }
+            .beginning,
+            .middle {
+                justify-content: left;
+            }
+            .middle {
+                justify-content: center;
+            }
+            .end {
                 justify-content: right;
             }
-
             .menu {
                 display: none;
             }
-
             .menu.active {
                 display: block;
             }
-
             tab-button.tab {
                 height: 100%;
                 border: none;
                 width: 48px;
             }
-
             tab-button.beginning {
                 height: 100%;
                 min-width: 120px;
                 display: none;
             }
-
             tab-button.end {
                 height: 100%;
                 width: 32px;
             }
-
             tab-button.beginning.active {
-                height: 100%;
                 display: block;
             }
         `,
@@ -129,26 +116,27 @@ export class TabHeaderElement extends KCUIElement {
     protected get sch_button() {
         return this.#elements.get(Sections.beginning)!.get(TabKind.sch)!;
     }
+
     make_ecad_view = () =>
         html`<ecad-viewer cli_server_addr="${this.option.cli_server_addr}">
         </ecad-viewer>`;
 
     async load_zip_content(input_container: InputContainer, file: Blob) {
-        // All files have been read successfully
         const parent = input_container.target.parentElement;
+        if (!parent) throw new Error("Parent element not found");
+
         const ecad_view = this.make_ecad_view();
         const designs = await ZipUtils.unzipFile(file);
 
         Object.entries(designs).forEach(([name, content]) => {
-            if (is_kicad(name))
+            if (is_kicad(name)) {
                 ecad_view.appendChild(
                     html`<ecad-blob
                         filename="${name}"
                         content="${content}"></ecad-blob>`,
                 );
+            }
         });
-
-        if (!parent) throw new Error("Parent element not found");
 
         parent.removeChild(input_container.target);
         parent.appendChild(ecad_view);
@@ -158,115 +146,122 @@ export class TabHeaderElement extends KCUIElement {
         this.#open_file_btn.addEventListener("click", () => {
             input_container.input.click();
         });
+
         input_container.input.addEventListener("change", async (e) => {
-            const readFiles = () => {
-                const readFile = (file: any) => {
-                    return new Promise((resolve, reject) => {
-                        const reader = new FileReader();
+            const files = (e.target as HTMLInputElement).files;
+            if (!files) return;
 
-                        reader.onload = function (e) {
-                            const content = e.target!.result;
-                            resolve({
-                                name: file.name,
-                                content: content,
-                            });
-                        };
+            const designFilesToConvert: File[] = [];
+            const zipFiles: File[] = [];
 
-                        reader.onerror = function (error) {
-                            reject(error);
-                        };
-
-                        reader.readAsText(file);
-                    });
-                };
-                const files = (e.target! as any).files;
-
-                const design_to_converted: any[] = [];
-
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    if (file.name.endsWith(".zip"))
-                        return this.load_zip_content(input_container, file);
-
-                    if (!is_ad(file.name)) continue;
-                    design_to_converted.push(file);
+            Array.from(files).forEach((file) => {
+                if (file.name.endsWith(".zip")) {
+                    zipFiles.push(file);
+                } else if (is_ad(file.name)) {
+                    designFilesToConvert.push(file);
                 }
+            });
 
-                if (design_to_converted.length && this.option.cli_server_addr) {
-                    this.dispatchEvent(new OpenBarrierEvent());
-                    //  Post the files to the server
-                    const form_data = new FormData();
-                    for (const form_file of design_to_converted) {
-                        form_data.append("files", form_file);
-                        form_data.append("file_names", form_file.name);
-                    }
+            if (zipFiles.length)
+                return this.load_zip_content(input_container, zipFiles[0]!);
 
-                    try {
-                        fetch(this.option.cli_server_addr, {
-                            method: "POST",
-                            body: form_data,
-                        }).then((response) => {
-                            if (!response.ok) {
-                                throw new Error(
-                                    `HTTP error! status: ${response.status}`,
-                                );
-                            }
-                            response.json().then((j) => {
-                                const parent =
-                                    input_container.target.parentElement;
-
-                                const ecad_view = this.make_ecad_view();
-
-                                (j["files"] as string[]).forEach((url) => {
-                                    ecad_view.appendChild(
-                                        html`<ecad-source
-                                            src="${url}"></ecad-source>`,
-                                    );
-                                });
-                                if (parent) {
-                                    parent.removeChild(input_container.target);
-                                    parent.appendChild(ecad_view);
-                                }
-                            });
-                        });
-                    } catch (e) {
-                        console.log(e);
-                    }
-                    return;
-                }
-
-                // Create an array of promises for each file reading operation
-                const promises = Array.from(files).map((file) =>
-                    readFile(file),
+            if (designFilesToConvert.length && this.option.cli_server_addr) {
+                this.dispatchEvent(new OpenBarrierEvent());
+                await this.uploadDesignFiles(
+                    designFilesToConvert,
+                    input_container,
                 );
-
-                // Use Promise.all to wait for all promises to resolve
-                Promise.all(promises)
-                    .then((results) => {
-                        // All files have been read successfully
-                        const parent = input_container.target.parentElement;
-                        const ecad_view = this.make_ecad_view();
-                        (
-                            results as [{ name: string; content: string }]
-                        ).forEach(({ name, content }) => {
-                            if (is_kicad(name))
-                                ecad_view.appendChild(
-                                    html`<ecad-blob
-                                        filename="${name}"
-                                        content="${content}"></ecad-blob>`,
-                                );
-                        });
-                        if (parent) {
-                            parent.removeChild(input_container.target);
-                            parent.appendChild(ecad_view);
-                        }
-                    })
-                    .catch((error) => {
-                        console.error("Error reading files:", error);
-                    });
-            };
-            readFiles();
+            } else {
+                await this.readAndDisplayFiles(files, input_container);
+            }
         });
+    }
+
+    private async uploadDesignFiles(
+        files: File[],
+        input_container: InputContainer,
+    ) {
+        const formData = new FormData();
+        files.forEach((file) => {
+            formData.append("files", file);
+            formData.append("file_names", file.name);
+        });
+
+        if (!this.option.cli_server_addr)
+            throw new Error("CLI server address not found");
+
+        try {
+            const response = await fetch(this.option.cli_server_addr, {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const parent = input_container.target.parentElement;
+            const ecad_view = this.make_ecad_view();
+
+            data["files"].forEach((url: string) => {
+                ecad_view.appendChild(
+                    html`<ecad-source src="${url}"></ecad-source>`,
+                );
+            });
+
+            if (parent) {
+                parent.removeChild(input_container.target);
+                parent.appendChild(ecad_view);
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    private readFile(file: File): Promise<{ name: string; content: string }> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) =>
+                resolve({
+                    name: file.name,
+                    content: e.target!.result as string,
+                });
+            reader.onerror = (error) => reject(error);
+            reader.readAsText(file);
+        });
+    }
+
+    private async readAndDisplayFiles(
+        files: FileList,
+        input_container: InputContainer,
+    ) {
+        const readFilePromises = Array.from(files).map((file) =>
+            this.readFile(file),
+        );
+
+        try {
+            const results = await Promise.all(readFilePromises);
+            const parent = input_container.target.parentElement;
+            const ecad_view = this.make_ecad_view();
+
+            results.forEach(({ name, content }) => {
+                if (is_kicad(name)) {
+                    ecad_view.appendChild(
+                        html`<ecad-blob
+                            filename="${name}"
+                            content="${content}"></ecad-blob>`,
+                    );
+                }
+            });
+
+            if (parent) {
+                parent.removeChild(input_container.target);
+                parent.appendChild(ecad_view);
+            }
+        } catch (error) {
+            console.error("Error reading files:", error);
+        }
     }
 
     private createSection(sectionClass: Sections): HTMLDivElement {
@@ -274,7 +269,7 @@ export class TabHeaderElement extends KCUIElement {
         section.classList.add("bar-section", sectionClass);
 
         const make_middle = (kind: TabKind) => {
-            const btn = html` <tab-button>${kind}</tab-button> ` as HTMLElement;
+            const btn = html`<tab-button>${kind}</tab-button>` as HTMLElement;
             btn.classList.add("tab");
             this.#elements.get(sectionClass)?.set(kind, btn);
             return btn;
@@ -288,9 +283,9 @@ export class TabHeaderElement extends KCUIElement {
                 [TabKind.bom]: "svg:layers",
             };
 
-            const icon = html` <tab-button icon="${icon_map[kind]}">
-                ${kind}
-            </tab-button>` as HTMLElement;
+            const icon = html`<tab-button icon="${icon_map[kind]}"
+                >${kind}</tab-button
+            >` as HTMLElement;
             icon.classList.add("beginning");
             this.#elements.get(sectionClass)?.set(kind, icon);
             return icon;
@@ -298,47 +293,37 @@ export class TabHeaderElement extends KCUIElement {
 
         switch (sectionClass) {
             case Sections.beginning:
-                {
-                    if (this.option.has_pcb)
-                        section.appendChild(make_beginning(TabKind.pcb));
-                    if (this.option.has_sch)
-                        section.appendChild(make_beginning(TabKind.sch));
-                    if (this.option.has_3d)
-                        section.appendChild(make_beginning(TabKind.step));
-                    if (this.option.has_bom)
-                        section.appendChild(make_beginning(TabKind.bom));
-                }
+                if (this.option.has_pcb)
+                    section.appendChild(make_beginning(TabKind.pcb));
+                if (this.option.has_sch)
+                    section.appendChild(make_beginning(TabKind.sch));
+                if (this.option.has_3d)
+                    section.appendChild(make_beginning(TabKind.step));
+                if (this.option.has_bom)
+                    section.appendChild(make_beginning(TabKind.bom));
                 break;
             case Sections.middle:
-                {
-                    if (this.option.has_sch)
-                        section.appendChild(make_middle(TabKind.sch));
-                    if (this.option.has_pcb)
-                        section.appendChild(make_middle(TabKind.pcb));
-                    if (this.option.has_3d)
-                        section.appendChild(make_middle(TabKind.step));
-                    if (this.option.has_bom)
-                        section.appendChild(make_middle(TabKind.bom));
-                }
+                if (this.option.has_sch)
+                    section.appendChild(make_middle(TabKind.sch));
+                if (this.option.has_pcb)
+                    section.appendChild(make_middle(TabKind.pcb));
+                if (this.option.has_3d)
+                    section.appendChild(make_middle(TabKind.step));
+                if (this.option.has_bom)
+                    section.appendChild(make_middle(TabKind.bom));
                 break;
             case Sections.end:
-                {
-                    const download = html` <tab-button
-                        title="Download"
-                        icon="svg:download"
-                        class="end">
-                    </tab-button>` as HTMLElement;
-
-                    const full_screen = html` <tab-button
-                        title="Switch full screen mode"
-                        icon="svg:full_screen"
-                        class="end">
-                    </tab-button>` as HTMLElement;
-
-                    section.appendChild(this.#open_file_btn);
-                    section.appendChild(download);
-                    section.appendChild(full_screen);
-                }
+                const download = html`<tab-button
+                    title="Download"
+                    icon="svg:download"
+                    class="end"></tab-button>` as HTMLElement;
+                const full_screen = html`<tab-button
+                    title="Switch full screen mode"
+                    icon="svg:full_screen"
+                    class="end"></tab-button>` as HTMLElement;
+                section.appendChild(this.#open_file_btn);
+                section.appendChild(download);
+                section.appendChild(full_screen);
                 break;
         }
 
@@ -365,20 +350,14 @@ export class TabHeaderElement extends KCUIElement {
         for (const [section, elements] of this.#elements) {
             switch (section) {
                 case Sections.beginning:
-                    {
-                        for (const [k, v] of elements) {
-                            if (k === kind) v.classList.add("active");
-                            else v.classList.remove("active");
-                        }
-                    }
+                    elements.forEach((element, k) => {
+                        element.classList.toggle("active", k === kind);
+                    });
                     break;
                 case Sections.middle:
-                    {
-                        for (const [k, v] of elements) {
-                            if (k === kind) v.classList.add("checked");
-                            else v.classList.remove("checked");
-                        }
-                    }
+                    elements.forEach((element, k) => {
+                        element.classList.toggle("checked", k === kind);
+                    });
                     break;
             }
         }
@@ -393,12 +372,9 @@ export class TabHeaderElement extends KCUIElement {
     }
 
     on_menu_closed() {
-        const mene = this.#elements.get(Sections.beginning);
-        if (mene) {
-            for (const [, v] of mene) {
-                v.classList.remove("active");
-            }
-        }
+        this.#elements.get(Sections.beginning)?.forEach((v) => {
+            v.classList.remove("active");
+        });
     }
 
     override initialContentCallback(): void {
@@ -407,22 +383,19 @@ export class TabHeaderElement extends KCUIElement {
             section.forEach((element, kind) => {
                 switch (sectionClass) {
                     case Sections.beginning:
-                        {
-                            element.addEventListener("click", () => {
-                                for (const [, v] of section) {
-                                    v.classList.remove("checked");
-                                }
-                                element.classList.add("checked");
-                                this.dispatchEvent(new TabMenuClickEvent(kind));
-                            });
-                        }
+                        element.addEventListener("click", () => {
+                            section.forEach((v) =>
+                                v.classList.remove("checked"),
+                            );
+                            element.classList.add("checked");
+                            this.dispatchEvent(new TabMenuClickEvent(kind));
+                        });
                         break;
-                    case Sections.middle: {
+                    case Sections.middle:
                         element.addEventListener("click", () => {
                             this.activateTab(kind);
                         });
                         break;
-                    }
                 }
             });
         });
@@ -434,14 +407,12 @@ export class TabHeaderElement extends KCUIElement {
 
     override render() {
         this.#elements = new Map();
-        // Create the container for the header
         const container = html`<div class="horizontal-bar"></div>`;
         for (const v of Object.values(Sections)) {
             this.#elements.set(v, new Map());
             container.appendChild(this.createSection(v));
         }
-
-        return html` ${container} `;
+        return html`${container}`;
     }
 }
 
