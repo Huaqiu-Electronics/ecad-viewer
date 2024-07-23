@@ -125,21 +125,21 @@ export class TabHeaderElement extends KCUIElement {
         const parent = input_container.target.parentElement;
         if (!parent) throw new Error("Parent element not found");
 
-        const ecad_view = this.make_ecad_view();
-        const designs = await ZipUtils.unzipFile(file);
+        const files = await ZipUtils.unzipFile(file);
+        const designFilesToConvert: File[] = [];
 
-        Object.entries(designs).forEach(([name, content]) => {
-            if (is_kicad(name)) {
-                ecad_view.appendChild(
-                    html`<ecad-blob
-                        filename="${name}"
-                        content="${content}"></ecad-blob>`,
-                );
+        Array.from(files).forEach((file) => {
+            if (is_ad(file.name)) {
+                designFilesToConvert.push(file);
             }
         });
 
-        parent.removeChild(input_container.target);
-        parent.appendChild(ecad_view);
+        if (designFilesToConvert.length && this.option.cli_server_addr) {
+            this.dispatchEvent(new OpenBarrierEvent());
+            await this.uploadDesignFiles(designFilesToConvert, input_container);
+        } else {
+            await this.readAndDisplayFiles(files, input_container);
+        }
     }
 
     public set input_container(input_container: InputContainer) {
@@ -233,7 +233,7 @@ export class TabHeaderElement extends KCUIElement {
     }
 
     private async readAndDisplayFiles(
-        files: FileList,
+        files: File[] | FileList,
         input_container: InputContainer,
     ) {
         const readFilePromises = Array.from(files).map((file) =>
