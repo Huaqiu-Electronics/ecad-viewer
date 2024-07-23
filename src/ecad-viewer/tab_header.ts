@@ -1,11 +1,6 @@
-/*
-    Copyright (c) 2023 Alethea Katherine Flowers.
-    Published under the standard MIT License.
-    Full text available at: https://opensource.org/licenses/MIT
-*/
-
 import { css, html } from "../base/web-components";
 import { KCUIElement } from "../kc-ui/element";
+import { ZipUtils } from "../utils/zip_utils";
 import {
     TabMenuClickEvent,
     TabActivateEvent,
@@ -134,17 +129,36 @@ export class TabHeaderElement extends KCUIElement {
     protected get sch_button() {
         return this.#elements.get(Sections.beginning)!.get(TabKind.sch)!;
     }
+    make_ecad_view = () =>
+        html`<ecad-viewer cli_server_addr="${this.option.cli_server_addr}">
+        </ecad-viewer>`;
+
+    async load_zip_content(input_container: InputContainer, file: Blob) {
+        // All files have been read successfully
+        const parent = input_container.target.parentElement;
+        const ecad_view = this.make_ecad_view();
+        const designs = await ZipUtils.unzipFile(file);
+
+        Object.entries(designs).forEach(([name, content]) => {
+            if (is_kicad(name))
+                ecad_view.appendChild(
+                    html`<ecad-blob
+                        filename="${name}"
+                        content="${content}"></ecad-blob>`,
+                );
+        });
+
+        if (!parent) throw new Error("Parent element not found");
+
+        parent.removeChild(input_container.target);
+        parent.appendChild(ecad_view);
+    }
 
     public set input_container(input_container: InputContainer) {
         this.#open_file_btn.addEventListener("click", () => {
             input_container.input.click();
         });
-        input_container.input.addEventListener("change", (e) => {
-            const make_ecad_view = () =>
-                html`<ecad-viewer
-                    cli_server_addr="${this.option.cli_server_addr}">
-                </ecad-viewer>`;
-
+        input_container.input.addEventListener("change", async (e) => {
             const readFiles = () => {
                 const readFile = (file: any) => {
                     return new Promise((resolve, reject) => {
@@ -171,6 +185,9 @@ export class TabHeaderElement extends KCUIElement {
 
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
+                    if (file.name.endsWith(".zip"))
+                        return this.load_zip_content(input_container, file);
+
                     if (!is_ad(file.name)) continue;
                     design_to_converted.push(file);
                 }
@@ -198,7 +215,7 @@ export class TabHeaderElement extends KCUIElement {
                                 const parent =
                                     input_container.target.parentElement;
 
-                                const ecad_view = make_ecad_view();
+                                const ecad_view = this.make_ecad_view();
 
                                 (j["files"] as string[]).forEach((url) => {
                                     ecad_view.appendChild(
@@ -217,37 +234,36 @@ export class TabHeaderElement extends KCUIElement {
                     }
                     return;
                 }
-                {
-                    // Create an array of promises for each file reading operation
-                    const promises = Array.from(files).map((file) =>
-                        readFile(file),
-                    );
 
-                    // Use Promise.all to wait for all promises to resolve
-                    Promise.all(promises)
-                        .then((results) => {
-                            // All files have been read successfully
-                            const parent = input_container.target.parentElement;
-                            const ecad_view = make_ecad_view();
-                            (
-                                results as [{ name: string; content: string }]
-                            ).forEach(({ name, content }) => {
-                                if (is_kicad(name))
-                                    ecad_view.appendChild(
-                                        html`<ecad-blob
-                                            filename="${name}"
-                                            content="${content}"></ecad-blob>`,
-                                    );
-                            });
-                            if (parent) {
-                                parent.removeChild(input_container.target);
-                                parent.appendChild(ecad_view);
-                            }
-                        })
-                        .catch((error) => {
-                            console.error("Error reading files:", error);
+                // Create an array of promises for each file reading operation
+                const promises = Array.from(files).map((file) =>
+                    readFile(file),
+                );
+
+                // Use Promise.all to wait for all promises to resolve
+                Promise.all(promises)
+                    .then((results) => {
+                        // All files have been read successfully
+                        const parent = input_container.target.parentElement;
+                        const ecad_view = this.make_ecad_view();
+                        (
+                            results as [{ name: string; content: string }]
+                        ).forEach(({ name, content }) => {
+                            if (is_kicad(name))
+                                ecad_view.appendChild(
+                                    html`<ecad-blob
+                                        filename="${name}"
+                                        content="${content}"></ecad-blob>`,
+                                );
                         });
-                }
+                        if (parent) {
+                            parent.removeChild(input_container.target);
+                            parent.appendChild(ecad_view);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error reading files:", error);
+                    });
             };
             readFiles();
         });
