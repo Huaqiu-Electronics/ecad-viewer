@@ -18,6 +18,7 @@ While remaining a reusable component, ECAD-Viewer offers the following features 
 
     -   In-depth secondary development based on KiCad to support Altium designs, in addition to KiCad
     -   Support loading projects from ZIP files
+    -   Maintain support for the latest KiCad file formats
 
 -   PCB:
 
