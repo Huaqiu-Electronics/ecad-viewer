@@ -14,53 +14,55 @@ We are open to introducing ready-made frameworks, unlike the original, which ins
 
 While remaining a reusable component, ECAD-Viewer offers the following features out of the box, combining the most advanced and leading-edge technologies, some of which were not intended in the original:
 
--   General:
+-   **General Features:**
 
-    -   In-depth secondary development based on KiCad to support Altium designs, in addition to KiCad
-    -   Support loading projects from ZIP files
-    -   Maintain support for the latest KiCad file formats
+    -   In-depth secondary development based on KiCad to support the import of Altium designs and the generation of 3D models from `kicad_pcb`.
+    -   Support for loading projects from ZIP files.
+    -   Maintain support for the latest KiCad file formats.
 
--   PCB:
+-   **PCB:**
 
-    -   Verification of nets in the PCB
-    -   Set the transparency of the pad to the minimum, only the color changes, it does not disappear
-    -   Can select and display properties of VIA and ZONE
-    -   When a Net/Footprint is selected, the rest of the area is grayed out
-    -   Selection priority: Track -> Pad/Drill -> Footprint -> Zone. When overlapping, a popup menu is provided for selection
-    -   Added a switch to highlight the track when hovering
-    -   Footprint text position and angle disorder in PCB Viewer
-    -   KiCad AD importer incorrectly imports Description and FootPrint information of PCB package properties
-    -   Set the transparency of through-hole type pads
-    -   Fab Layer displays FootPrint Text
-    -   PCB Viewer displays FootPrint Properties, and a switch for displaying Footprint Properties
-    -   Do not display the pad when the layer where the pad is located is in a hidden state
-    -   Display track width and color
+    -   Option to select and display properties of VIAs and ZONES.
+    -   Other areas become grayed out when selecting a net/component package.
+    -   Selection priority: Track -> Pad/Drill -> Footprint -> Zone. A pop-up menu is provided for selection when overlaps occur.
+    -   Interface to set the transparency of through-hole type pads.
+    -   Fab Layer displays component package text.
+    -   Single-click to select components, double-click to select nets.
+    -   Wires on the selected net are rendered according to the preset color of the copper layer they are on.
+    -   Display properties of wire width and color.
 
--   SCH:
+-   **SCH:**
 
-    -   View symbol and subgraph properties
-    -   Click to jump between same-name labels
-    -   Add hierarchical_labels
-    -   Fix the drawing sheet for SCH converted from AD
-    -   Schematic preview, and switch schematic through the preview image
-    -   Jump to the specified schematic, focus and select the specified symbol
-    -   Click to display properties of Wire, Bus, Pin, Symbol, and Label
-    -   Highlight Wire, Bus, Pin, Symbol, and Label when hovering
+    -   Inspection of symbol and sub-sheet properties.
+    -   Navigation between labels with the same name through clicking.
+        Addition of hierarchical_labels.
+        Fixes for SCH drawings converted from AD.
+        Schematic preview with the ability to switch schematics via preview images.
+        Jumping to a specific schematic, focusing, and selecting a specific symbol.
+        Display of properties for wires, buses, pins, symbols, and labels upon clicking.
+        Highlighting of wires, buses, pins, symbols, and labels on hover.
 
--   3D:
+-   **3D:**
 
-    -   Generation of a 3D model from the PCB, enabling smooth viewing powered by Three.js and gltfpack
+    Integration with kicad-cli-docker for generating 3D models from PCB, with priority given to using package 3D models in the project's root directory.
+    Use of gltfpack for model compression to save bandwidth and improve rendering efficiency.
+    Integration of Three.js for displaying 3D models.
 
--   BOM:
+-   **BOM:**
 
-    -   Generation of a BOM (Bill of Materials) from the schematic
-    -   Extract BOM from schematics
-    -   Trying to extract BOM from PCB if failed from SCH
+    Generation of a Bill of Materials (BOM) from the schematic.
+    Extraction of BOM from the schematic.
+    Priority given to extracting BOM from the schematic; if no schematic is available, extract from the PCB.
 
--   Numerous bug fixes during development and feedback:
+-   **Bug Fixes During Development and Feedback:**
 
-    -   Incorrect sheet pin position in SCH
-    -   Resolve ALTIUM_VALUE in SCH converted from AD
+    Incorrect pin positions in SCH sheets.
+    Parsing of ALTIUM_VALUE attributes in SCH drawings converted from AD.
+    Disorder of package information in PCB designs imported from AD.
+    Even with minimum pad transparency, the color only lightens and does not completely disappear.
+    Introduction of a toggle for highlighting wires on hover.
+    Disarray in the positioning and angle of component package text in PCB.
+    Non-display of pads when the layer they are on is hidden.
 
 ![ECAD Viewer](docs/ecad-viewer-preview.gif)
 
