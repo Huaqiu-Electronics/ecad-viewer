@@ -4,17 +4,38 @@
     English |<a href="README_zh.md">中文<a/>
 </p>
 
-View your electronic designs interactively in the browser.
+Interactive online electronic designs viewer based on [kicanvas](https://github.com/theacodes/kicanvas) .
 
-Live demo: https://www.eda.cn/ecad-viewer
+Live demo: https://www.eda.cn/ecadViewer/
 
-Features:
+## Why another repository instead of contributing back to the original project?
 
--   Support for KiCad and Altium designs
--   Inspect all the components and their properties
--   Check the nets in the PCB and check the label references in the schematic
--   Generate 3D model from PCB
--   Generate BOM from schematic
+We are open to introducing ready-made frameworks, unlike the original, which insists on being a dependency-free library.
+
+While remaining a reusable component, ECAD-Viewer offers the following features out of the box, combining the most advanced and leading-edge technologies, some of which were not intended in the original:
+
+-   General:
+
+    -   In-depth secondary development based on KiCad to support Altium designs, in addition to KiCad.
+
+-   PCB:
+
+    -   Verification of nets in the PCB and label references in the schematic.
+
+-   SCH:
+-   3D:
+
+    -   Generation of a 3D model from the PCB, enabling smooth viewing powered by Three.js and gltfpack.
+
+
+
+-   BOM:
+-   Issue fix:
+-   Inspection of all components and their properties.
+-   Generation of a BOM (Bill of Materials) from the schematic.
+-   Numerous issue fixes during dev and feedback:
+    -   issue a
+    -   issue b
 
 ![ECAD Viewer](docs/ecad-viewer-preview.gif)
 

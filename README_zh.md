@@ -6,7 +6,7 @@
 
 在浏览器中以交互地方式查看您的电子设计。
 
-在线演示：https://www.eda.cn/ecad-viewer
+在线演示：https://www.eda.cn/ecadViewer/
 
 特色：
 
