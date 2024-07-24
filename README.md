@@ -16,26 +16,50 @@ While remaining a reusable component, ECAD-Viewer offers the following features 
 
 -   General:
 
-    -   In-depth secondary development based on KiCad to support Altium designs, in addition to KiCad.
+    -   In-depth secondary development based on KiCad to support Altium designs, in addition to KiCad
+    -   Support loading projects from ZIP files
 
 -   PCB:
 
-    -   Verification of nets in the PCB and label references in the schematic.
+    -   Verification of nets in the PCB
+    -   Set the transparency of the pad to the minimum, only the color changes, it does not disappear
+    -   Can select and display properties of VIA and ZONE
+    -   When a Net/Footprint is selected, the rest of the area is grayed out
+    -   Selection priority: Track -> Pad/Drill -> Footprint -> Zone. When overlapping, a popup menu is provided for selection
+    -   Added a switch to highlight the track when hovering
+    -   Footprint text position and angle disorder in PCB Viewer
+    -   KiCad AD importer incorrectly imports Description and FootPrint information of PCB package properties
+    -   Set the transparency of through-hole type pads
+    -   Fab Layer displays FootPrint Text
+    -   PCB Viewer displays FootPrint Properties, and a switch for displaying Footprint Properties
+    -   Do not display the pad when the layer where the pad is located is in a hidden state
+    -   Display track width and color
 
 -   SCH:
+
+    -   View symbol and subgraph properties
+    -   Click to jump between same-name labels
+    -   Add hierarchical_labels
+    -   Fix the drawing sheet for SCH converted from AD
+    -   Schematic preview, and switch schematic through the preview image
+    -   Jump to the specified schematic, focus and select the specified symbol
+    -   Click to display properties of Wire, Bus, Pin, Symbol, and Label
+    -   Highlight Wire, Bus, Pin, Symbol, and Label when hovering
+
 -   3D:
 
-    -   Generation of a 3D model from the PCB, enabling smooth viewing powered by Three.js and gltfpack.
-
-
+    -   Generation of a 3D model from the PCB, enabling smooth viewing powered by Three.js and gltfpack
 
 -   BOM:
--   Issue fix:
--   Inspection of all components and their properties.
--   Generation of a BOM (Bill of Materials) from the schematic.
--   Numerous issue fixes during dev and feedback:
-    -   issue a
-    -   issue b
+
+    -   Generation of a BOM (Bill of Materials) from the schematic
+    -   Extract BOM from schematics
+    -   Trying to extract BOM from PCB if failed from SCH
+
+-   Numerous bug fixes during development and feedback:
+
+    -   Incorrect sheet pin position in SCH
+    -   Resolve ALTIUM_VALUE in SCH converted from AD
 
 ![ECAD Viewer](docs/ecad-viewer-preview.gif)
 
