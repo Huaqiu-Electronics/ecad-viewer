@@ -35,34 +35,34 @@ While remaining a reusable component, ECAD-Viewer offers the following features 
 
     -   Inspection of symbol and sub-sheet properties.
     -   Navigation between labels with the same name through clicking.
-        Addition of hierarchical_labels.
-        Fixes for SCH drawings converted from AD.
-        Schematic preview with the ability to switch schematics via preview images.
-        Jumping to a specific schematic, focusing, and selecting a specific symbol.
-        Display of properties for wires, buses, pins, symbols, and labels upon clicking.
-        Highlighting of wires, buses, pins, symbols, and labels on hover.
+    -   Addition of hierarchical_labels.
+    -   Fixes for SCH drawings converted from AD.
+    -   Schematic preview with the ability to switch schematics via preview images.
+    -   Jumping to a specific schematic, focusing, and selecting a specific symbol.
+    -   Display of properties for wires, buses, pins, symbols, and labels upon clicking.
+    -   Highlighting of wires, buses, pins, symbols, and labels on hover.
 
 -   **3D:**
 
-    Integration with kicad-cli-docker for generating 3D models from PCB, with priority given to using package 3D models in the project's root directory.
-    Use of gltfpack for model compression to save bandwidth and improve rendering efficiency.
-    Integration of Three.js for displaying 3D models.
+    -   Integration with kicad-cli-docker for generating 3D models from PCB, with priority given to using package 3D models in the project's root directory.
+    -   Use of gltfpack for model compression to save bandwidth and improve rendering efficiency.
+    -   Integration of Three.js for displaying 3D models.
 
 -   **BOM:**
 
-    Generation of a Bill of Materials (BOM) from the schematic.
-    Extraction of BOM from the schematic.
-    Priority given to extracting BOM from the schematic; if no schematic is available, extract from the PCB.
+    -   Generation of a Bill of Materials (BOM) from the schematic.
+    -   Extraction of BOM from the schematic.
+    -   Priority given to extracting BOM from the schematic; if no schematic is available, extract from the PCB.
 
 -   **Bug Fixes During Development and Feedback:**
 
-    Incorrect pin positions in SCH sheets.
-    Parsing of ALTIUM_VALUE attributes in SCH drawings converted from AD.
-    Disorder of package information in PCB designs imported from AD.
-    Even with minimum pad transparency, the color only lightens and does not completely disappear.
-    Introduction of a toggle for highlighting wires on hover.
-    Disarray in the positioning and angle of component package text in PCB.
-    Non-display of pads when the layer they are on is hidden.
+    -   Incorrect pin positions in SCH sheets.
+    -   Parsing of ALTIUM_VALUE attributes in SCH drawings converted from AD.
+    -   Disorder of package information in PCB designs imported from AD.
+    -   Even with minimum pad transparency, the color only lightens and does not completely disappear.
+    -   Introduction of a toggle for highlighting wires on hover.
+    -   Disarray in the positioning and angle of component package text in PCB.
+    -   Non-display of pads when the layer they are on is hidden.
 
 ![ECAD Viewer](docs/ecad-viewer-preview.gif)
 
