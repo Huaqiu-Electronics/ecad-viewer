@@ -5,3 +5,4 @@ coverage/
 esbuild-meta.json
 ecad_viewer
 *.code-workspace
+defects
