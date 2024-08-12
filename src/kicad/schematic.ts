@@ -1175,7 +1175,6 @@ export class PinAlternate {
 
 export class SchematicSymbol {
     uuid: string;
-    id: string;
     lib_name?: string;
     lib_id: string;
     at: At;
