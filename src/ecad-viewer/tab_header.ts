@@ -21,6 +21,8 @@ const is_ad = (name: string) =>
 const is_kicad = (name: string) =>
     name.endsWith(".kicad_pcb") || name.endsWith(".kicad_sch");
 
+const is_3d_model = (name: string) => name.endsWith(".glb");
+
 export class TabHeaderElement extends KCUIElement {
     #elements: Map<Sections, Map<TabKind, HTMLElement>>;
     #current_tab?: TabKind;
@@ -245,12 +247,24 @@ export class TabHeaderElement extends KCUIElement {
             const parent = input_container.target.parentElement;
             const ecad_view = this.make_ecad_view();
 
+            let idx = -1;
             results.forEach(({ name, content }) => {
+                idx = idx + 1;
+                const names = name.split("/");
+                name = names[names.length - 1]!;
+
                 if (is_kicad(name)) {
                     ecad_view.appendChild(
                         html`<ecad-blob
                             filename="${name}"
                             content="${content}"></ecad-blob>`,
+                    );
+                } else if (is_3d_model(name)) {
+                    const it = URL.createObjectURL(files[idx]!);
+                    ecad_view.appendChild(
+                        html`<ecad-3d-source
+                            src="
+                           ${it}"></ecad-3d-source>`,
                     );
                 }
             });
