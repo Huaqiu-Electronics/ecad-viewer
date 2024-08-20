@@ -260,6 +260,7 @@ export class TabHeaderElement extends KCUIElement {
                             content="${content}"></ecad-blob>`,
                     );
                 } else if (is_3d_model(name)) {
+                    // TODO call revokeObjectURL
                     const it = URL.createObjectURL(files[idx]!);
                     ecad_view.appendChild(
                         html`<ecad-3d-source
