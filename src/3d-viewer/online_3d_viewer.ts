@@ -77,7 +77,9 @@ export class Online3dViewer extends KCUIElement {
     }
 
     async #load_src(url: string) {
-        this.#viewer_container.load(url, new Map());
+        this.#viewer_container.load(url, new Map()).then(() => {
+            URL.revokeObjectURL(url);
+        });
         this.#show_loader(false);
         this.on_show();
     }
