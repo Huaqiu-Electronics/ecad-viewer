@@ -41,6 +41,7 @@ export class Project extends EventTarget implements IDisposable {
     #label_name_refs = new Map<string, NetRef[]>();
     #net_item_refs = new Map<string, NetRef>();
     #designator_refs = new Map<string, string>();
+    #project_name: string;
 
     find_labels_by_name(name: string) {
         return this.#label_name_refs.get(name);
@@ -70,6 +71,8 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     get project_name() {
+        if (this.#project_name) return this.#project_name;
+
         const fn =
             (this.#pcb.length
                 ? this.#pcb[0]?.filename
@@ -114,6 +117,11 @@ export class Project extends EventTarget implements IDisposable {
                 promises.push(this.#load_blob(KicadPCB, blob));
             } else if (blob.filename.endsWith(".kicad_sch")) {
                 promises.push(this.#load_blob(KicadSch, blob));
+            } else if (blob.filename.endsWith(".kicad_pro")) {
+                this.#project_name = blob.filename.slice(
+                    0,
+                    blob.filename.length - ".kicad_pro".length,
+                );
             }
         }
 
@@ -319,7 +327,13 @@ export class Project extends EventTarget implements IDisposable {
     public get_first_page(kind: AssertType) {
         switch (kind) {
             case AssertType.SCH:
-                return this.root_schematic_page?.document ?? first(this.#sch);
+                return (
+                    (this.#files_by_name.get(
+                        `${this.#project_name}.kicad_sch`,
+                    ) as KicadSch) ??
+                    this.root_schematic_page?.document ??
+                    first(this.#sch)
+                );
             case AssertType.PCB:
                 return first(this.#pcb);
         }

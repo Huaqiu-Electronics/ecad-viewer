@@ -19,7 +19,9 @@ const is_ad = (name: string) =>
     name.endsWith(".SchDoc") || name.endsWith(".PcbDoc");
 
 const is_kicad = (name: string) =>
-    name.endsWith(".kicad_pcb") || name.endsWith(".kicad_sch");
+    name.endsWith(".kicad_pcb") ||
+    name.endsWith(".kicad_sch") ||
+    name.endsWith(".kicad_pro");
 
 const is_3d_model = (name: string) => name.endsWith(".glb");
 
