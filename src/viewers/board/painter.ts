@@ -95,11 +95,14 @@ class PolyPainter extends BoardItemPainter {
         if (this.filter_net) color = Color.dark_gray;
 
         if (p.width) {
-            this.gfx.line(new Polyline([...p.pts, p.pts[0]!], p.width, color));
+            this.gfx.line(
+                // TODO paint the arc
+                new Polyline([...p.points, p.points[0]!], p.width, color),
+            );
         }
 
         if (p.fill && p.fill != "none") {
-            this.gfx.polygon(new Polygon(p.pts, color));
+            this.gfx.polygon(new Polygon(p.points, color));
         }
     }
 }
