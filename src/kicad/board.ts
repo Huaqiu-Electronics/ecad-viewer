@@ -1365,10 +1365,14 @@ export class FpArc extends Arc {
     static override expr_start = "fp_arc";
 }
 
+export class PolyArc extends Arc {
+    static override expr_start = "arc";
+}
+
 export class Poly extends GraphicItem {
     static expr_start = "polygon";
 
-    pts: Vec2[];
+    pts: (Vec2 | Arc)[];
     width: number;
     fill: string;
     island: boolean;
@@ -1392,8 +1396,15 @@ export class Poly extends GraphicItem {
                 P.pair("layer", T.string),
                 P.atom("island"),
                 P.pair("uuid", T.string),
-
-                P.list("pts", T.vec2),
+                P.expr("pts", (obj, name, expr) => {
+                    const parsed = parse_expr(
+                        expr as List,
+                        P.start("pts"),
+                        P.collection("items", "xy", T.vec2),
+                        P.collection("items", "arc", T.item(PolyArc, this)),
+                    );
+                    return (parsed as { items: any[] })?.["items"];
+                }),
                 P.pair("width", T.number),
                 P.pair("fill", T.string),
                 P.pair("tstamp", T.string),
@@ -1404,8 +1415,22 @@ export class Poly extends GraphicItem {
         this.width ??= this.stroke?.width || 0;
     }
 
+    get points() {
+        const pts: Vec2[] = [];
+
+        for (const it of this.pts) {
+            if (it instanceof Vec2) {
+                pts.push(it);
+            } else {
+                pts.push(...[it.start, it.mid, it.end]);
+            }
+        }
+
+        return pts;
+    }
+
     override get bbox(): BBox {
-        return BBox.from_points(this.pts);
+        return BBox.from_points(this.points);
     }
 }
 
