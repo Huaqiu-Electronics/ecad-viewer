@@ -52,7 +52,8 @@ export class ZonePainter extends BoardItemPainter {
                 continue;
             }
 
-            this.gfx.polygon(new Polygon(p.pts, color));
+            // FIXME paint the arc in the polygon
+            this.gfx.polygon(new Polygon(p.points, color));
         }
     }
 }
