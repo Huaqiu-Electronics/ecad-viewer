@@ -72,6 +72,7 @@ export class KicadSch {
     paper?: Paper;
     title_block = new TitleBlock();
     lib_symbols?: LibSymbols;
+    generator_version: string;
     wires: Wire[] = [];
     buses: Bus[] = [];
     bus_entries: BusEntry[] = [];
@@ -104,6 +105,7 @@ export class KicadSch {
                 P.start("kicad_sch"),
                 P.pair("version", T.number),
                 P.pair("generator", T.string),
+                P.pair("generator_version", T.string),
                 P.pair("uuid", T.string),
                 P.item("paper", Paper),
                 P.item("title_block", TitleBlock),
@@ -135,7 +137,22 @@ export class KicadSch {
                 P.collection("drawings", "polyline", T.item(Polyline, this)),
                 P.collection("drawings", "rectangle", T.item(Rectangle, this)),
                 P.collection("drawings", "arc", T.item(Arc, this)),
-                P.collection("drawings", "text", T.item(Text, this)),
+                P.collection(
+                    "drawings",
+                    "text",
+                    T.item(Text, this, (text_val: string) => {
+                        for (const it of [
+                            "${REVISION}",
+                            "${CURRENT_DATE}",
+                            "${##}",
+                            "${#}",
+                        ])
+                            if (text_val.includes(it)) {
+                                this.is_converted_from_ad = true;
+                                break;
+                            }
+                    }),
+                ),
                 P.collection("images", "image", T.item(Image)),
                 P.item("sheet_instances", SheetInstances),
                 P.item("symbol_instances", SymbolInstances),
@@ -604,6 +621,7 @@ export class Text {
     constructor(
         expr: Parseable,
         public parent: KicadSch | LibSymbol | SchematicSymbol,
+        post_validation?: (i: string) => void,
     ) {
         /*
         (text "SWD" (at -5.08 0 900)
@@ -626,6 +644,8 @@ export class Text {
         if (this.text.endsWith("\n")) {
             this.text = this.text.slice(0, this.text.length - 1);
         }
+
+        if (post_validation) post_validation(this.text);
     }
 
     get shown_text() {

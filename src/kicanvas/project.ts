@@ -481,8 +481,7 @@ export class Project extends EventTarget implements IDisposable {
                     schematic.filename,
                 );
                 this.#pages_by_path.set(page.project_path, page);
-                // FIXME Ad hoc for ad converted
-                schematic.is_converted_from_ad = true;
+
             }
         }
 
