@@ -22,3 +22,4 @@ let { host, port } = await context.serve({
 });
 
 console.log(`[serve] listening at http://${host}:${port}`);
+console.log(`[serve] open http://127.0.0.1:${port} for localhost preview`);
