@@ -43,7 +43,7 @@ RUN sh -c 'curl -fsSL https://deb.nodesource.com/setup_20.x | bash - ' ;\
 WORKDIR /src
 
 RUN set -ex;            \
-    git clone -b kicad-cli --depth 1 https://gitlab.com/Liangtie/kicad.git; \
+    git clone -b ecad-viewer-1.0.1 --depth 1 https://gitlab.com/Liangtie/kicad.git; \
     git clone --depth 1  https://gitlab.com/kicad/libraries/kicad-symbols.git; \
     git clone --depth 1  https://gitlab.com/kicad/libraries/kicad-footprints.git; \
     git clone --depth 1  https://gitlab.com/kicad/libraries/kicad-templates.git; \
