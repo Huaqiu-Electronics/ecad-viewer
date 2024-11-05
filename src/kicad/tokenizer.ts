@@ -37,7 +37,14 @@ function is_alpha(c: string) {
 }
 
 function is_whitespace(c: string) {
-    return c === EOF || c === " " || c === "\n" || c === "\r" || c === "\t";
+    return (
+        c === EOF ||
+        c === " " ||
+        c === "\n" ||
+        c === "\r" ||
+        c === "\t" ||
+        c === "|" //FIXME - designs converted from AD may contains '|' , maybe this token shall be filtered in the kicad ?
+    );
 }
 
 function is_atom(c: string) {
