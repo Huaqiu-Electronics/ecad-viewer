@@ -9,12 +9,11 @@ permissions:
   packages: write
   contents: read
 jobs:
-  publish-ecad-vewer-lite:
+  publish-ecad-viewer-lite:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      # Add your test steps here if needed...
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -35,12 +34,11 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
 
 
-  publish-ecad-vewer-lite-aliyun:
+  publish-ecad-viewer-lite-aliyun:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      # Add your test steps here if needed...
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -60,12 +58,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 
-  publish-ecad-vewer-full:
+  publish-ecad-viewer-full:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      # Add your test steps here if needed...
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -85,12 +82,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 
-  publish-ecad-vewer-full-aliyun:
+  publish-ecad-viewer-full-aliyun:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      # Add your test steps here if needed...
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
