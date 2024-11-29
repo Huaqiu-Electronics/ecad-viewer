@@ -4,7 +4,6 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <style>
-            /* Apply styles to the container div */
             .flex-container {
                 display: flex;
                 margin-left: 10%;
@@ -12,74 +11,49 @@
             }
             .col-flex-container {
                 display: flex;
-                flex-direction: column; /* Set flex direction to column for a vertical layout */
+                flex-direction: column;
             }
             .canvas-container {
-                margin: 10px; /* Add some margin for spacing */
-                padding: 1px; /* Add padding for visual separation */
+                margin: 10px;
+                padding: 1px;
             }
         </style>
         <link rel="stylesheet" href="./style.css" />
         <title>ECAD Viewer</title>
     </head>
     <body>
-        <ecad-viewer
-            cli_server_addr="http://localhost:8989/convert_ad_to_kicad">
-            <ecad-source src="video/video.kicad_pcb"></ecad-source>
-            <ecad-source src="video/bus_pci.kicad_sch"></ecad-source>
-            <ecad-source src="video/esvideo.kicad_sch"></ecad-source>
-            <ecad-source src="video/graphic.kicad_sch"></ecad-source>
-            <ecad-source src="video/modul.kicad_sch"></ecad-source>
-            <ecad-source src="video/muxdata.kicad_sch"></ecad-source>
-            <ecad-source src="video/pal-ntsc.kicad_sch"></ecad-source>
-            <ecad-source src="video/rams.kicad_sch"></ecad-source>
-            <ecad-source src="video/video.kicad_sch"></ecad-source>
-            <ecad-3d-source src="video/video.glb"></ecad-3d-source>
-        </ecad-viewer>
+        <!-- Container div for the horizontal layout -->
+        <div class="flex-container">
+            <ecad-viewer zip-url=""> </ecad-viewer>
+        </div>
     </body>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./three/three.module.js",
+                "three/addons/": "./three/addons/",
+                "3d-viewer": "./ecad_viewer/3d-viewer.js",
+                "glyph-full": "./ecad_viewer/glyph-full.js"
+            }
+        }
+    </script>
     <script type="module" src="./ecad_viewer/ecad-viewer.js"></script>
     <script>
-        window.addEventListener("pcb:board_content:ready", function (event) {
-            // URL of the API endpoint
-            const convert_pcb_to_glb_url =
-                "http://localhost:8989/convert_pcb_to_glb";
+        // Function to get the value of a query parameter
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
 
-            // Data to be sent in the POST request (you can format this according to your API requirements)
-            const postData = {
-                pcb_content: event.detail,
-            };
+        // Extract the 'fileZip' parameter from the URL
+        const fileZip = getQueryParam("fileZip");
 
-            // Options for the fetch request
-            const fetchOptions = {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json", // Set the Content-Type header if sending JSON data
-                    // Add any other headers if required by your API
-                },
-                body: JSON.stringify(postData), // Convert JavaScript object to JSON string
-            };
+        // Get the <ecad-viewer> element
+        const ecadViewer = document.querySelector("ecad-viewer");
 
-            // Make the POST request using fetch
-            fetch(convert_pcb_to_glb_url, fetchOptions)
-                .then((response) => {
-                    if (!response.ok) {
-                        throw new Error("Network response was not ok");
-                    }
-                    return response.json(); // Parse response JSON
-                })
-                .then((data) => {
-                    const url = data["url"];
-                    console.log("Response from API:", url); // Handle the response data
-                    window.dispatchEvent(
-                        new CustomEvent("3d:url:ready", { detail: url }),
-                    );
-                })
-                .catch((error) => {
-                    console.error(
-                        "There was a problem with the fetch operation:",
-                        error,
-                    );
-                });
-        });
+        // If fileZip exists, set it as the zip-url attribute
+        if (fileZip && ecadViewer) {
+            ecadViewer.setAttribute("zip-url", fileZip);
+        }
     </script>
 </html>
