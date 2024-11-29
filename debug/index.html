@@ -23,28 +23,26 @@
         <title>ECAD Viewer</title>
     </head>
     <body>
-        <!-- Container div for the horizontal layout -->
-        <div class="flex-container">
-            <ecad-viewer
-                cli_server_addr="http://localhost:8989/convert_ad_to_kicad">
-                <ecad-source src="video/video.kicad_pcb"></ecad-source>
-                <ecad-source src="video/bus_pci.kicad_sch"></ecad-source>
-                <ecad-source src="video/esvideo.kicad_sch"></ecad-source>
-                <ecad-source src="video/graphic.kicad_sch"></ecad-source>
-                <ecad-source src="video/modul.kicad_sch"></ecad-source>
-                <ecad-source src="video/muxdata.kicad_sch"></ecad-source>
-                <ecad-source src="video/pal-ntsc.kicad_sch"></ecad-source>
-                <ecad-source src="video/rams.kicad_sch"></ecad-source>
-                <ecad-source src="video/video.kicad_sch"></ecad-source>
-                <ecad-3d-source src="video/video.glb"></ecad-3d-source>
-            </ecad-viewer>
-        </div>
+        <ecad-viewer
+            cli_server_addr="http://localhost:8989/convert_ad_to_kicad">
+            <ecad-source src="video/video.kicad_pcb"></ecad-source>
+            <ecad-source src="video/bus_pci.kicad_sch"></ecad-source>
+            <ecad-source src="video/esvideo.kicad_sch"></ecad-source>
+            <ecad-source src="video/graphic.kicad_sch"></ecad-source>
+            <ecad-source src="video/modul.kicad_sch"></ecad-source>
+            <ecad-source src="video/muxdata.kicad_sch"></ecad-source>
+            <ecad-source src="video/pal-ntsc.kicad_sch"></ecad-source>
+            <ecad-source src="video/rams.kicad_sch"></ecad-source>
+            <ecad-source src="video/video.kicad_sch"></ecad-source>
+            <ecad-3d-source src="video/video.glb"></ecad-3d-source>
+        </ecad-viewer>
     </body>
     <script type="module" src="./ecad_viewer/ecad-viewer.js"></script>
     <script>
         window.addEventListener("pcb:board_content:ready", function (event) {
             // URL of the API endpoint
-            const convert_pcb_to_glb_url = "http://localhost:8989/convert_pcb_to_glb";
+            const convert_pcb_to_glb_url =
+                "http://localhost:8989/convert_pcb_to_glb";
 
             // Data to be sent in the POST request (you can format this according to your API requirements)
             const postData = {
