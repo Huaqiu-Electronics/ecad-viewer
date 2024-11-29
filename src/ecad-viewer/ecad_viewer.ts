@@ -18,7 +18,7 @@ import { KCBoardAppElement } from "../kicanvas/elements/kc-board/app";
 import { KCSchematicAppElement } from "../kicanvas/elements/kc-schematic/app";
 import { BomApp } from "../kicanvas/elements/bom/app";
 
-import { TabHeaderElement } from "./tab_header";
+import { is_3d_model, is_kicad, TabHeaderElement } from "./tab_header";
 import {
     BoardContentReady,
     OpenBarrierEvent,
@@ -32,6 +32,8 @@ import { TabKind } from "./constraint";
 import type { InputContainer } from "./input_container";
 import { Online3dViewer } from "../3d-viewer/online_3d_viewer";
 import "../kc-ui/spinner";
+import { ZipUtils } from "../utils/zip_utils";
+import { DesignUtils } from "../utils/design_utils";
 
 export class ECadViewer extends KCUIElement implements InputContainer {
     static override styles = [
@@ -109,6 +111,9 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     @attribute({ type: String })
     public url: string;
 
+    @attribute({ type: String })
+    public zip_url: string;
+
     override initialContentCallback() {
         this.#setup_events();
         later(() => {
@@ -152,6 +157,25 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             if (src.src) {
                 this.#project.ov_3d_url = src.src;
                 break;
+            }
+        }
+
+        if (this.zip_url) {
+            const files = await ZipUtils.unzipFile(
+                await (await fetch(this.zip_url)).blob(),
+            );
+
+            for (const f of files) {
+                const ct = await DesignUtils.readFile(f);
+                if (is_kicad(ct.name)) {
+                    blobs.push({
+                        filename: DesignUtils.fmt_design_name(ct.name),
+                        content: ct.content,
+                    });
+                } else if (is_3d_model(ct.name)) {
+                    const u_ct = URL.createObjectURL(f);
+                    this.#project.ov_3d_url = u_ct;
+                }
             }
         }
 
