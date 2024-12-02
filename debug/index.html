@@ -24,7 +24,7 @@
     <body>
         <ecad-viewer
             cli-server-addr="http://localhost:8989/convert_ad_to_kicad"
-            zip-url="https://files.catbox.moe/11c9gq.zip">
+            zip-url="./video.zip">
         </ecad-viewer>
     </body>
     <script type="module" src="./ecad_viewer/ecad-viewer.js"></script>
@@ -45,5 +45,51 @@
                 if (it) ecadViewer.setAttribute(attr, it);
             }
         }
+
+        window.addEventListener("pcb:board_content:ready", function (event) {
+            // URL of the API endpoint
+            const convert_pcb_to_glb_url = document
+                .querySelector("ecad-viewer")
+                ?.getAttribute("cli-server-addr");
+
+            if (!convert_pcb_to_glb_url) return;
+
+            // Data to be sent in the POST request (you can format this according to your API requirements)
+            const postData = {
+                pcb_content: event.detail,
+            };
+
+            // Options for the fetch request
+            const fetchOptions = {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json", // Set the Content-Type header if sending JSON data
+                    // Add any other headers if required by your API
+                },
+                body: JSON.stringify(postData), // Convert JavaScript object to JSON string
+            };
+
+            // Make the POST request using fetch
+            fetch(convert_pcb_to_glb_url, fetchOptions)
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error("Network response was not ok");
+                    }
+                    return response.json(); // Parse response JSON
+                })
+                .then((data) => {
+                    const url = data["url"];
+                    console.log("Response from API:", url); // Handle the response data
+                    window.dispatchEvent(
+                        new CustomEvent("3d:url:ready", { detail: url }),
+                    );
+                })
+                .catch((error) => {
+                    console.error(
+                        "There was a problem with the fetch operation:",
+                        error,
+                    );
+                });
+        });
     </script>
 </html>
