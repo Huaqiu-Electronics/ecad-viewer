@@ -330,17 +330,19 @@ export class TabHeaderElement extends KCUIElement {
                     section.appendChild(make_middle(TabKind.bom));
                 break;
             case Sections.end:
-                const download = html`<tab-button
-                    title="Download"
-                    icon="svg:download"
-                    class="end"></tab-button>` as HTMLElement;
-                const full_screen = html`<tab-button
-                    title="Switch full screen mode"
-                    icon="svg:full_screen"
-                    class="end"></tab-button>` as HTMLElement;
-                section.appendChild(this.#open_file_btn);
-                section.appendChild(download);
-                section.appendChild(full_screen);
+                {
+                    const download = html`<tab-button
+                        title="Download"
+                        icon="svg:download"
+                        class="end"></tab-button>` as HTMLElement;
+                    const full_screen = html`<tab-button
+                        title="Switch full screen mode"
+                        icon="svg:full_screen"
+                        class="end"></tab-button>` as HTMLElement;
+                    section.appendChild(this.#open_file_btn);
+                    section.appendChild(download);
+                    section.appendChild(full_screen);
+                }
                 break;
         }
 
