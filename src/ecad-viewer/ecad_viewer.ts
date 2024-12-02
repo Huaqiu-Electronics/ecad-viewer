@@ -112,6 +112,9 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     @attribute({ type: String })
     public cli_server_addr: string;
 
+    @attribute({ type: String })
+    public zip_url?: string;
+
     override initialContentCallback() {
         this.#setup_events();
         later(() => {
@@ -122,6 +125,20 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     async #setup_events() {}
 
     async load_src() {
+        if (this.zip_url) {
+            this.#tab_header = new TabHeaderElement({
+                has_3d: false,
+                has_pcb: false,
+                has_sch: false,
+                has_bom: false,
+                cli_server_addr: this.cli_server_addr,
+            });
+
+            const file = await (await fetch(this.zip_url)).blob();
+            this.#tab_header.load_zip_content(this, file);
+            return;
+        }
+
         const files = [];
         const blobs: EcadBlob[] = [];
 

@@ -22,7 +22,10 @@
         <title>ECAD Viewer</title>
     </head>
     <body>
-        <ecad-viewer zip-url=""> </ecad-viewer>
+        <ecad-viewer
+            cli-server-addr="http://localhost:8989/convert_ad_to_kicad"
+            zip-url="https://files.catbox.moe/11c9gq.zip">
+        </ecad-viewer>
     </body>
     <script type="module" src="./ecad_viewer/ecad-viewer.js"></script>
     <script>
@@ -32,15 +35,15 @@
             return urlParams.get(name);
         }
 
-        // Extract the 'fileZip' parameter from the URL
-        const fileZip = getQueryParam("fileZip");
-
         // Get the <ecad-viewer> element
         const ecadViewer = document.querySelector("ecad-viewer");
 
         // If fileZip exists, set it as the zip-url attribute
-        if (fileZip && ecadViewer) {
-            ecadViewer.setAttribute("zip-url", fileZip);
+        if (ecadViewer) {
+            for (const attr of ["zip-url", "cli-server-addr"]) {
+                const it = getQueryParam(attr);
+                if (it) ecadViewer.setAttribute(attr, it);
+            }
         }
     </script>
 </html>
