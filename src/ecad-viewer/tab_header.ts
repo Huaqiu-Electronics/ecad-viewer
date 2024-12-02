@@ -122,7 +122,7 @@ export class TabHeaderElement extends KCUIElement {
     }
 
     make_ecad_view = () =>
-        html`<ecad-viewer cli_server_addr="${this.option.cli_server_addr}">
+        html`<ecad-viewer cli-server-addr="${this.option.cli_server_addr}">
         </ecad-viewer>`;
 
     async load_zip_content(input_container: InputContainer, file: Blob) {
