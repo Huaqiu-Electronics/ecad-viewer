@@ -68,6 +68,30 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             .tab-content.active {
                 display: inherit;
             }
+
+            .bottom-left-icon {
+                position: absolute;
+                bottom: 16px;
+                left: 16px; /* Adjusted to place it on the bottom-left */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                background-color: white;
+                border-radius: 50%;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                text-decoration: none;
+                color: var(--fg);
+                transition:
+                    transform 0.2s ease-in-out,
+                    box-shadow 0.2s ease-in-out;
+            }
+
+            .bottom-left-icon:hover {
+                transform: scale(1.1);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            }
         `,
     ];
 
@@ -334,8 +358,44 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                 ${this.#board_app} ${this.#schematic_app} ${this.#bom_app}
                 ${this.#ov_d_app}
             </div>
+            <a
+                href="https://www.eda.cn/ecadViewer"
+                class="bottom-left-icon"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Visit EDA website">
+                <svg
+                    version="1.1"
+                    id="图层_1"
+                    xmlns="http://www.w3.org/2000/svg"
+                    xmlns:xlink="http://www.w3.org/1999/xlink"
+                    x="0px"
+                    y="0px"
+                    viewBox="0 0 50 50"
+                    style="enable-background:new 0 0 50 50;"
+                    xml:space="preserve">
+                    <style type="text/css">
+                        .st0 {
+                            fill: #cc0000;
+                        }
+                    </style>
+                    <g>
+                        <path
+                            class="st0"
+                            d="M38.3,0H11.9C5.5,0,0.1,5.3,0.1,11.8v26.3C0.1,44.6,5.4,50,11.9,50h26.3c0.1,0,0.3,0,0.6,0
+		c-1.5-1.5-2.2-3.3-2.2-5.5c0-0.6,0-1.2,0.1-1.7H12.1c-2.5,0-4.4-2-4.4-4.4V11.8c0-2.5,2-4.4,4.4-4.4h26.3c2.5,0,4.4,2,4.4,4.4v24.7
+		c0.6-0.1,1.2-0.1,1.7-0.1c2.2,0,4.1,0.9,5.5,2.2c0-0.1,0-0.3,0-0.4V11.8C50,5.3,44.8,0,38.3,0z" />
+                        <path
+                            class="st0"
+                            d="M44.5,38.9c-3.1,0-5.5,2.5-5.5,5.5s2.5,5.5,5.5,5.5c3.1,0,5.5-2.5,5.5-5.5C49.9,41.2,47.6,38.9,44.5,38.9z" />
+                        <polygon
+                            class="st0"
+                            points="37.8,37.7 37.8,12.3 30.5,12.3 30.5,21.3 19.8,21.3 19.8,12.3 12.3,12.3 12.3,37.7 19.8,37.7 
+		19.8,28.6 30.5,28.6 30.5,37.7 	" />
+                    </g>
+                </svg>
+            </a>
         </div>` as HTMLElement;
-
         return html` ${this.#content} ${this.#spinner} `;
     }
 }

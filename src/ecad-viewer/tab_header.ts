@@ -339,7 +339,7 @@ export class TabHeaderElement extends KCUIElement {
                         title="Switch full screen mode"
                         icon="svg:full_screen"
                         class="end"></tab-button>` as HTMLElement;
-                    section.appendChild(this.#open_file_btn);
+                    // section.appendChild(this.#open_file_btn);
                     section.appendChild(download);
                     section.appendChild(full_screen);
                 }
