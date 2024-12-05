@@ -41,6 +41,7 @@ export class TabHeaderElement extends KCUIElement {
             has_sch: boolean;
             has_bom: boolean;
             cli_server_addr: string | null;
+            ai_url?: string;
         },
     ) {
         super();
@@ -122,7 +123,9 @@ export class TabHeaderElement extends KCUIElement {
     }
 
     make_ecad_view = () =>
-        html`<ecad-viewer cli-server-addr="${this.option.cli_server_addr}">
+        html`<ecad-viewer
+            ai-url=${this.option.ai_url}
+            cli-server-addr="${this.option.cli_server_addr}">
         </ecad-viewer>`;
 
     async load_zip_content(input_container: InputContainer, file: Blob) {
@@ -331,17 +334,17 @@ export class TabHeaderElement extends KCUIElement {
                 break;
             case Sections.end:
                 {
-                    const download = html`<tab-button
-                        title="Download"
-                        icon="svg:download"
+                    const chat_ai = html`<tab-button
+                        title="Chat With AI"
+                        icon="svg:chatgpt"
                         class="end"></tab-button>` as HTMLElement;
-                    const full_screen = html`<tab-button
-                        title="Switch full screen mode"
-                        icon="svg:full_screen"
-                        class="end"></tab-button>` as HTMLElement;
-                    // section.appendChild(this.#open_file_btn);
-                    section.appendChild(download);
-                    section.appendChild(full_screen);
+
+                    chat_ai.addEventListener("click", () => {
+                        if (this.option.ai_url)
+                            window.open(this.option.ai_url, "_blank");
+                    });
+
+                    section.appendChild(chat_ai);
                 }
                 break;
         }
@@ -420,7 +423,7 @@ export class TabHeaderElement extends KCUIElement {
         });
 
         this.addEventListener(SheetLoadEvent.type, (e) => {
-            this.sch_button.textContent = e.detail;
+            if (this.sch_button) this.sch_button.textContent = e.detail;
         });
     }
 

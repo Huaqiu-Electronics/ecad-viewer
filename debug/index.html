@@ -22,10 +22,14 @@
         <title>ECAD Viewer</title>
     </head>
     <body>
-        <ecad-viewer
-            cli-server-addr="http://localhost:8989/convert_ad_to_kicad"
-            zip-url="./video.zip">
-        </ecad-viewer>
+        <!-- Container div for the horizontal layout -->
+        <div class="flex-container">
+            <ecad-viewer
+                cli-server-addr="http://localhost:8989/convert_ad_to_kicad"
+                ai-url="https://www.eda.cn/ecadViewer/viewerPage?xmlId=de31e97e-9231-492e-a43c-13a7cbfbe30b&fileZip=%2Fdata%2Fdesign%2Fdemo%2Fde31e97e-9231-492e-a43c-13a7cbfbe30b.zip"
+                zip-url="./video.zip">
+            </ecad-viewer>
+        </div>
     </body>
     <script type="module" src="./ecad_viewer/ecad-viewer.js"></script>
     <script>
@@ -40,7 +44,7 @@
 
         // If fileZip exists, set it as the zip-url attribute
         if (ecadViewer) {
-            for (const attr of ["zip-url", "cli-server-addr"]) {
+            for (const attr of ["zip-url", "cli-server-addr", "ai-url"]) {
                 const it = getQueryParam(attr);
                 if (it) ecadViewer.setAttribute(attr, it);
             }

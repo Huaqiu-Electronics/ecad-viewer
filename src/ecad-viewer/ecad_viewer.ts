@@ -139,14 +139,26 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     @attribute({ type: String })
     public zip_url?: string;
 
+    @attribute({ type: String })
+    public ai_url?: string;
+
     override initialContentCallback() {
-        this.#setup_events();
         later(() => {
             this.load_src();
         });
     }
 
-    async #setup_events() {}
+    make_tab_header() {
+        this.#tab_header = new TabHeaderElement({
+            has_3d: false,
+            has_pcb: false,
+            has_sch: false,
+            has_bom: false,
+            cli_server_addr: this.cli_server_addr,
+            ai_url: this.ai_url,
+        });
+        this.#tab_header.input_container = this;
+    }
 
     async load_src() {
         if (this.zip_url) {
@@ -162,7 +174,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             this.#tab_header.load_zip_content(this, file);
             return;
         }
-
+        
         const files = [];
         const blobs: EcadBlob[] = [];
 
@@ -241,15 +253,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         this.#spinner.hidden = true;
         this.#tab_contents = {};
 
-        this.#tab_header = new TabHeaderElement({
-            has_3d: this.has_3d,
-            has_pcb: this.has_pcb,
-            has_sch: this.has_sch,
-            has_bom: this.has_bom,
-            cli_server_addr: this.cli_server_addr,
-        });
-
-        this.#tab_header.input_container = this;
+        this.make_tab_header();
         this.#tab_header.addEventListener(TabActivateEvent.type, (event) => {
             const tab = (event as TabActivateEvent).detail;
             if (tab.previous) {
