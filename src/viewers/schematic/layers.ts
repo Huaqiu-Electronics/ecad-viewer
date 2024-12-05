@@ -40,6 +40,7 @@ export enum LayerNames {
     symbol_background = ":Symbol:Background",
     drawing_sheet = BaseLayerNames.drawing_sheet,
     grid = BaseLayerNames.grid,
+    drawing_sheet_bg = ":DrawingSheet:Background",
 }
 
 /**
