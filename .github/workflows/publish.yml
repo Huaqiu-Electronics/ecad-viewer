@@ -2,7 +2,7 @@ name: Publish to Docker
 on:
   push:
     branches:
-      - master
+      - ecad-viewer-service
   workflow_dispatch:
 
 permissions:
@@ -18,8 +18,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/Huaqiu-Electronics/ecad-viewer
-          tags: lite
+          images: ghcr.io/Huaqiu-Electronics/ecad-viewer-service
+          tags: latest
+
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
@@ -29,7 +30,7 @@ jobs:
       - name: Build container
         uses: docker/build-push-action@v5
         with:
-          context: ./docker/lite
+          context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 
@@ -43,8 +44,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: registry.cn-shanghai.aliyuncs.com/kicad/ecad-viewer
-          tags: lite
+          images: registry.cn-shanghai.aliyuncs.com/kicad/ecad-viewer-service
+          tags: latest
+
       - name: Login to aliyun
         uses: docker/login-action@v3
         with:
@@ -54,54 +56,6 @@ jobs:
       - name: Build container
         uses: docker/build-push-action@v5
         with:
-          context: ./docker/lite
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-
-  publish-ecad-viewer-full:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/Huaqiu-Electronics/ecad-viewer
-          tags: full
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.Huaqiu_Electronics_TOKEN }}
-      - name: Build container
-        uses: docker/build-push-action@v5
-        with:
-          context: ./docker/full
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-
-  publish-ecad-viewer-full-aliyun:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: registry.cn-shanghai.aliyuncs.com/kicad/ecad-viewer
-          tags: full
-      - name: Login to aliyun
-        uses: docker/login-action@v3
-        with:
-          registry: registry.cn-shanghai.aliyuncs.com
-          username: Liangtie
-          password: ${{ secrets.ALIYUNCS_DOCKER_PASSWORD }}
-      - name: Build container
-        uses: docker/build-push-action@v5
-        with:
-          context: ./docker/full
+          context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
