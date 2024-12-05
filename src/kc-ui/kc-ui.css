@@ -2,7 +2,8 @@
     Variables
 */
 :host {
-    font-size: var(--font-size, 16px);
+    font-size: var(--font-size, 12px);
+    font-family: "Segoe UI", Helvetica, Arial, sans-serif;
 
     --transition-time-very-short: 100ms;
     --transition-time-short: 200ms;

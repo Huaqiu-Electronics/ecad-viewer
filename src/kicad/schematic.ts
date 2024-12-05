@@ -181,6 +181,7 @@ export class KicadSch {
     }
 
     *items() {
+        yield new BBox(0, 0, this.paper?.width, this.paper?.height);
         yield* this.wires;
         yield* this.buses;
         yield* this.bus_entries;

@@ -22,10 +22,13 @@
         <title>ECAD Viewer</title>
     </head>
     <body>
-        <ecad-viewer
-            cli-server-addr="http://localhost:8989/convert_ad_to_kicad"
-            zip-url="./video.zip">
-        </ecad-viewer>
+        <!-- Container div for the horizontal layout -->
+        <div class="flex-container">
+            <ecad-viewer
+                cli-server-addr="http://localhost:8989/convert_ad_to_kicad"
+                zip-url="./video.zip">
+            </ecad-viewer>
+        </div>
     </body>
     <script type="module" src="./ecad_viewer/ecad-viewer.js"></script>
     <script>

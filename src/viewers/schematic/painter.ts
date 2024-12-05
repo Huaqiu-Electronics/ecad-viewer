@@ -13,7 +13,7 @@ import {
     Polyline,
     Renderer,
 } from "../../graphics";
-import type { SchematicTheme } from "../../kicad";
+import { type SchematicTheme } from "../../kicad";
 import * as schematic_items from "../../kicad/schematic";
 import { LibText, SchField, SchText, StrokeFont } from "../../kicad/text";
 import { LayerNames, LayerSet, ViewLayer } from "./layers";
@@ -535,6 +535,19 @@ class LibTextPainter extends SchematicItemPainter {
     }
 }
 
+class PaperPainter extends SchematicItemPainter {
+    override classes = [BBox];
+    layers_for(item: schematic_items.SchematicSheet) {
+        return [LayerNames.drawing_sheet_bg];
+    }
+
+    paint(layer: ViewLayer, ss: BBox) {
+        if (layer.name == LayerNames.drawing_sheet_bg) {
+            this.gfx.polygon(Polygon.from_BBox(ss, Color.white));
+        }
+    }
+}
+
 class SchematicSheetPainter extends SchematicItemPainter {
     classes = [schematic_items.SchematicSheet];
 
@@ -614,6 +627,7 @@ export class SchematicPainter extends BaseSchematicPainter {
             new HierarchicalSheetPinPainter(this, gfx),
             new SchematicSheetPainter(this, gfx),
             new ImagePainter(this, gfx),
+            new PaperPainter(this, gfx),
         ];
     }
 }

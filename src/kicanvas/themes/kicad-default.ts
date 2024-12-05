@@ -100,7 +100,7 @@ const theme: Theme = {
     schematic: {
         anchor: Color.from_css("rgb(0, 0, 255)"),
         aux_items: Color.from_css("rgb(0, 0, 0)"),
-        background: Color.from_css("rgb(255, 255, 255)"),
+        background: Color.from_css("rgb(194, 194, 194)"),
         brightened: Color.from_css("rgb(255, 0, 255)"),
         bus: Color.from_css("rgb(0, 0, 132)"),
         bus_junction: Color.from_css("rgb(0, 0, 132)"),
@@ -131,7 +131,7 @@ const theme: Theme = {
         reference: Color.from_css("rgb(0, 100, 100)"),
         shadow: Color.from_css("rgba(199, 235, 255, 0.800)"),
         sheet: Color.from_css("rgb(132, 0, 0)"),
-        sheet_background: Color.from_css("rgba(255, 255, 255, 0.000)"),
+        sheet_background: Color.from_css("rgb(255, 255, 255)"),
         sheet_fields: Color.from_css("rgb(132, 0, 132)"),
         sheet_filename: Color.from_css("rgb(114, 86, 0)"),
         sheet_label: Color.from_css("rgb(0, 100, 100)"),
