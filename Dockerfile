@@ -4,6 +4,7 @@ FROM debian:bookworm AS build
 # install build dependencies
 RUN apt-get update && \
     apt-get install -y \
+    curl \
     python3-dev \
     git \
     python3-pip \
@@ -52,7 +53,6 @@ LABEL org.opencontainers.image.authors='https://github.com/Huaqiu-Electronics' \
 RUN apt-get update && \
     apt-get install -y  \
     python3\
-    curl \
     sudo
 
 COPY --from=build /app /app
