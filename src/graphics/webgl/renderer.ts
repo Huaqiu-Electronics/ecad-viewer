@@ -8,20 +8,19 @@ import { Color } from "../../base/color";
 import { Angle, Matrix3, Vec2 } from "../../base/math";
 import { RenderLayer, Renderer } from "../renderer";
 import { Arc, Circle, Polygon, Polyline } from "../shapes";
-import { PrimitiveSet } from "./vector";
+import type { ShaderProgram } from "./helpers";
+import {
+    CircleSet,
+    PolygonSet,
+    PolylineSet,
+    PrimitiveSet,
+    ShaderTypes,
+} from "./vector";
 
 /**
  * WebGL2-based renderer
  */
 export class WebGL2Renderer extends Renderer {
-    override image(
-        img: HTMLImageElement,
-        x: number,
-        y: number,
-        scale: number,
-    ): void {
-        throw new Error("Method not implemented.");
-    }
     /** Graphics layers */
     #layers: WebGL2RenderLayer[] = [];
 
@@ -33,6 +32,8 @@ export class WebGL2Renderer extends Renderer {
 
     /** WebGL backend */
     gl?: WebGL2RenderingContext;
+
+    #shader_programs: Map<ShaderTypes, ShaderProgram> = new Map();
 
     /**
      * Create a new WebGL2Renderer
@@ -66,7 +67,18 @@ export class WebGL2Renderer extends Renderer {
 
         this.update_canvas_size();
 
-        await PrimitiveSet.load_shaders(gl);
+        this.#shader_programs.set(
+            ShaderTypes.PolygonSet,
+            await PolygonSet.load_shader(gl),
+        );
+        this.#shader_programs.set(
+            ShaderTypes.PolylineSet,
+            await PolylineSet.load_shader(gl),
+        );
+        this.#shader_programs.set(
+            ShaderTypes.CircleSet,
+            await CircleSet.load_shader(gl),
+        );
     }
 
     override dispose() {
@@ -74,6 +86,7 @@ export class WebGL2Renderer extends Renderer {
             layer.dispose();
         }
         this.gl = undefined;
+        this.#shader_programs.clear();
     }
 
     override update_canvas_size() {
@@ -114,7 +127,7 @@ export class WebGL2Renderer extends Renderer {
         this.#active_layer = new WebGL2RenderLayer(
             this,
             name,
-            new PrimitiveSet(this.gl),
+            new PrimitiveSet(this.gl, this.#shader_programs),
         );
     }
 
