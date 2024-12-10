@@ -295,7 +295,7 @@ class KCBoardLayerControlElement extends KCUIElement {
         css`
             :host {
                 box-sizing: border-box;
-                padding: 0.1em 0.8em 0.1em 0.4em;
+                padding: 0.2em 0.8em 0.2em 0.4em;
                 color: white;
                 text-align: left;
                 display: flex;

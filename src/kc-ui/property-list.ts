@@ -34,10 +34,11 @@ export class KCUIPropertyListItemElement extends KCUIElement {
         css`
             :host {
                 display: contents;
+                padding: 0.5em; /* Add padding to the host */
             }
 
             span {
-                padding: 0.2em;
+                padding: 0.5em;
                 background: var(--bg);
                 text-overflow: ellipsis;
                 white-space: nowrap;
@@ -66,8 +67,10 @@ export class KCUIPropertyListItemElement extends KCUIElement {
     name: string;
 
     override render() {
-        return html`<span title="${this.name}">${this.name}</span
-            ><span><slot></slot></span>`;
+        return html`
+            <span title="${this.name}">${this.name}</span>
+            <span><slot></slot></span>
+        `;
     }
 }
 

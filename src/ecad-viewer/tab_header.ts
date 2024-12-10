@@ -58,7 +58,7 @@ export class TabHeaderElement extends KCUIElement {
         ...KCUIElement.styles,
         css`
             :host {
-                height: 2em;
+                height: var(--header-bar-size);
                 width: 100%;
                 flex: 1;
                 display: flex;
@@ -66,7 +66,7 @@ export class TabHeaderElement extends KCUIElement {
             }
             .horizontal-bar {
                 display: flex;
-                height: 100%;
+                height: var(--header-bar-size);
                 width: 100%;
                 background-color: transparent;
                 overflow: hidden;
@@ -304,7 +304,7 @@ export class TabHeaderElement extends KCUIElement {
             };
 
             const icon = html`<tab-button icon="${icon_map[kind]}"
-                >${kind}</tab-button
+                >${kind === TabKind.pcb ? "Layers/Objects" : kind}</tab-button
             >` as HTMLElement;
             icon.classList.add("beginning");
             this.#elements.get(sectionClass)?.set(kind, icon);
@@ -317,10 +317,7 @@ export class TabHeaderElement extends KCUIElement {
                     section.appendChild(make_beginning(TabKind.pcb));
                 if (this.option.has_sch)
                     section.appendChild(make_beginning(TabKind.sch));
-                if (this.option.has_3d)
-                    section.appendChild(make_beginning(TabKind.step));
-                if (this.option.has_bom)
-                    section.appendChild(make_beginning(TabKind.bom));
+
                 break;
             case Sections.middle:
                 if (this.option.has_sch)
