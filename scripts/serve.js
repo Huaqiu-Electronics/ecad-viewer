@@ -5,8 +5,12 @@
 */
 
 import { bundle } from "./bundle.js";
+import { resolve } from "node:path";
+
+export const ENTRY = resolve("src/index.ts");
 
 let { context } = await bundle({
+    entryPoints: [ENTRY],
     outfile: "debug/ecad_viewer/ecad-viewer.js",
     sourcemap: true,
     define: {
@@ -18,6 +22,7 @@ await context.watch();
 
 let { host, port } = await context.serve({
     servedir: "./debug",
+    host: "127.0.0.1",
     port: 8080,
 });
 

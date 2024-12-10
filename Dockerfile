@@ -25,7 +25,7 @@ WORKDIR /src/ecad-viewer
 
 RUN set -ex; \
     npm install; \
-    npm run build; \
+    npm run build-all; \
     mv debug /app; \
     mv build /app/ecad_viewer;
 

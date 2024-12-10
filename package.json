@@ -43,16 +43,18 @@
         "build:font": "node scripts/build-font.js",
         "build:sprites": "node scripts/build-sprites.js",
         "build": "tsc -p tsconfig.json && node scripts/build.js",
+        "build:glyph": " node scripts/build-glyph.js",
+        "build-all": "npm run build:no-check && npm run build:glyph",
         "clean": "rm -rf build && rm -rf debug/ecad-viewer"
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Huaqiu-Electronics/ecad-viewer.git"
+        "url": "git+https://github.com/theacodes/kicanvas.js.git"
     },
-    "author": "Huaqiu-Electronics",
+    "author": "Alethea Katherine Flowers",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/Huaqiu-Electronics/ecad-viewer/issues"
+        "url": "https://github.com/theacodes/kicanvas.js/issues"
     },
-    "homepage": "https://github.com/Huaqiu-Electronics/ecad-viewer#readme"
+    "homepage": "https://github.com/theacodes/kicanvas.js#readme"
 }
