@@ -31,7 +31,7 @@ import {
 
 import { TabKind } from "./constraint";
 import type { InputContainer } from "./input_container";
-import { Online3dViewer } from "../3d-viewer/online_3d_viewer";
+import type { Online3dViewer } from "../3d-viewer/online_3d_viewer";
 import "../kc-ui/spinner";
 
 export class ECadViewer extends KCUIElement implements InputContainer {
