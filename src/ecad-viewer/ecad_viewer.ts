@@ -21,6 +21,7 @@ import { BomApp } from "../kicanvas/elements/bom/app";
 import { TabHeaderElement } from "./tab_header";
 import {
     BoardContentReady,
+    Online3dViewerLoaded,
     OpenBarrierEvent,
     SheetLoadEvent,
     TabActivateEvent,
@@ -120,6 +121,8 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     #file_input: HTMLInputElement;
     #spinner: HTMLElement;
     #content: HTMLElement;
+    #step_viewer_placeholder: HTMLElement;
+    #viewers_container: HTMLDivElement;
     get project() {
         return this.#project;
     }
@@ -129,9 +132,6 @@ export class ECadViewer extends KCUIElement implements InputContainer {
 
     @attribute({ type: Boolean })
     public loaded: boolean;
-
-    @attribute({ type: String })
-    public url: string;
 
     @attribute({ type: String })
     public cli_server_addr: string;
@@ -169,13 +169,6 @@ export class ECadViewer extends KCUIElement implements InputContainer {
 
         const files = [];
         const blobs: EcadBlob[] = [];
-
-        if (this.url) {
-            for (const it of this.url.split(";")) {
-                if (it.endsWith(".glb")) this.#project.ov_3d_url = this.url;
-                else files.push(it);
-            }
-        }
 
         for (const src_elm of this.querySelectorAll<EcadSourceElement>(
             "ecad-source",
@@ -279,8 +272,20 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             });
             this.#tab_contents[tab.current]?.classList.add("active");
 
-            if (tab.current === TabKind.step && this.#ov_d_app) {
-                this.#ov_d_app.on_show();
+            if (tab.current === TabKind.step) {
+                if (this.#ov_d_app) this.#ov_d_app.on_show();
+                else {
+                    (async () => {
+                        // @ts-expect-error its imported from map
+                        await import("3d-viewer");
+                        this.#ov_d_app =
+                            html`<ecad-3d-viewer></ecad-3d-viewer>` as Online3dViewer;
+                        this.#viewers_container.appendChild(this.#ov_d_app);
+                        const page = embed_to_tab(this.#ov_d_app, TabKind.step);
+                        page.classList.add("active");
+                        page.style.display = "none";
+                    })();
+                }
             }
         });
 
@@ -314,6 +319,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                 const visible = (event as TabMenuVisibleChangeEvent).detail;
                 this.#tab_header.tabMenuChecked = visible;
             });
+            return page;
         };
 
         if (this.has_pcb) {
@@ -348,21 +354,26 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         }
 
         if (this.has_3d) {
-            this.#ov_d_app = new Online3dViewer();
-            embed_to_tab(this.#ov_d_app, TabKind.step);
+            this.#step_viewer_placeholder =
+                html`<ecad-spinner></ecad-spinner>` as HTMLElement;
+            embed_to_tab(this.#step_viewer_placeholder, TabKind.step);
+            this.project.addEventListener(Online3dViewerLoaded.type, () => {
+                this.#step_viewer_placeholder.hidden = true;
+                this.#ov_d_app.style.display = "block";
+            });
         }
-
         if (this.has_bom) {
             this.#bom_app = new BomApp();
             embed_to_tab(this.#bom_app, TabKind.bom);
         }
 
+        this.#viewers_container = html` <div class="vertical">
+            ${this.#board_app} ${this.#schematic_app} ${this.#bom_app}
+            ${this.#step_viewer_placeholder}
+        </div>` as HTMLDivElement;
+
         this.#content = html` <div class="vertical">
-            ${this.#tab_header}
-            <div class="vertical">
-                ${this.#board_app} ${this.#schematic_app} ${this.#bom_app}
-                ${this.#ov_d_app}
-            </div>
+            ${this.#tab_header} ${this.#viewers_container}
             <a
                 href=${this.ai_url}
                 class="bottom-left-icon"

@@ -18,7 +18,7 @@ export async function bundle(options = {}) {
         target: "es2022",
         keepNames: true,
         sourcemap: false,
-        external: ["glyph-full"],
+        external: ["three", "three/addons/*", "3d-viewer", "glyph-full"],
         loader: {
             ".js": "ts",
             ".glsl": "text",
