@@ -391,7 +391,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                     xml:space="preserve">
                     <style type="text/css">
                         .st0 {
-                            fill: rgba(255, 255, 255, 0.836);
+                            fill: rgba(255, 0, 0, 0.836);
                         }
                     </style>
                     <g>
