@@ -12,7 +12,7 @@ export const ENTRY = resolve("src/index.ts");
 
 let { options, context } = await bundle({
     entryPoints: [ENTRY],
-    outfile: "build/ecad_viewer/ecad-viewer.js",
+    outfile: "build/ecad-viewer.js",
     minify: true,
     metafile: true,
 });
@@ -31,7 +31,7 @@ for (const msg of result.errors) {
 }
 
 fs.writeFileSync(
-    "build/ecad_viewer/ecad-viewer-esbuild-meta.json",
+    "build/ecad-viewer-esbuild-meta.json",
     JSON.stringify(result.metafile),
 );
 

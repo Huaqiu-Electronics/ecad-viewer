@@ -12,7 +12,7 @@ export const ENTRY = resolve("src/glyph/index.ts");
 
 let { options, context } = await bundle({
     entryPoints: [ENTRY],
-    outfile: "build/ecad_viewer/glyph-full.js",
+    outfile: "build/glyph-full.js",
     minify: true,
     metafile: true,
     minifyWhitespace: true,
@@ -36,9 +36,6 @@ for (const msg of result.errors) {
     console.log("- ", msg);
 }
 
-fs.writeFileSync(
-    "build/ecad_viewer/glyph-full-meta.json",
-    JSON.stringify(result.metafile),
-);
+fs.writeFileSync("build/glyph-full-meta.json", JSON.stringify(result.metafile));
 
 context.dispose();
