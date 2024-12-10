@@ -78,7 +78,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                 justify-content: center;
                 width: 40px;
                 height: 40px;
-                background-color: white;
+                background-color: transparent;
                 border-radius: 50%;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
                 text-decoration: none;
@@ -364,7 +364,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                 ${this.#ov_d_app}
             </div>
             <a
-                href="https://www.eda.cn/ecadViewer"
+                href=${this.ai_url}
                 class="bottom-left-icon"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -377,11 +377,10 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                     x="0px"
                     y="0px"
                     viewBox="0 0 50 50"
-                    style="enable-background:new 0 0 50 50;"
                     xml:space="preserve">
                     <style type="text/css">
                         .st0 {
-                            fill: #cc0000;
+                            fill: rgba(255, 255, 255, 0.836);
                         }
                     </style>
                     <g>

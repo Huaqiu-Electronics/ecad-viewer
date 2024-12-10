@@ -333,19 +333,6 @@ export class TabHeaderElement extends KCUIElement {
                     section.appendChild(make_middle(TabKind.bom));
                 break;
             case Sections.end:
-                {
-                    const chat_ai = html`<tab-button
-                        title="Chat With AI"
-                        icon="svg:chatgpt"
-                        class="end"></tab-button>` as HTMLElement;
-
-                    chat_ai.addEventListener("click", () => {
-                        if (this.option.ai_url)
-                            window.open(this.option.ai_url, "_blank");
-                    });
-
-                    section.appendChild(chat_ai);
-                }
                 break;
         }
 
