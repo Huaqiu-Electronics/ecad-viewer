@@ -256,7 +256,6 @@ class Tesselator {
  * A set of filled circles.
  */
 export class CircleSet implements IDisposable {
-    static shader: ShaderProgram;
     shader: ShaderProgram;
     vao: VertexArray;
     position_buf: Buffer;
@@ -270,7 +269,7 @@ export class CircleSet implements IDisposable {
     static async load_shader(gl: WebGL2RenderingContext) {
         // This re-uses the same shader that polyline uses, since the polyline
         // is pill-shaped, circle is just a special case of a zero-length polyline.
-        this.shader = await ShaderProgram.load(
+        return await ShaderProgram.load(
             gl,
             "polyline",
             polyline_vert_shader_src,
@@ -284,9 +283,9 @@ export class CircleSet implements IDisposable {
      */
     constructor(
         public gl: WebGL2RenderingContext,
-        shader?: ShaderProgram,
+        shader: ShaderProgram,
     ) {
-        this.shader = shader ?? CircleSet.shader;
+        this.shader = shader;
         this.vao = new VertexArray(gl);
         this.position_buf = this.vao.buffer(this.shader["a_position"], 2);
         this.cap_region_buf = this.vao.buffer(this.shader["a_cap_region"], 1);
@@ -329,7 +328,6 @@ export class CircleSet implements IDisposable {
  * A set of stroked polylines
  */
 export class PolylineSet implements IDisposable {
-    static shader: ShaderProgram;
     shader: ShaderProgram;
     vao: VertexArray;
     position_buf: Buffer;
@@ -341,7 +339,7 @@ export class PolylineSet implements IDisposable {
      * Load the shader program required to render this primitive.
      */
     static async load_shader(gl: WebGL2RenderingContext) {
-        this.shader = await ShaderProgram.load(
+        return await ShaderProgram.load(
             gl,
             "polyline",
             polyline_vert_shader_src,
@@ -356,9 +354,9 @@ export class PolylineSet implements IDisposable {
      */
     constructor(
         public gl: WebGL2RenderingContext,
-        shader?: ShaderProgram,
+        shader: ShaderProgram,
     ) {
-        this.shader = shader ?? PolylineSet.shader;
+        this.shader = shader;
         this.vao = new VertexArray(gl);
         this.position_buf = this.vao.buffer(this.shader["a_position"], 2);
         this.cap_region_buf = this.vao.buffer(this.shader["a_cap_region"], 1);
@@ -430,7 +428,6 @@ export class PolylineSet implements IDisposable {
  * A set of filled polygons
  */
 export class PolygonSet implements IDisposable {
-    static shader: ShaderProgram;
     shader: ShaderProgram;
     vao: VertexArray;
     position_buf: Buffer;
@@ -441,7 +438,7 @@ export class PolygonSet implements IDisposable {
      * Load the shader program required to render this primitive.
      */
     static async load_shader(gl: WebGL2RenderingContext) {
-        this.shader = await ShaderProgram.load(
+        return await ShaderProgram.load(
             gl,
             "polygon",
             polygon_vert_shader_src,
@@ -456,9 +453,9 @@ export class PolygonSet implements IDisposable {
      */
     constructor(
         public gl: WebGL2RenderingContext,
-        shader?: ShaderProgram,
+        shader: ShaderProgram,
     ) {
-        this.shader = shader ?? PolygonSet.shader;
+        this.shader = shader;
         this.vao = new VertexArray(gl);
         this.position_buf = this.vao.buffer(this.shader["a_position"], 2);
         this.color_buf = this.vao.buffer(this.shader["a_color"], 4);
@@ -561,6 +558,13 @@ export class PolygonSet implements IDisposable {
  * and create a new one.
  *
  */
+
+export enum ShaderTypes {
+    PolygonSet = "polygon",
+    PolylineSet = "polyline",
+    CircleSet = "circle",
+}
+
 export class PrimitiveSet implements IDisposable {
     #polygons: Polygon[] = [];
     #circles: Circle[] = [];
@@ -571,20 +575,12 @@ export class PrimitiveSet implements IDisposable {
     #polyline_set?: PolylineSet;
 
     /**
-     * Load all shader programs required to render primitives.
-     */
-    static async load_shaders(gl: WebGL2RenderingContext) {
-        await Promise.all([
-            PolygonSet.load_shader(gl),
-            PolylineSet.load_shader(gl),
-            CircleSet.load_shader(gl),
-        ]);
-    }
-
-    /**
      * Create a new primitive set
      */
-    constructor(public gl: WebGL2RenderingContext) {
+    constructor(
+        public gl: WebGL2RenderingContext,
+        private readonly shader_programs: Map<ShaderTypes, ShaderProgram>,
+    ) {
         this.gl = gl;
     }
 
@@ -640,17 +636,26 @@ export class PrimitiveSet implements IDisposable {
      */
     commit() {
         if (this.#polygons.length) {
-            this.#polygon_set = new PolygonSet(this.gl);
+            this.#polygon_set = new PolygonSet(
+                this.gl,
+                this.shader_programs.get(ShaderTypes.PolygonSet)!,
+            );
             this.#polygon_set.set(this.#polygons);
             this.#polygons = undefined!;
         }
         if (this.#lines.length) {
-            this.#polyline_set = new PolylineSet(this.gl);
+            this.#polyline_set = new PolylineSet(
+                this.gl,
+                this.shader_programs.get(ShaderTypes.PolylineSet)!,
+            );
             this.#polyline_set.set(this.#lines);
             this.#lines = undefined!;
         }
         if (this.#circles.length) {
-            this.#circle_set = new CircleSet(this.gl);
+            this.#circle_set = new CircleSet(
+                this.gl,
+                this.shader_programs.get(ShaderTypes.CircleSet)!,
+            );
             this.#circle_set.set(this.#circles);
             this.#circles = undefined!;
         }
