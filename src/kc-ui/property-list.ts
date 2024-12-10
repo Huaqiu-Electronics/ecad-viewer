@@ -33,11 +33,10 @@ export class KCUIPropertyListItemElement extends KCUIElement {
         css`
             :host {
                 display: contents;
-                padding: 0.5em; /* Add padding to the host */
             }
 
             span {
-                padding: 0.5em;
+                padding: 0.4em;
                 box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
                 text-overflow: ellipsis;
                 white-space: nowrap;
@@ -45,7 +44,6 @@ export class KCUIPropertyListItemElement extends KCUIElement {
                 user-select: all;
                 border-bottom: 1px dashed var(--prop-border-color);
                 border-right: 1px dashed var(--prop-border-color);
-                padding: 0.5em;
             }
 
             :host(.label) span:first-child {
