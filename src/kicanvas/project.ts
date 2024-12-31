@@ -122,7 +122,8 @@ export class Project extends EventTarget implements IDisposable {
                     0,
                     blob.filename.length - ".kicad_pro".length,
                 );
-            }
+                const data = JSON.parse(blob.content);
+                this.settings = ProjectSettings.load(data);            }
         }
 
         await Promise.all(promises);
