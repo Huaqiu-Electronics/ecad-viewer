@@ -48,6 +48,7 @@ export class BomViewer extends KCUIElement {
                 border-collapse: collapse;
                 width: 100%;
                 table-layout: auto;
+                text-align: left; /* Add this line */
             }
             th,
             td {
@@ -57,12 +58,46 @@ export class BomViewer extends KCUIElement {
                 overflow: hidden;
                 word-wrap: break-word;
                 color: black;
+                text-align: left; /* Add this line */
+                vertical-align: top; /* Add this line */
             }
 
             th {
                 top: 0;
                 position: sticky;
                 background: #666;
+            }
+
+            /* Adjust column widths */
+            th:nth-child(1),
+            td:nth-child(1) {
+                /* Index */
+                width: 5%;
+            }
+            th:nth-child(2),
+            td:nth-child(2) {
+                /* Name */
+                width: 15%;
+            }
+            th:nth-child(3),
+            td:nth-child(3) {
+                /* Description */
+                width: 35%;
+            }
+            th:nth-child(4),
+            td:nth-child(4) {
+                /* Footprint */
+                width: 15%;
+            }
+            th:nth-child(5),
+            td:nth-child(5) {
+                /* Reference */
+                width: 25%;
+            }
+            th:nth-child(6),
+            td:nth-child(6) {
+                /* Quantity */
+                width: 5%;
             }
 
             #summary {
@@ -113,7 +148,6 @@ export class BomViewer extends KCUIElement {
             <tr>
                 <td>${index}</td>
                 <td>${bomItem.Name}</td>
-                <!-- <td>N/A</td> -->
                 <td>${bomItem.Description}</td>
                 <td>${bomItem.Footprint}</td>
                 <td>${bomItem.Reference}</td>
