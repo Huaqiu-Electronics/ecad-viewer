@@ -21,6 +21,9 @@ import {
  * WebGL2-based renderer
  */
 export class WebGL2Renderer extends Renderer {
+    override image(img: HTMLImageElement, x: number, y: number, scale: number): void {
+        throw new Error("Method not implemented.");
+    }
     /** Graphics layers */
     #layers: WebGL2RenderLayer[] = [];
 
