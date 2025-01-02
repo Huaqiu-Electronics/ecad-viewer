@@ -28,6 +28,8 @@ export const is_3d_model = (name: string) => name.endsWith(".glb");
 export class TabHeaderElement extends KCUIElement {
     #elements: Map<Sections, Map<TabKind, HTMLElement>>;
     #current_tab?: TabKind;
+    #input_container: InputContainer;
+
     #open_file_btn = html`<tab-button
         icon="svg:open_file"
         class="end"
@@ -150,6 +152,8 @@ export class TabHeaderElement extends KCUIElement {
         this.#open_file_btn.addEventListener("click", () => {
             input_container.input.click();
         });
+
+        this.#input_container = input_container;
 
         input_container.input.addEventListener("change", async (e) => {
             const files = (e.target as HTMLInputElement).files;
@@ -339,6 +343,11 @@ export class TabHeaderElement extends KCUIElement {
                         title="Switch full screen mode"
                         icon="svg:full_screen"
                         class="end"></tab-button>` as HTMLElement;
+                    full_screen.addEventListener("click", () => {
+                        this.#input_container.target.classList.toggle(
+                            "full-window",
+                        );
+                    });
                     section.appendChild(this.#open_file_btn);
                     section.appendChild(download);
                     section.appendChild(full_screen);

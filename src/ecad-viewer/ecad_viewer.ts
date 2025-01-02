@@ -38,6 +38,14 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         ...KCUIElement.styles,
         new CSS(kc_ui_styles),
         css`
+            :host(.full-window) {
+                width: 100vw; /* Full width of the viewport */
+                height: 100vh; /* Full height of the viewport */
+                top: 0px;
+                left: 0px;
+                position: fixed;
+            }
+
             :host {
                 margin: 0;
                 display: flex;
