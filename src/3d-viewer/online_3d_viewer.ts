@@ -6,9 +6,9 @@ import { Online3dViewerUrlReady } from "../viewers/base/events";
 import { Viewer } from "./viewer";
 
 export class Online3dViewer extends KCUIElement {
-    #loader: HTMLElement;
     #canvas: HTMLElement;
     #viewer_container: Viewer;
+    #spinner: HTMLElement;
     project: Project;
 
     static override styles = [
@@ -70,6 +70,9 @@ export class Online3dViewer extends KCUIElement {
             else {
                 this.#show_loader(true);
             }
+            this.addEventListener("resize", () => {
+                this.on_show();
+            });
         });
     }
     public on_show() {
@@ -85,14 +88,15 @@ export class Online3dViewer extends KCUIElement {
     }
 
     #show_loader(show: boolean) {
-        if (this.#loader) this.#loader.style.display = show ? "flex" : "none";
         this.#canvas.style.display = show ? "none" : "block";
+        this.#spinner.style.display = show ? "block" : "none";
     }
 
     override render() {
         this.#viewer_container = new Viewer(this);
         this.#canvas = this.#viewer_container.renderer.domElement;
-        return html` ${this.#canvas}<ecad-spinner></ecad-spinner>`;
+        this.#spinner = html`<ecad-spinner></ecad-spinner>` as HTMLElement;
+        return html` ${this.#canvas}${this.#spinner}`;
     }
 }
 

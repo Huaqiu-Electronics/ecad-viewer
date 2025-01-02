@@ -344,9 +344,7 @@ export class TabHeaderElement extends KCUIElement {
                         icon="svg:full_screen"
                         class="end"></tab-button>` as HTMLElement;
                     full_screen.addEventListener("click", () => {
-                        this.#input_container.target.classList.toggle(
-                            "full-window",
-                        );
+                        this.#input_container.on_full_windows();
                     });
                     section.appendChild(this.#open_file_btn);
                     section.appendChild(download);

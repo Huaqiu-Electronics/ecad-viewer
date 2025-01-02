@@ -213,6 +213,10 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     get has_bom() {
         return this.has_pcb || this.has_sch;
     }
+    on_full_windows() {
+        this.classList.toggle("full-window");
+        this.#ov_d_app.on_show();
+    }
 
     override render() {
         this.#file_input = html` <input
