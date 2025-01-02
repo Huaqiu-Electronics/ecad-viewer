@@ -1,4 +1,16 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden; /* 如果不需要滚动条，可以添加 */
+}
+
 ecad-viewer {
     width: 100%;
-    height: 800px;
+    height: 100%;
 }
