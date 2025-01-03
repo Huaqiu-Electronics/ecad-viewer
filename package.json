@@ -5,8 +5,7 @@
     "type": "module",
     "dependencies": {
         "immutable": "^5.0.0-beta.5",
-        "jszip": "^3.10.1",
-        "three": "^0.162.0"
+        "jszip": "^3.10.1"
     },
     "devDependencies": {
         "@esm-bundle/chai": "^4.3.4-fix.0",
@@ -43,16 +42,19 @@
         "build:font": "node scripts/build-font.js",
         "build:sprites": "node scripts/build-sprites.js",
         "build": "tsc -p tsconfig.json && node scripts/build.js",
+        "build:3d": " node scripts/build-3d.js",
+        "build:glyph": " node scripts/build-glyph.js",
+        "build-all": "npm run build:no-check && npm run build:glyph && npm run build:3d",
         "clean": "rm -rf build && rm -rf debug/ecad-viewer"
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Huaqiu-Electronics/ecad-viewer.git"
+        "url": "git+https://github.com/theacodes/kicanvas.js.git"
     },
-    "author": "Huaqiu-Electronics",
+    "author": "Alethea Katherine Flowers",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/Huaqiu-Electronics/ecad-viewer/issues"
+        "url": "https://github.com/theacodes/kicanvas.js/issues"
     },
-    "homepage": "https://github.com/Huaqiu-Electronics/ecad-viewer#readme"
+    "homepage": "https://github.com/theacodes/kicanvas.js#readme"
 }

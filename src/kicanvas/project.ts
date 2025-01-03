@@ -20,6 +20,7 @@ import type {
     SchematicSheetInstance,
 } from "../kicad/schematic";
 import { SchematicBomVisitor } from "../kicad/schematic_bom_visitor";
+import { NewStrokeGlyph } from "../kicad/text/newstroke-glyphs";
 
 import type { EcadBlob, EcadSources, VirtualFileSystem } from "./services/vfs";
 
@@ -31,53 +32,56 @@ export enum AssertType {
 }
 
 export class Project extends EventTarget implements IDisposable {
-    #fs: VirtualFileSystem;
-    #files_by_name: Map<string, KicadPCB | KicadSch> = new Map();
-    #file_content: Map<string, string> = new Map();
-    #pcb: KicadPCB[] = [];
-    #sch: KicadSch[] = [];
-    #ov_3d_url?: string;
-    #bom_items: BomItem[] = [];
-    #label_name_refs = new Map<string, NetRef[]>();
-    #net_item_refs = new Map<string, NetRef>();
-    #designator_refs = new Map<string, string>();
-    #project_name: string;
+    _fs: VirtualFileSystem;
+    _files_by_name: Map<string, KicadPCB | KicadSch> = new Map();
+    _file_content: Map<string, string> = new Map();
+    _pcb: KicadPCB[] = [];
+    _sch: KicadSch[] = [];
+    _ov_3d_url?: string;
+    // jwfjewfj
+    _bom_items: BomItem[] = [];
+    _label_name_refs = new Map<string, NetRef[]>();
+    _net_item_refs = new Map<string, NetRef>();
+    _designator_refs = new Map<string, string>();
+    _project_name: string;
+    active_sch_file_name?: string;
+    _found_cjk = false;
 
     find_labels_by_name(name: string) {
-        return this.#label_name_refs.get(name);
+        return this._label_name_refs.get(name);
     }
 
     find_net_item(uuid: string) {
-        return this.#net_item_refs.get(uuid);
+        return this._net_item_refs.get(uuid);
     }
 
     find_designator(d: string) {
-        return this.#designator_refs.get(d);
+        return this._designator_refs.get(d);
     }
 
     get bom_items() {
-        return this.#bom_items;
+        return this._bom_items;
     }
 
     public active_sch_name: string;
 
     public loaded: Barrier = new Barrier();
     public settings: ProjectSettings = new ProjectSettings();
-    #root_schematic_page?: ProjectPage;
-    #pages_by_path: Map<string, ProjectPage> = new Map();
+    _root_schematic_page?: ProjectPage;
+    _pages_by_path: Map<string, ProjectPage> = new Map();
 
     get pages() {
-        return Array.from(this.#pages_by_path.values());
+        return Array.from(this._pages_by_path.values());
     }
 
     get project_name() {
-        if (this.#project_name) return this.#project_name;
+        if (this._project_name) return this._project_name;
 
         const fn =
-            (this.#pcb.length
-                ? this.#pcb[0]?.filename
-                : this.#sch.length
-                  ? this.#root_schematic_page?.filename
+            (this._pcb.length
+                ? this._pcb[0]?.filename
+                : this._sch.length
+                  ? this._root_schematic_page?.filename
                   : "") ?? "";
 
         const fns = fn.split(".");
@@ -89,13 +93,13 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     public dispose() {
-        for (const i of [this.#pcb, this.#sch]) i.length = 0;
-        this.#files_by_name.clear();
-        this.#pages_by_path.clear();
-        this.#file_content.clear();
-        this.#label_name_refs.clear();
-        this.#net_item_refs.clear();
-        this.#designator_refs.clear();
+        for (const i of [this._pcb, this._sch]) i.length = 0;
+        this._files_by_name.clear();
+        this._pages_by_path.clear();
+        this._file_content.clear();
+        this._label_name_refs.clear();
+        this._net_item_refs.clear();
+        this._designator_refs.clear();
     }
 
     public async load(sources: EcadSources) {
@@ -104,21 +108,22 @@ export class Project extends EventTarget implements IDisposable {
         this.settings = new ProjectSettings();
         this.dispose();
 
-        this.#fs = sources.vfs;
+        this._fs = sources.vfs;
 
         const promises = [];
 
-        for (const filename of this.#fs.list()) {
-            promises.push(this.#load_file(filename));
+        for (const filename of this._fs.list()) {
+            promises.push(this._load_file(filename));
         }
 
         for (const blob of sources.blobs) {
+            if (blob.filename.startsWith(".")) continue;
             if (blob.filename.endsWith(".kicad_pcb")) {
-                promises.push(this.#load_blob(KicadPCB, blob));
+                promises.push(this._load_blob(KicadPCB, blob));
             } else if (blob.filename.endsWith(".kicad_sch")) {
-                promises.push(this.#load_blob(KicadSch, blob));
+                promises.push(this._load_blob(KicadSch, blob));
             } else if (blob.filename.endsWith(".kicad_pro")) {
-                this.#project_name = blob.filename.slice(
+                this._project_name = blob.filename.slice(
                     0,
                     blob.filename.length - ".kicad_pro".length,
                 );
@@ -128,10 +133,17 @@ export class Project extends EventTarget implements IDisposable {
 
         await Promise.all(promises);
 
+        if (this._found_cjk) {
+            // @ts-expect-error It's imported in the import map
+            await import("glyph-full").then((mod) => {
+                NewStrokeGlyph.glyph_data = mod.glyph_data;
+            });
+        }
+
         let has_root_sch = false;
 
         if (this.has_schematics)
-            has_root_sch = this.#determine_schematic_hierarchy();
+            has_root_sch = this._determine_schematic_hierarchy();
 
         const bom_items = (() => {
             if (this.has_schematics) {
@@ -147,18 +159,18 @@ export class Project extends EventTarget implements IDisposable {
                     }
                 }
 
-                this.#designator_refs = sch_visitor.designator_refs;
+                this._designator_refs = sch_visitor.designator_refs;
                 if (sch_visitor.bom_list.length) return sch_visitor.bom_list;
             }
             if (this.has_boards) {
                 const visitor = new BoardBomItemVisitor();
                 for (const b of this.boards()) visitor.visit(b);
-                this.#designator_refs = visitor.designator_refs;
+                this._designator_refs = visitor.designator_refs;
                 return visitor.bom_list;
             }
             return [];
         })();
-        this.#sort_bom(bom_items);
+        this._sort_bom(bom_items);
 
         this.loaded.open();
 
@@ -169,7 +181,7 @@ export class Project extends EventTarget implements IDisposable {
         );
     }
 
-    #sort_bom(bom_list: BomItem[]) {
+    _sort_bom(bom_list: BomItem[]) {
         const grouped_it_map: Map<string, ItemsGroupedByFpValueDNP> = new Map();
 
         const group_by_fp_value = (itm: BomItem) =>
@@ -192,89 +204,100 @@ export class Project extends EventTarget implements IDisposable {
             }
             grouped_it_map.get(key)!.addReference(it.Reference);
         }
-        this.#bom_items = Array.from(grouped_it_map.values());
+        this._bom_items = Array.from(grouped_it_map.values());
     }
     public get root_schematic_page() {
-        return this.#root_schematic_page;
+        return this._root_schematic_page;
     }
 
-    async #load_file(filename: string) {
+    async _load_file(filename: string) {
         log.info(`Loading file ${filename}`);
 
         if (filename.endsWith(".kicad_sch")) {
-            return await this.#load_doc(KicadSch, filename);
+            return await this._load_doc(KicadSch, filename);
         }
         if (filename.endsWith(".kicad_pcb")) {
-            return await this.#load_doc(KicadPCB, filename);
+            return await this._load_doc(KicadPCB, filename);
         }
         if (filename.endsWith(".kicad_pro")) {
-            return this.#load_meta(filename);
+            return this._load_meta(filename);
         }
 
         log.warn(`Couldn't load ${filename}: unknown file type`);
     }
 
-    async #load_doc(
+    async _load_doc(
         document_class: Constructor<KicadPCB | KicadSch>,
         filename: string,
     ) {
-        if (this.#files_by_name.has(filename)) {
-            return this.#files_by_name.get(filename);
+        if (this._files_by_name.has(filename)) {
+            return this._files_by_name.get(filename);
         }
 
         const text = await this.get_file_text(filename);
-        return this.#load_blob(document_class, {
+        return this._load_blob(document_class, {
             filename,
             content: text!,
         });
     }
 
-    async #load_blob(
+    async _load_blob(
         document_class: Constructor<KicadPCB | KicadSch>,
         blob: EcadBlob,
     ) {
-        if (this.#files_by_name.has(blob.filename)) {
-            return this.#files_by_name.get(blob.filename);
+        const file_content = blob.content;
+        // Check if file content contains CJK characters
+        if (
+            !this._found_cjk &&
+            file_content.match(
+                /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff\u3040-\u309f\uac00-\ud7af]/,
+            ) !== null
+        ) {
+            this._found_cjk = true;
+        }
+
+        if (this._files_by_name.has(blob.filename)) {
+            return this._files_by_name.get(blob.filename);
         }
         const filename = blob.filename;
-        const doc = new document_class(filename, blob.content);
+        const doc = new document_class(filename, file_content);
         doc.project = this;
-        this.#files_by_name.set(filename, doc);
-        if (doc instanceof KicadPCB) this.#pcb.push(doc);
+        this._files_by_name.set(filename, doc);
+        if (doc instanceof KicadPCB) this._pcb.push(doc);
         else {
-            this.#sch.push(doc);
+            this._sch.push(doc);
 
             for (const it of doc.labels) {
                 if (it.uuid) {
                     const ref = new NetRef(doc.filename, it.text, it.uuid);
-                    this.#net_item_refs.set(it.uuid, ref);
+                    this._net_item_refs.set(it.uuid, ref);
 
-                    if (!this.#label_name_refs.has(it.text))
-                        this.#label_name_refs.set(it.text, []);
+                    if (!this._label_name_refs.has(it.text))
+                        this._label_name_refs.set(it.text, []);
 
-                    this.#label_name_refs.get(it.text)!.push(ref);
+                    this._label_name_refs.get(it.text)!.push(ref);
                 }
             }
         }
-        this.#files_by_name.set(filename, doc);
-        this.#file_content.set(filename, blob.content);
+        this._files_by_name.set(filename, doc);
+        this._file_content.set(filename, file_content);
         return doc;
     }
 
-    async #load_meta(filename: string) {
+    async _load_meta(filename: string) {
         const text = await this.get_file_text(filename);
         const data = JSON.parse(text!);
         this.settings = ProjectSettings.load(data);
     }
 
     async get_file_text(filename: string) {
-        if (this.#file_content.has(filename))
-            return this.#file_content.get(filename);
-        return await (await this.#fs.get(filename)).text();
+        if (this._file_content.has(filename))
+            return this._file_content.get(filename);
+        return await (await this._fs.get(filename)).text();
     }
 
     public *files() {
-        yield* this.#files_by_name.values();
+        yield* this._files_by_name.values();
     }
 
     *sch_in_order() {
@@ -286,11 +309,11 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     public file_by_name(name: string) {
-        return this.#files_by_name.get(name);
+        return this._files_by_name.get(name);
     }
 
     public *boards() {
-        for (const value of this.#files_by_name.values()) {
+        for (const value of this._files_by_name.values()) {
             if (value instanceof KicadPCB) {
                 yield value;
             }
@@ -298,15 +321,15 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     public get has_3d() {
-        return this.#ov_3d_url !== undefined;
+        return this._ov_3d_url !== undefined;
     }
 
     public set ov_3d_url(url: string | undefined) {
-        this.#ov_3d_url = url;
+        this._ov_3d_url = url;
     }
 
     public get ov_3d_url() {
-        return this.#ov_3d_url;
+        return this._ov_3d_url;
     }
 
     public get has_boards() {
@@ -314,7 +337,7 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     public *schematics() {
-        for (const [, v] of this.#files_by_name) {
+        for (const [, v] of this._files_by_name) {
             if (v instanceof KicadSch) {
                 yield v;
             }
@@ -329,26 +352,26 @@ export class Project extends EventTarget implements IDisposable {
         switch (kind) {
             case AssertType.SCH:
                 return (
-                    (this.#files_by_name.get(
-                        `${this.#project_name}.kicad_sch`,
+                    (this._files_by_name.get(
+                        `${this._project_name}.kicad_sch`,
                     ) as KicadSch) ??
                     this.root_schematic_page?.document ??
-                    first(this.#sch)
+                    first(this._sch)
                 );
             case AssertType.PCB:
-                return first(this.#pcb);
+                return first(this._pcb);
         }
     }
 
     public page_by_path(project_path: string) {
-        return this.#files_by_name.get(project_path);
+        return this._files_by_name.get(project_path);
     }
 
     public async download(name: string) {
-        if (this.#files_by_name.has(name)) {
-            name = this.#files_by_name.get(name)!.filename;
+        if (this._files_by_name.has(name)) {
+            name = this._files_by_name.get(name)!.filename;
         }
-        return await this.#fs.download(name);
+        return await this._fs.download(name);
     }
 
     public get is_empty() {
@@ -372,7 +395,7 @@ export class Project extends EventTarget implements IDisposable {
         );
     }
 
-    #determine_schematic_hierarchy() {
+    _determine_schematic_hierarchy() {
         log.info("Determining schematic hierarchy");
 
         const paths_to_schematics = new Map<string, KicadSch>();
@@ -385,7 +408,7 @@ export class Project extends EventTarget implements IDisposable {
             paths_to_schematics.set(`/${schematic.uuid}`, schematic);
 
             for (const sheet of schematic.sheets) {
-                const sheet_sch = this.#files_by_name.get(
+                const sheet_sch = this._files_by_name.get(
                     sheet.sheetfile ?? "",
                 ) as KicadSch;
 
@@ -436,14 +459,14 @@ export class Project extends EventTarget implements IDisposable {
         let pages = [];
 
         if (root) {
-            this.#root_schematic_page = new ProjectPage(
+            this._root_schematic_page = new ProjectPage(
                 this,
                 root.filename,
                 `/${root!.uuid}`,
                 "Root",
                 "1",
             );
-            pages.push(this.#root_schematic_page);
+            pages.push(this._root_schematic_page);
 
             for (const [path, sheet] of paths_to_sheet_instances.entries()) {
                 pages.push(
@@ -463,13 +486,13 @@ export class Project extends EventTarget implements IDisposable {
         pages = sorted_by_numeric_strings(pages, (p) => p.page!);
 
         for (const page of pages) {
-            this.#pages_by_path.set(page.project_path, page);
+            this._pages_by_path.set(page.project_path, page);
         }
 
         // Add any "orphan" sheets to the list of pages now that we've added all
         // the hierarchical ones.
         const seen_schematic_files = new Set(
-            map(this.#pages_by_path.values(), (p) => p.filename),
+            map(this._pages_by_path.values(), (p) => p.filename),
         );
 
         for (const schematic of this.schematics()) {
@@ -481,13 +504,12 @@ export class Project extends EventTarget implements IDisposable {
                     `/${schematic.uuid}`,
                     schematic.filename,
                 );
-                this.#pages_by_path.set(page.project_path, page);
-
+                this._pages_by_path.set(page.project_path, page);
             }
         }
 
         // Finally, if no root schematic was found, just use the first one we saw.
-        this.#root_schematic_page = first(this.#pages_by_path.values());
+        this._root_schematic_page = first(this._pages_by_path.values());
         return found_root;
     }
 }

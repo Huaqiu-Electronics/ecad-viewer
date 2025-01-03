@@ -16,7 +16,6 @@ import "./ecad-viewer/tab_button";
 
 import "./ecad-viewer/tab_header";
 import "./ecad-viewer/ecad_viewer";
-import "./3d-viewer/online_3d_viewer";
 import "./ecad-viewer/ecad_viewer_embedded ";
 
 import { ECadViewer } from "./ecad-viewer/ecad_viewer";
@@ -27,13 +26,11 @@ import {
     extract_bom_list_from_urls,
 } from "./utils";
 import { KCBoardAppElement } from "./kicanvas/elements/kc-board/app";
-import { Online3dViewer } from "./3d-viewer/online_3d_viewer";
 import { KCSchematicAppElement } from "./kicanvas/elements/kc-schematic/app";
 import { ECadViewerEmbedded } from "./ecad-viewer/ecad_viewer_embedded ";
 import { html } from "./base/web-components/html";
 
 export {
-    Online3dViewer,
     html,
     KCSchematicAppElement,
     KCBoardAppElement,
@@ -53,5 +50,4 @@ export default {
     extract_bom_list_from_urls,
     KCBoardAppElement,
     KCSchematicAppElement,
-    Online3dViewer,
 };

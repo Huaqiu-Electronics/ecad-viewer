@@ -3,34 +3,27 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <style>
-            .flex-container {
-                display: flex;
-                margin-left: 10%;
-                margin-right: 10%;
-                height: 800px;
-            }
-            .col-flex-container {
-                display: flex;
-                flex-direction: column;
-            }
-            .canvas-container {
-                margin: 10px;
-                padding: 1px;
-            }
-        </style>
         <link rel="stylesheet" href="./style.css" />
         <title>ECAD Viewer</title>
     </head>
     <body>
         <!-- Container div for the horizontal layout -->
-        <div class="flex-container">
-            <ecad-viewer
-                cli-server-addr="http://localhost:8989/convert_ad_to_kicad"
-                zip-url="./video.zip">
-            </ecad-viewer>
-        </div>
+        <ecad-viewer
+            cli-server-addr="http://localhost:8989/convert_ad_to_kicad"
+            ai-url="https://www.eda.cn/ecadViewer/viewerPage?xmlId=de31e97e-9231-492e-a43c-13a7cbfbe30b&fileZip=%2Fdata%2Fdesign%2Fdemo%2Fde31e97e-9231-492e-a43c-13a7cbfbe30b.zip"
+            zip-url="./video.zip">
+        </ecad-viewer>
     </body>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./three/three.module.js",
+                "three/addons/": "./three/addons/",
+                "3d-viewer": "./ecad_viewer/3d-viewer.js",
+                "glyph-full": "./ecad_viewer/glyph-full.js"
+            }
+        }
+    </script>
     <script type="module" src="./ecad_viewer/ecad-viewer.js"></script>
     <script>
         // Function to get the value of a query parameter
@@ -44,7 +37,7 @@
 
         // If fileZip exists, set it as the zip-url attribute
         if (ecadViewer) {
-            for (const attr of ["zip-url", "cli-server-addr"]) {
+            for (const attr of ["zip-url", "cli-server-addr", "ai-url"]) {
                 const it = getQueryParam(attr);
                 if (it) ecadViewer.setAttribute(attr, it);
             }

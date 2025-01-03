@@ -8,7 +8,7 @@ import { Angle, BBox, Vec2 } from "../../base/math";
 import { is_number, is_string } from "../../base/types";
 import { Font, TextStyle } from "./font";
 import { Glyph, StrokeGlyph } from "./glyph";
-import * as newstroke from "./newstroke-glyphs";
+import { NewStrokeGlyph } from "./newstroke-glyphs";
 
 /** Stroke font
  *
@@ -31,59 +31,60 @@ export class StrokeFont extends Font {
         return this.instance;
     }
 
-    /** Glyph data loaded from newstroke */
-    #glyphs: Map<number, StrokeGlyph> = new Map();
-    #shared_glyphs: StrokeGlyph[] = [];
+    /** Glyph data loaded from NewStrokeGlyph */
+    _glyphs: Map<number, StrokeGlyph> = new Map();
+    _shared_glyphs: StrokeGlyph[] = [];
 
     constructor() {
         super("stroke");
-        this.#load();
+        this._load();
     }
 
     /**
      * Parses and prepares Newstroke for rendering.
      */
-    #load() {
-        for (const glyph_data of newstroke.shared_glyphs) {
-            this.#shared_glyphs.push(decode_glyph(glyph_data));
+    _load() {
+        for (const glyph_data of NewStrokeGlyph.shared_glyphs) {
+            this._shared_glyphs.push(decode_glyph(glyph_data));
         }
 
-        // by default, KiCanvas only loads the first 256 glyphs of newstroke
+        // by default, KiCanvas only loads the first 256 glyphs of NewStrokeGlyph
         // to reduce memory and CPU usage. Additional glyphs are lazy loaded
         // as needed
         for (let i = 0; i < 256; i++) {
-            this.#load_glyph(i);
+            this._load_glyph(i);
         }
     }
 
-    #load_glyph(idx: number) {
-        const data: number | string | undefined = newstroke.glyph_data[idx];
+    _load_glyph(idx: number) {
+        const data: number | string | undefined =
+            NewStrokeGlyph.glyph_data[idx];
         if (is_string(data)) {
-            this.#glyphs.set(idx, decode_glyph(data));
+            this._glyphs.set(idx, decode_glyph(data));
         } else if (is_number(data)) {
-            const glyph = this.#shared_glyphs[data]!;
-            this.#glyphs.set(idx, glyph);
+            const glyph = this._shared_glyphs[data]!;
+            this._glyphs.set(idx, glyph);
         } else {
             throw new Error(`Invalid glyph data for glyph ${idx}: ${data}`);
         }
 
         // remove the glyph data from the array, since it won't be needed again.
-        newstroke.glyph_data[idx] = undefined;
+        NewStrokeGlyph.glyph_data[idx] = undefined;
     }
 
     /** Get a glyph for a specific character. */
     get_glyph(c: string): StrokeGlyph {
         const glyph_index = ord(c) - ord(" ");
 
-        if (glyph_index < 0 || glyph_index > newstroke.glyph_data.length) {
+        if (glyph_index < 0 || glyph_index > NewStrokeGlyph.glyph_data.length) {
             return this.get_glyph("?");
         }
 
-        if (!this.#glyphs.has(glyph_index)) {
-            this.#load_glyph(glyph_index);
+        if (!this._glyphs.has(glyph_index)) {
+            this._load_glyph(glyph_index);
         }
 
-        return this.#glyphs.get(glyph_index)!;
+        return this._glyphs.get(glyph_index)!;
     }
 
     override get_line_extents(
@@ -285,7 +286,7 @@ function decode_coord(c: [string, string]): [number, number] {
 }
 
 /**
- * Parses a newstroke glyph
+ * Parses a NewStrokeGlyph glyph
  *
  * Newstroke is distributed as a .cpp file and a old-format KiCAD library,
  * this script reads a JS-ified version.

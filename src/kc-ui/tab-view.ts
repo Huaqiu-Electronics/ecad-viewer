@@ -27,7 +27,7 @@ export class TabView extends KCUIElement {
                 position: absolute;
                 left: 0;
                 height: 100%;
-                width: calc(max(20%, 200px));
+                width: var(--floating-pro-panel-width);
                 top: 0;
                 bottom: 0;
                 flex: 1;

@@ -17,6 +17,11 @@
     --tooltip-border: 1px solid #131218;
 
     --scrollbar-bg: #f1f1f1;
+    --header-bar-size: 32px;
+    --floating-pro-panel-width: calc(min(20%, 240px));
+    --prop-panel-bg: transparent;
+    --prop-border-color: #b1a8a8;
+
     --scrollbar-fg: #999999;
     --scrollbar-active-fg: #222222;
     --scrollbar-hover-bg: #222222;

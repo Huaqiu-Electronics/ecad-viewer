@@ -6,8 +6,12 @@
 
 import fs from "node:fs";
 import { bundle } from "./bundle.js";
+import { resolve } from "node:path";
+
+export const ENTRY = resolve("src/index.ts");
 
 let { options, context } = await bundle({
+    entryPoints: [ENTRY],
     outfile: "build/ecad-viewer.js",
     minify: true,
     metafile: true,
@@ -26,7 +30,9 @@ for (const msg of result.errors) {
     console.log("- ", msg);
 }
 
-console.log("Saving metafile to build/esbuild-meta.json");
-fs.writeFileSync("build/esbuild-meta.json", JSON.stringify(result.metafile));
+fs.writeFileSync(
+    "build/ecad-viewer-esbuild-meta.json",
+    JSON.stringify(result.metafile),
+);
 
 context.dispose();
