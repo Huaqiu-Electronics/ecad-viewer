@@ -43,6 +43,7 @@ export class TabHeaderElement extends KCUIElement {
             has_sch: boolean;
             has_bom: boolean;
             cli_server_addr: string | null;
+            ai_url?: string;
         },
     ) {
         super();
@@ -59,7 +60,7 @@ export class TabHeaderElement extends KCUIElement {
         ...KCUIElement.styles,
         css`
             :host {
-                height: 2em;
+                height: var(--header-bar-size);
                 width: 100%;
                 flex: 1;
                 display: flex;
@@ -67,7 +68,7 @@ export class TabHeaderElement extends KCUIElement {
             }
             .horizontal-bar {
                 display: flex;
-                height: 100%;
+                height: var(--header-bar-size);
                 width: 100%;
                 background-color: transparent;
                 overflow: hidden;
@@ -124,7 +125,9 @@ export class TabHeaderElement extends KCUIElement {
     }
 
     make_ecad_view = () =>
-        html`<ecad-viewer cli-server-addr="${this.option.cli_server_addr}">
+        html`<ecad-viewer
+            ai-url=${this.option.ai_url}
+            cli-server-addr="${this.option.cli_server_addr}">
         </ecad-viewer>`;
 
     async load_zip_content(input_container: InputContainer, file: Blob) {
@@ -305,7 +308,7 @@ export class TabHeaderElement extends KCUIElement {
             };
 
             const icon = html`<tab-button icon="${icon_map[kind]}"
-                >${kind}</tab-button
+                >${kind === TabKind.pcb ? "Layers/Objects" : kind}</tab-button
             >` as HTMLElement;
             icon.classList.add("beginning");
             this.#elements.get(sectionClass)?.set(kind, icon);
@@ -318,10 +321,7 @@ export class TabHeaderElement extends KCUIElement {
                     section.appendChild(make_beginning(TabKind.pcb));
                 if (this.option.has_sch)
                     section.appendChild(make_beginning(TabKind.sch));
-                if (this.option.has_3d)
-                    section.appendChild(make_beginning(TabKind.step));
-                if (this.option.has_bom)
-                    section.appendChild(make_beginning(TabKind.bom));
+
                 break;
             case Sections.middle:
                 if (this.option.has_sch)
@@ -335,10 +335,6 @@ export class TabHeaderElement extends KCUIElement {
                 break;
             case Sections.end:
                 {
-                    const download = html`<tab-button
-                        title="Download"
-                        icon="svg:download"
-                        class="end"></tab-button>` as HTMLElement;
                     const full_screen = html`<tab-button
                         title="Switch full screen mode"
                         icon="svg:full_screen"
@@ -346,8 +342,6 @@ export class TabHeaderElement extends KCUIElement {
                     full_screen.addEventListener("click", () => {
                         this.#input_container.on_full_windows();
                     });
-                    section.appendChild(this.#open_file_btn);
-                    section.appendChild(download);
                     section.appendChild(full_screen);
                 }
                 break;
@@ -427,7 +421,7 @@ export class TabHeaderElement extends KCUIElement {
         });
 
         this.addEventListener(SheetLoadEvent.type, (e) => {
-            this.sch_button.textContent = e.detail;
+            if (this.sch_button) this.sch_button.textContent = e.detail;
         });
     }
 

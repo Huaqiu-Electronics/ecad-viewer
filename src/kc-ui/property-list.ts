@@ -14,9 +14,8 @@ export class KCUIPropertyList extends KCUIElement {
             :host {
                 display: grid;
                 gap: 1px;
+                background: var(--prop-panel-bg);
                 grid-template-columns: fit-content(50%) 1fr;
-                background: var(--grid-outline);
-                border-bottom: 1px solid var(--grid-outline);
             }
         `,
     ];
@@ -37,12 +36,14 @@ export class KCUIPropertyListItemElement extends KCUIElement {
             }
 
             span {
-                padding: 0.2em;
-                background: var(--bg);
+                padding: 0.4em;
+                box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
                 text-overflow: ellipsis;
                 white-space: nowrap;
                 overflow: hidden;
                 user-select: all;
+                border-bottom: 1px dashed var(--prop-border-color);
+                border-right: 1px dashed var(--prop-border-color);
             }
 
             :host(.label) span:first-child {
@@ -66,8 +67,10 @@ export class KCUIPropertyListItemElement extends KCUIElement {
     name: string;
 
     override render() {
-        return html`<span title="${this.name}">${this.name}</span
-            ><span><slot></slot></span>`;
+        return html`
+            <span title="${this.name}">${this.name}</span>
+            <span><slot></slot></span>
+        `;
     }
 }
 

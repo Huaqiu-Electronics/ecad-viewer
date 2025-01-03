@@ -21,6 +21,7 @@ import { BomApp } from "../kicanvas/elements/bom/app";
 import { TabHeaderElement } from "./tab_header";
 import {
     BoardContentReady,
+    Online3dViewerLoaded,
     OpenBarrierEvent,
     SheetLoadEvent,
     TabActivateEvent,
@@ -30,7 +31,7 @@ import {
 
 import { TabKind } from "./constraint";
 import type { InputContainer } from "./input_container";
-import { Online3dViewer } from "../3d-viewer/online_3d_viewer";
+import type { Online3dViewer } from "../3d-viewer/online_3d_viewer";
 import "../kc-ui/spinner";
 
 export class ECadViewer extends KCUIElement implements InputContainer {
@@ -76,6 +77,30 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             .tab-content.active {
                 display: inherit;
             }
+
+            .bottom-left-icon {
+                position: absolute;
+                bottom: 16px;
+                left: 16px; /* Adjusted to place it on the bottom-left */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                background-color: transparent;
+                border-radius: 50%;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                text-decoration: none;
+                color: var(--fg);
+                transition:
+                    transform 0.2s ease-in-out,
+                    box-shadow 0.2s ease-in-out;
+            }
+
+            .bottom-left-icon:hover {
+                transform: scale(1.1);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            }
         `,
     ];
 
@@ -104,6 +129,9 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     #file_input: HTMLInputElement;
     #spinner: HTMLElement;
     #content: HTMLElement;
+    #step_viewer_placeholder: HTMLElement;
+    #viewers_container: HTMLDivElement;
+    #is_full_screen = false;
     get project() {
         return this.#project;
     }
@@ -115,13 +143,16 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     public loaded: boolean;
 
     @attribute({ type: String })
-    public url: string;
-
-    @attribute({ type: String })
     public cli_server_addr: string;
 
     @attribute({ type: String })
     public zip_url?: string;
+
+    @attribute({ type: String })
+    public ai_url?: string;
+
+    @attribute({ type: String })
+    public host_origin?: string;
 
     override initialContentCallback() {
         this.#setup_events();
@@ -140,6 +171,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                 has_sch: false,
                 has_bom: false,
                 cli_server_addr: this.cli_server_addr,
+                ai_url: this.ai_url,
             });
 
             const file = await (await fetch(this.zip_url)).blob();
@@ -149,13 +181,6 @@ export class ECadViewer extends KCUIElement implements InputContainer {
 
         const files = [];
         const blobs: EcadBlob[] = [];
-
-        if (this.url) {
-            for (const it of this.url.split(";")) {
-                if (it.endsWith(".glb")) this.#project.ov_3d_url = this.url;
-                else files.push(it);
-            }
-        }
 
         for (const src_elm of this.querySelectorAll<EcadSourceElement>(
             "ecad-source",
@@ -214,8 +239,14 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         return this.has_pcb || this.has_sch;
     }
     on_full_windows() {
-        this.classList.toggle("full-window");
-        this.#ov_d_app.on_show();
+        if (!this.#is_full_screen) {
+            window.document.documentElement.requestFullscreen();
+            this.#is_full_screen = true;
+        } else {
+            window.document.exitFullscreen();
+            this.#is_full_screen = false;
+        }
+        if (this.#ov_d_app) this.#ov_d_app.on_show();
     }
 
     override render() {
@@ -235,6 +266,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             has_sch: this.has_sch,
             has_bom: this.has_bom,
             cli_server_addr: this.cli_server_addr,
+            ai_url: this.ai_url,
         });
 
         this.#tab_header.input_container = this;
@@ -262,8 +294,20 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             });
             this.#tab_contents[tab.current]?.classList.add("active");
 
-            if (tab.current === TabKind.step && this.#ov_d_app) {
-                this.#ov_d_app.on_show();
+            if (tab.current === TabKind.step) {
+                if (this.#ov_d_app) this.#ov_d_app.on_show();
+                else {
+                    (async () => {
+                        // @ts-expect-error its imported from map
+                        await import("3d-viewer");
+                        this.#ov_d_app =
+                            html`<ecad-3d-viewer></ecad-3d-viewer>` as Online3dViewer;
+                        this.#viewers_container.appendChild(this.#ov_d_app);
+                        const page = embed_to_tab(this.#ov_d_app, TabKind.step);
+                        page.classList.add("active");
+                        page.style.display = "none";
+                    })();
+                }
             }
         });
 
@@ -297,6 +341,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                 const visible = (event as TabMenuVisibleChangeEvent).detail;
                 this.#tab_header.tabMenuChecked = visible;
             });
+            return page;
         };
 
         if (this.has_pcb) {
@@ -331,23 +376,63 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         }
 
         if (this.has_3d) {
-            this.#ov_d_app = new Online3dViewer();
-            embed_to_tab(this.#ov_d_app, TabKind.step);
+            this.#step_viewer_placeholder =
+                html`<ecad-spinner></ecad-spinner>` as HTMLElement;
+            embed_to_tab(this.#step_viewer_placeholder, TabKind.step);
+            this.project.addEventListener(Online3dViewerLoaded.type, () => {
+                this.#step_viewer_placeholder.hidden = true;
+                this.#ov_d_app.style.display = "block";
+            });
         }
-
         if (this.has_bom) {
             this.#bom_app = new BomApp();
             embed_to_tab(this.#bom_app, TabKind.bom);
         }
 
-        this.#content = html` <div class="vertical">
-            ${this.#tab_header}
-            <div class="vertical">
-                ${this.#board_app} ${this.#schematic_app} ${this.#bom_app}
-                ${this.#ov_d_app}
-            </div>
-        </div>` as HTMLElement;
+        this.#viewers_container = html` <div class="vertical">
+            ${this.#board_app} ${this.#schematic_app} ${this.#bom_app}
+            ${this.#step_viewer_placeholder}
+        </div>` as HTMLDivElement;
 
+        this.#content = html` <div class="vertical">
+            ${this.#tab_header} ${this.#viewers_container}
+            <a
+                href=${this.ai_url}
+                class="bottom-left-icon"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Visit EDA website">
+                <svg
+                    version="1.1"
+                    id="图层_1"
+                    xmlns="http://www.w3.org/2000/svg"
+                    xmlns:xlink="http://www.w3.org/1999/xlink"
+                    x="0px"
+                    y="0px"
+                    viewBox="0 0 50 50"
+                    xml:space="preserve">
+                    <style type="text/css">
+                        .st0 {
+                            fill: rgba(255, 0, 0, 0.836);
+                        }
+                    </style>
+                    <g>
+                        <path
+                            class="st0"
+                            d="M38.3,0H11.9C5.5,0,0.1,5.3,0.1,11.8v26.3C0.1,44.6,5.4,50,11.9,50h26.3c0.1,0,0.3,0,0.6,0
+		c-1.5-1.5-2.2-3.3-2.2-5.5c0-0.6,0-1.2,0.1-1.7H12.1c-2.5,0-4.4-2-4.4-4.4V11.8c0-2.5,2-4.4,4.4-4.4h26.3c2.5,0,4.4,2,4.4,4.4v24.7
+		c0.6-0.1,1.2-0.1,1.7-0.1c2.2,0,4.1,0.9,5.5,2.2c0-0.1,0-0.3,0-0.4V11.8C50,5.3,44.8,0,38.3,0z" />
+                        <path
+                            class="st0"
+                            d="M44.5,38.9c-3.1,0-5.5,2.5-5.5,5.5s2.5,5.5,5.5,5.5c3.1,0,5.5-2.5,5.5-5.5C49.9,41.2,47.6,38.9,44.5,38.9z" />
+                        <polygon
+                            class="st0"
+                            points="37.8,37.7 37.8,12.3 30.5,12.3 30.5,21.3 19.8,21.3 19.8,12.3 12.3,12.3 12.3,37.7 19.8,37.7 
+		19.8,28.6 30.5,28.6 30.5,37.7 	" />
+                    </g>
+                </svg>
+            </a>
+        </div>` as HTMLElement;
         return html` ${this.#content} ${this.#spinner} `;
     }
 }
