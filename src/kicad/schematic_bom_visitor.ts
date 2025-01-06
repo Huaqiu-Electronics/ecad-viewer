@@ -38,6 +38,9 @@ export class SchematicBomVisitor extends SchematicVisitorBase {
 
         for (const [, ins] of node.instances) {
             const Reference = ins.reference ?? schematicSymbol.Reference;
+
+            if (Reference.endsWith("?")) continue;
+
             this.#bom_list.push({
                 ...schematicSymbol,
                 Reference,
