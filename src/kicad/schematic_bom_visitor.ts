@@ -5,6 +5,7 @@ import { SchematicVisitorBase } from "./schematic_visitor_base";
 export class SchematicBomVisitor extends SchematicVisitorBase {
     #bom_list: BomItem[] = [];
     #designator_refs = new Map<string, string>();
+    #existing_designators = new Set<string>();
 
     public constructor() {
         super();
@@ -39,7 +40,13 @@ export class SchematicBomVisitor extends SchematicVisitorBase {
         for (const [, ins] of node.instances) {
             const Reference = ins.reference ?? schematicSymbol.Reference;
 
-            if (Reference.endsWith("?")) continue;
+            if (
+                Reference.endsWith("?") ||
+                this.#existing_designators.has(Reference)
+            )
+                continue;
+
+            this.#existing_designators.add(Reference);
 
             this.#bom_list.push({
                 ...schematicSymbol,
