@@ -98,6 +98,15 @@ export class KCBoardLayersPanelElement extends KCUIElement {
         })();
     }
 
+    clear_highlight() {
+        let has_high = false;
+        for (const n of this.items) {
+            has_high ||= n.layer_highlighted;
+            n.layer_highlighted = false;
+        }
+        if (has_high) this.viewer.layers.highlight(null);
+    }
+
     override initialContentCallback() {
         // Highlight layer when its control list item is clicked
         this.panel_body.addEventListener(

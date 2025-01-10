@@ -43,6 +43,7 @@ export class BoardViewer extends DocumentViewer<
         this.#layer_visibility_ctrl = ctr;
     }
     public highlight_net(num: number | null) {
+        this.#layer_visibility_ctrl.clear_highlight();
         if (this.painter.paint_net(this.board, num, this.layer_visibility)) {
             this.#should_restore_visibility = false;
             if (num) {
