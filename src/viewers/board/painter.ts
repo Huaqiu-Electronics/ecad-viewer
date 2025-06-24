@@ -72,7 +72,7 @@ class RectPainter extends BoardItemPainter {
 
         this.gfx.line(new Polyline(points, r.width, color));
 
-        if (r.fill && r.fill != "none") {
+        if (r.fill && (r.fill === "yes" || r.fill === "solid")) {
             this.gfx.polygon(new Polygon(points, color));
         }
     }
