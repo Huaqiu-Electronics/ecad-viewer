@@ -72,7 +72,7 @@ class RectPainter extends BoardItemPainter {
 
         this.gfx.line(new Polyline(points, r.width, color));
 
-        if (r.fill && (r.fill === "yes" || r.fill === "solid")) {
+        if (board_items.should_fill(r)) {
             this.gfx.polygon(new Polygon(points, color));
         }
     }
@@ -101,7 +101,7 @@ class PolyPainter extends BoardItemPainter {
             );
         }
 
-        if (p.fill && p.fill != "none") {
+        if (board_items.should_fill(p)) {
             this.gfx.polygon(new Polygon(p.points, color));
         }
     }
@@ -143,7 +143,7 @@ class CirclePainter extends BoardItemPainter {
             c.width,
         );
 
-        if (c.fill && c.fill != "none") {
+        if (board_items.should_fill(c)) {
             this.gfx.circle(
                 new Circle(arc.center, arc.radius + (c.width ?? 0), color),
             );

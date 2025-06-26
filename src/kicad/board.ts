@@ -1155,6 +1155,12 @@ export class Footprint implements BoardNode {
     }
 }
 
+// The filled flag represents if a solid fill is present on Circle,
+// rectangles and polygons
+export type GraphicsFill = "none" | "solid" | "hatch" | "yes" | "no";
+export const should_fill = (T: { fill?: GraphicsFill }) =>
+    typeof T.fill !== "undefined" && (T.fill === "solid" || T.fill === "yes");
+
 export class GraphicItem implements BoardNode {
     typeId: BoardNodeType = "GraphicItem";
     parent?: Footprint;
@@ -1225,7 +1231,7 @@ export class Circle extends GraphicItem {
     center: Vec2;
     end: Vec2;
     width: number;
-    fill: string;
+    fill: GraphicsFill = "none";
     stroke: Stroke;
     uuid?: string;
 
@@ -1374,7 +1380,7 @@ export class Poly extends GraphicItem {
 
     pts: (Vec2 | Arc)[];
     width: number;
-    fill: string;
+    fill: GraphicsFill;
     island: boolean;
     stroke: Stroke;
     uuid?: string;
@@ -1452,7 +1458,7 @@ export class Rect extends GraphicItem {
     start: Vec2;
     end: Vec2;
     width: number;
-    fill: string;
+    fill: GraphicsFill = "none";
     stroke: Stroke;
     uuid?: string;
 
