@@ -28,7 +28,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/Huaqiu-Electronics/ecad-viewer-service
-          ${{ steps.latest-release.outputs.tag }}
+          tags: ${{ steps.latest-release.outputs.tag }}
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -61,7 +61,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: registry.cn-shanghai.aliyuncs.com/kicad/ecad-viewer-service
-          ${{ steps.latest-release.outputs.tag }}
+          tags: ${{ steps.latest-release.outputs.tag }}
 
       - name: Login to aliyun
         uses: docker/login-action@v3
