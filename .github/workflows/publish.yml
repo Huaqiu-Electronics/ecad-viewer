@@ -1,8 +1,10 @@
 name: Publish to Docker
 on:
-  push:
-    branches:
-      - ecad-viewer-service
+  release:
+    branches: ecad-viewer-service
+    types:
+      - published
+
   workflow_dispatch:
 
 permissions:
