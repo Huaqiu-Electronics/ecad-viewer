@@ -10,7 +10,6 @@
         <!-- Container div for the horizontal layout -->
         <ecad-viewer
             cli-server-addr="http://localhost:8989/convert_ad_to_kicad"
-            ai-url="https://www.eda.cn/ecadViewer/viewerPage?xmlId=de31e97e-9231-492e-a43c-13a7cbfbe30b&fileZip=%2Fdata%2Fdesign%2Fdemo%2Fde31e97e-9231-492e-a43c-13a7cbfbe30b.zip"
             zip-url="./video.zip">
         </ecad-viewer>
     </body>
@@ -30,6 +29,10 @@
         function getQueryParam(name) {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get(name);
+        }
+
+        if (getQueryParam("is-module-lib")) {
+            this["is_module_lib"] = true;
         }
 
         // Get the <ecad-viewer> element
