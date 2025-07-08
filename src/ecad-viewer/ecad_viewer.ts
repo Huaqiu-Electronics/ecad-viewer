@@ -240,7 +240,6 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         return this.has_pcb || this.has_sch;
     }
     on_full_windows() {
-        console.log(JSON.stringify(this.attributes));
         if (typeof (window as any)["is_module_lib"] !== "undefined") {
             console.log("is_module_lib", "true");
             show_ecad_viewer();
