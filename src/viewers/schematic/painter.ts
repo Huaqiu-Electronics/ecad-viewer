@@ -5,6 +5,8 @@
 */
 
 import { Angle, BBox, Arc as MathArc, Matrix3, Vec2 } from "../../base/math";
+import { BezierCurve } from "../../base/math";
+
 import {
     Arc,
     Circle,
@@ -252,6 +254,49 @@ class ArcPainter extends SchematicItemPainter {
     }
 }
 
+class BezierPainter extends SchematicItemPainter {
+    classes = [schematic_items.Bezier];
+
+    layers_for(item: schematic_items.Bezier) {
+        return [LayerNames.notes];
+    }
+
+    paint(layer: ViewLayer, b: schematic_items.Bezier) {
+        // Assume b.pts is an array of Vec2 control points for the Bezier curve
+        if (!b.pts || b.pts.length < 4) {
+            return;
+        }
+
+        this.#fill(layer, b);
+        this.#stroke(layer, b);
+    }
+
+    #stroke(layer: ViewLayer, b: schematic_items.Bezier) {
+        const { width, color } = this.determine_stroke(layer, b);
+
+        if (!width || !color) {
+            return;
+        }
+
+        // Draw the Bezier curve as a polyline approximation
+        const curve = new BezierCurve(b.pts);
+        const polyline = curve.toPolyline(32); // 32 segments for smoothness
+        this.gfx.line(new Polyline(polyline, width, color));
+    }
+
+    #fill(layer: ViewLayer, b: schematic_items.Bezier) {
+        const color = this.determine_fill(layer, b);
+
+        if (!color) {
+            return;
+        }
+
+        // Fill the Bezier curve as a closed polygon if appropriate
+        const curve = new BezierCurve(b.pts);
+        const polyline = curve.toPolyline(32);
+        this.gfx.polygon(new Polygon(polyline, color));
+    }
+}
 class JunctionPainter extends SchematicItemPainter {
     classes = [schematic_items.Junction];
 
@@ -628,6 +673,7 @@ export class SchematicPainter extends BaseSchematicPainter {
             new SchematicSheetPainter(this, gfx),
             new ImagePainter(this, gfx),
             new PaperPainter(this, gfx),
+            new BezierPainter(this, gfx),
         ];
     }
 }
