@@ -117,8 +117,9 @@ export class DocumentPainter {
 
     paint_item(layer: ViewLayer, item: unknown, ...rest: any[]) {
         const painter = this.painter_for(item);
-        if (!painter)
-            log.error(`Cannot find painter  for ${JSON.stringify(item)}`);
+        if (!painter) {
+            log.error(`Cannot find painter for ${item}}`);
+        }
         painter?.paint(layer, item, ...rest);
     }
 
