@@ -327,10 +327,20 @@ export class LayerSet extends BaseLayerSet {
         }
     }
 
+    color_for(layer_name: string): Color {
+        const color = this.color_for_impl(layer_name);
+
+        if (!is_copper(layer_name)) {
+            color.a = 0.8;
+        }
+
+        return color;
+    }
+
     /**
      * Get the theme color for a given layer.
      */
-    color_for(layer_name: string): Color {
+    color_for_impl(layer_name: string): Color {
         switch (layer_name) {
             case LayerNames.drawing_sheet:
                 return (this.theme["worksheet"] as Color) ?? Color.white;
