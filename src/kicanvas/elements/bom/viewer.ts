@@ -58,8 +58,10 @@ export class BomViewer extends KCUIElement {
                 overflow: hidden;
                 word-wrap: break-word;
                 color: black;
-                text-align: left; /* Add this line */
-                vertical-align: top; /* Add this line */
+                text-align: left;
+                vertical-align: top;
+                word-break: break-word; /* Add this line */
+                white-space: normal; /* Add this line */
             }
 
             th {
@@ -99,7 +101,6 @@ export class BomViewer extends KCUIElement {
                 /* Quantity */
                 width: 5%;
             }
-
             #summary {
                 color: white;
                 text-align: right;
