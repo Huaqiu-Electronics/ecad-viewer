@@ -837,6 +837,8 @@ export class LibSymbol {
     };
     in_bom = false;
     on_board = false;
+    embedded_fonts = false;
+    embedded_files: string | undefined;
     properties: Map<string, Property> = new Map();
     children: LibSymbol[] = [];
     drawings: Drawing[] = [];
@@ -868,6 +870,8 @@ export class LibSymbol {
                 ),
                 P.pair("exclude_from_sim", T.boolean),
                 P.pair("in_bom", T.boolean),
+                P.pair("embedded_fonts", T.boolean),
+                P.pair("embedded_files", T.any),
                 P.pair("on_board", T.boolean),
                 P.mapped_collection(
                     "properties",

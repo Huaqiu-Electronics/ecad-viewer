@@ -122,6 +122,8 @@ export function* tokenize(input: string) {
                 continue;
             } else if (is_whitespace(c)) {
                 continue;
+            } else if (c === "|") {
+                continue;
             } else {
                 throw new Error(
                     `Unexpected character at index ${i}: ${c}\nContext: ${error_context(
@@ -140,12 +142,7 @@ export function* tokenize(input: string) {
                     yield close_token;
                 }
             } else {
-                throw new Error(
-                    `Unexpected character while tokenizing atom at index ${i}: ${c}\nContext: ${error_context(
-                        input,
-                        i,
-                    )}`,
-                );
+                continue;
             }
         } else if (state == State.number) {
             if (c === "." || is_digit(c)) {
