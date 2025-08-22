@@ -32,8 +32,12 @@
         }
 
         if (getQueryParam("is-module-lib")) {
+            // We are embedded in the webview used by KiCad as part of the module library website
             this["is_module_lib"] = true;
         }
+
+        // app : the standalone app name e.g. sch , pcb , bom , 3D ...
+        this["app"] = getQueryParam("app");
 
         // Get the <ecad-viewer> element
         const ecadViewer = document.querySelector("ecad-viewer");
