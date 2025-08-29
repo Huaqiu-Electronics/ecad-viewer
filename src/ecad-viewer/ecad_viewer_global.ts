@@ -1,5 +1,7 @@
 import { BoardContentReady } from "../viewers/base/events";
 
+type PAGES = "sch" | "pcb" | "3d" | "bom" | "full" | "design_block";
+
 declare global {
     // Note the capital "W"
     interface Window {
@@ -7,7 +9,8 @@ declare global {
         zip_url?: string;
         cli_server_addr?: string;
         ai_url?: string;
-        app?: "sch" | "pcb" | "3d" | "bom" | "full" | unknown;
+        app?: PAGES;
+        default_page?: PAGES;
     }
 }
 
@@ -20,6 +23,7 @@ export const load_ecad_viewer_conf = () => {
         "ai-url",
         "is-module-lib",
         "app",
+        "default-page",
     ]) {
         const value = urlParams.get(key);
         if (value) {

@@ -305,7 +305,6 @@ export type Parseable = string | List;
 
 export function parse_expr(expr: string | List, ...defs: PropertyDefinition[]) {
     if (is_string(expr)) {
-        log.info(`Parsing expression with ${expr.length} chars`);
         expr = listify(expr);
         if (expr.length == 1 && Array.isArray(expr[0])) {
             expr = expr[0];
@@ -393,7 +392,6 @@ export function parse_expr_partial(
     ...defs: PropertyDefinition[]
 ) {
     if (is_string(expr)) {
-        log.info(`Parsing expression with ${expr.length} chars`);
         expr = listify(expr);
         if (expr.length == 1 && Array.isArray(expr[0])) {
             expr = expr[0];

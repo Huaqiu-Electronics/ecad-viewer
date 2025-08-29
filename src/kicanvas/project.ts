@@ -103,8 +103,6 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     public async load(sources: EcadSources) {
-        log.info(`Loading project from ${sources.constructor.name}`);
-
         this.settings = new ProjectSettings();
         this.dispose();
 
@@ -128,7 +126,8 @@ export class Project extends EventTarget implements IDisposable {
                     blob.filename.length - ".kicad_pro".length,
                 );
                 const data = JSON.parse(blob.content);
-                this.settings = ProjectSettings.load(data);            }
+                this.settings = ProjectSettings.load(data);
+            }
         }
 
         await Promise.all(promises);
@@ -396,8 +395,6 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     _determine_schematic_hierarchy() {
-        log.info("Determining schematic hierarchy");
-
         const paths_to_schematics = new Map<string, KicadSch>();
         const paths_to_sheet_instances = new Map<
             string,

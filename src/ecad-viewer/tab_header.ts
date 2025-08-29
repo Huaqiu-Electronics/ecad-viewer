@@ -41,7 +41,7 @@ export class TabHeaderElement extends KCUIElement {
         public option: {
             has_3d: boolean;
             has_pcb: boolean;
-            has_sch: boolean;
+            sch_count: number;
             has_bom: boolean;
         },
     ) {
@@ -120,7 +120,7 @@ export class TabHeaderElement extends KCUIElement {
     ];
 
     protected get sch_button() {
-        return this.#elements.get(Sections.beginning)!.get(TabKind.sch)!;
+        return this.#elements?.get(Sections.beginning)?.get(TabKind.sch);
     }
 
     make_ecad_view = () => html`<ecad-viewer> </ecad-viewer>`;
@@ -314,12 +314,12 @@ export class TabHeaderElement extends KCUIElement {
             case Sections.beginning:
                 if (this.option.has_pcb)
                     section.appendChild(make_beginning(TabKind.pcb));
-                if (this.option.has_sch)
+                if (this.option.sch_count > 1)
                     section.appendChild(make_beginning(TabKind.sch));
 
                 break;
             case Sections.middle:
-                if (this.option.has_sch)
+                if (this.option.sch_count > 0)
                     section.appendChild(make_middle(TabKind.sch));
                 if (this.option.has_pcb)
                     section.appendChild(make_middle(TabKind.pcb));
@@ -346,15 +346,35 @@ export class TabHeaderElement extends KCUIElement {
     }
 
     override renderedCallback(): void | undefined {
-        if (this.#elements.size) {
-            if (this.option.has_sch) {
-                this.activateTab(TabKind.sch);
-            } else if (this.option.has_pcb) {
-                this.activateTab(TabKind.pcb);
-            } else if (this.option.has_3d) {
-                this.activateTab(TabKind.step);
-            } else if (this.option.has_bom) {
-                this.activateTab(TabKind.bom);
+        if (!window.app || window.app === "full") {
+            if (window.default_page) {
+                this.activateTab(window.default_page.toUpperCase() as TabKind);
+            } else {
+                if (this.option.sch_count) {
+                    this.activateTab(TabKind.sch);
+                } else if (this.option.has_pcb) {
+                    this.activateTab(TabKind.pcb);
+                } else if (this.option.has_3d) {
+                    this.activateTab(TabKind.step);
+                } else if (this.option.has_bom) {
+                    this.activateTab(TabKind.bom);
+                }
+            }
+        } else {
+            switch (window.app) {
+                case "pcb":
+                    this.activateTab(TabKind.pcb);
+                    break;
+                case "sch":
+                case "design_block":
+                    this.activateTab(TabKind.sch);
+                    break;
+                case "3d":
+                    this.activateTab(TabKind.step);
+                    break;
+                case "bom":
+                    this.activateTab(TabKind.bom);
+                    break;
             }
         }
     }
@@ -423,10 +443,18 @@ export class TabHeaderElement extends KCUIElement {
     override render() {
         this.#elements = new Map();
         const container = html`<div class="horizontal-bar"></div>`;
-        for (const v of Object.values(Sections)) {
+
+        const do_add_section = (v: Sections) => {
             this.#elements.set(v, new Map());
             container.appendChild(this.createSection(v));
+        };
+
+        do_add_section(Sections.beginning);
+        if (!window.app || window.app === "full") {
+            do_add_section(Sections.middle);
         }
+        do_add_section(Sections.end);
+
         return html`${container}`;
     }
 }
