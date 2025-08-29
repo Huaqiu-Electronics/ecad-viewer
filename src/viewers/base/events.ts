@@ -5,7 +5,6 @@
 */
 
 import type { TabKind } from "../../ecad-viewer/constraint";
-import type { ZipAchieve } from "../../kicanvas/project";
 
 class KiCanvasEvent<T> extends CustomEvent<T> {
     constructor(name: string, detail: T, bubbles = false) {
@@ -259,14 +258,6 @@ export class PresetUnsetEvent extends CustomEvent<undefined> {
     }
 }
 
-export class UploadPrjAchieveEvent extends CustomEvent<ZipAchieve> {
-    static readonly type = "ecad-viewer:upload:project_achieve";
-
-    constructor(it: ZipAchieve) {
-        super(UploadPrjAchieveEvent.type, { detail: it });
-    }
-}
-
 // Event maps for type safe addEventListener.
 
 export interface KiCanvasEventMap {
@@ -293,7 +284,6 @@ export interface KiCanvasEventMap {
     [SelectDesignatorEvent.type]: SelectDesignatorEvent;
     [PresetChangeEvent.type]: PresetChangeEvent;
     [PresetUnsetEvent.type]: PresetUnsetEvent;
-    [UploadPrjAchieveEvent.type]: UploadPrjAchieveEvent;
 }
 
 declare global {
@@ -310,7 +300,7 @@ declare global {
         [KiCanvasFitterMenuEvent.type]: KiCanvasFitterMenuEvent;
         [OpenBarrierEvent.type]: OpenBarrierEvent;
         [SelectDesignatorEvent.type]: SelectDesignatorEvent;
-        [UploadPrjAchieveEvent.type]: UploadPrjAchieveEvent;
+        [BoardContentReady.type]: BoardContentReady;
     }
 
     interface HTMLElementEventMap {
@@ -326,6 +316,6 @@ declare global {
         [KiCanvasFitterMenuEvent.type]: KiCanvasFitterMenuEvent;
         [OpenBarrierEvent.type]: OpenBarrierEvent;
         [SelectDesignatorEvent.type]: SelectDesignatorEvent;
-        [UploadPrjAchieveEvent.type]: UploadPrjAchieveEvent;
+        [BoardContentReady.type]: BoardContentReady;
     }
 }
