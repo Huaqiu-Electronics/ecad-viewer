@@ -36,6 +36,8 @@ import "../kc-ui/spinner";
 import { show_ecad_viewer } from "../eda_host/show_ecad_viewer";
 import "./ecad_viewer_global";
 import { ZipUtils } from "../utils/zip_utils";
+import { length } from "../base/iterator";
+import { HQ_LOGO } from "../kc-ui/hq_logo";
 
 export class ECadViewer extends KCUIElement implements InputContainer {
     static override styles = [
@@ -258,6 +260,10 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     get has_sch() {
         return this.#project.has_schematics;
     }
+
+    get sch_count() {
+        return length(this.#project.schematics());
+    }
     get has_bom() {
         return this.has_pcb || this.has_sch;
     }
@@ -291,7 +297,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         this.#tab_header = new TabHeaderElement({
             has_3d: this.has_3d,
             has_pcb: this.has_pcb,
-            has_sch: this.has_sch,
+            sch_count: this.sch_count,
             has_bom: this.has_bom,
         });
 
@@ -428,35 +434,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Visit EDA website">
-                <svg
-                    version="1.1"
-                    id="图层_1"
-                    xmlns="http://www.w3.org/2000/svg"
-                    xmlns:xlink="http://www.w3.org/1999/xlink"
-                    x="0px"
-                    y="0px"
-                    viewBox="0 0 50 50"
-                    xml:space="preserve">
-                    <style type="text/css">
-                        .st0 {
-                            fill: rgba(255, 0, 0, 0.836);
-                        }
-                    </style>
-                    <g>
-                        <path
-                            class="st0"
-                            d="M38.3,0H11.9C5.5,0,0.1,5.3,0.1,11.8v26.3C0.1,44.6,5.4,50,11.9,50h26.3c0.1,0,0.3,0,0.6,0
-		c-1.5-1.5-2.2-3.3-2.2-5.5c0-0.6,0-1.2,0.1-1.7H12.1c-2.5,0-4.4-2-4.4-4.4V11.8c0-2.5,2-4.4,4.4-4.4h26.3c2.5,0,4.4,2,4.4,4.4v24.7
-		c0.6-0.1,1.2-0.1,1.7-0.1c2.2,0,4.1,0.9,5.5,2.2c0-0.1,0-0.3,0-0.4V11.8C50,5.3,44.8,0,38.3,0z" />
-                        <path
-                            class="st0"
-                            d="M44.5,38.9c-3.1,0-5.5,2.5-5.5,5.5s2.5,5.5,5.5,5.5c3.1,0,5.5-2.5,5.5-5.5C49.9,41.2,47.6,38.9,44.5,38.9z" />
-                        <polygon
-                            class="st0"
-                            points="37.8,37.7 37.8,12.3 30.5,12.3 30.5,21.3 19.8,21.3 19.8,12.3 12.3,12.3 12.3,37.7 19.8,37.7 
-		19.8,28.6 30.5,28.6 30.5,37.7 	" />
-                    </g>
-                </svg>
+                ${HQ_LOGO}
             </a>
         </div>` as HTMLElement;
         return html` ${this.#content} ${this.#spinner} `;
