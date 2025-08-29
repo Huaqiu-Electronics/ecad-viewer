@@ -14,55 +14,55 @@ We are open to introducing ready-made frameworks, unlike the original, which ins
 
 While remaining a reusable component, ECAD-Viewer offers the following features out of the box, combining the most advanced and leading-edge technologies, some of which were not intended in the original:
 
--   **General Features:**
+- **General Features:**
 
-    -   In-depth secondary development based on KiCad to support the import of Altium designs and the generation of 3D models from `kicad_pcb`.
-    -   Support for loading projects from ZIP files.
-    -   Maintain support for the latest KiCad file formats.
+    - In-depth secondary development based on KiCad to support the import of Altium designs and the generation of 3D models from `kicad_pcb`.
+    - Support for loading projects from ZIP files.
+    - Maintain support for the latest KiCad file formats.
 
--   **PCB:**
+- **PCB:**
 
-    -   Option to select and display properties of VIAs and ZONES.
-    -   Other areas become grayed out when selecting a net/component package.
-    -   Selection priority: Track -> Pad/Drill -> Footprint -> Zone. A pop-up menu is provided for selection when overlaps occur.
-    -   Interface to set the transparency of through-hole type pads.
-    -   Fab Layer displays component package text.
-    -   Single-click to select components, double-click to select nets.
-    -   Wires on the selected net are rendered according to the preset color of the copper layer they are on.
-    -   Display properties of wire width and color.
+    - Option to select and display properties of VIAs and ZONES.
+    - Other areas become grayed out when selecting a net/component package.
+    - Selection priority: Track -> Pad/Drill -> Footprint -> Zone. A pop-up menu is provided for selection when overlaps occur.
+    - Interface to set the transparency of through-hole type pads.
+    - Fab Layer displays component package text.
+    - Single-click to select components, double-click to select nets.
+    - Wires on the selected net are rendered according to the preset color of the copper layer they are on.
+    - Display properties of wire width and color.
 
--   **SCH:**
+- **SCH:**
 
-    -   Inspection of symbol and sub-sheet properties.
-    -   Navigation between labels with the same name through clicking.
-    -   Addition of hierarchical_labels.
-    -   Fixes for SCH drawings converted from AD.
-    -   Schematic preview with the ability to switch schematics via preview images.
-    -   Jumping to a specific schematic, focusing, and selecting a specific symbol.
-    -   Display of properties for wires, buses, pins, symbols, and labels upon clicking.
-    -   Highlighting of wires, buses, pins, symbols, and labels on hover.
+    - Inspection of symbol and sub-sheet properties.
+    - Navigation between labels with the same name through clicking.
+    - Addition of hierarchical_labels.
+    - Fixes for SCH drawings converted from AD.
+    - Schematic preview with the ability to switch schematics via preview images.
+    - Jumping to a specific schematic, focusing, and selecting a specific symbol.
+    - Display of properties for wires, buses, pins, symbols, and labels upon clicking.
+    - Highlighting of wires, buses, pins, symbols, and labels on hover.
 
--   **3D:**
+- **3D:**
 
-    -   Integration with kicad-cli-docker for generating 3D models from PCB, with priority given to using package 3D models in the project's root directory.
-    -   Use of gltfpack for model compression to save bandwidth and improve rendering efficiency.
-    -   Integration of Three.js for displaying 3D models.
+    - Integration with kicad-cli-docker for generating 3D models from PCB, with priority given to using package 3D models in the project's root directory.
+    - Use of gltfpack for model compression to save bandwidth and improve rendering efficiency.
+    - Integration of Three.js for displaying 3D models.
 
--   **BOM:**
+- **BOM:**
 
-    -   Generation of a Bill of Materials (BOM) from the schematic.
-    -   Extraction of BOM from the schematic.
-    -   Priority given to extracting BOM from the schematic; if no schematic is available, extract from the PCB.
+    - Generation of a Bill of Materials (BOM) from the schematic.
+    - Extraction of BOM from the schematic.
+    - Priority given to extracting BOM from the schematic; if no schematic is available, extract from the PCB.
 
--   **Bug Fixes During Development and Feedback:**
+- **Bug Fixes During Development and Feedback:**
 
-    -   Incorrect pin positions in SCH sheets.
-    -   Parsing of ALTIUM_VALUE attributes in SCH drawings converted from AD.
-    -   Disorder of package information in PCB designs imported from AD.
-    -   Even with minimum pad transparency, the color only lightens and does not completely disappear.
-    -   Introduction of a toggle for highlighting wires on hover.
-    -   Disarray in the positioning and angle of component package text in PCB.
-    -   Non-display of pads when the layer they are on is hidden.
+    - Incorrect pin positions in SCH sheets.
+    - Parsing of ALTIUM_VALUE attributes in SCH drawings converted from AD.
+    - Disorder of package information in PCB designs imported from AD.
+    - Even with minimum pad transparency, the color only lightens and does not completely disappear.
+    - Introduction of a toggle for highlighting wires on hover.
+    - Disarray in the positioning and angle of component package text in PCB.
+    - Non-display of pads when the layer they are on is hidden.
 
 ![ECAD Viewer](docs/ecad-viewer-preview.gif)
 
@@ -89,7 +89,7 @@ docker run --rm -p 7676:7676 -p 8989:8989 -p 8012:8012 ghcr.io/huaqiu-electronic
 
 ```
 
-The app will be available at http://localhost:8012
+The demo viewer will be available at http://localhost:8012?cli-server-addr=http://localhost:8989/?convert_ad_to_kicad&zip-url=./video.zip
 ![Quick start](docs/quick-start.gif)
 
 ## Local development
@@ -144,10 +144,10 @@ Try to modify the code and open http://localhost:8080 to inspect the change
 
 Explanation:
 
--   `cli_server_addr`: URL of the API endpoint for converting AD designs to KiCad
--   `ecad-source`: Customer tag in which the either Kicad or AD design url is stored in the `src` attribute
--   `ecad-3d-source`: Customer tag in which the 3D model url is stored in the `src` attribute
--   `convert_pcb_to_glb_url`: URL of the API endpoint for converting KiCad PCB to 3D model
+- `cli_server_addr`: URL of the API endpoint for converting AD designs to KiCad
+- `ecad-source`: Customer tag in which the either Kicad or AD design url is stored in the `src` attribute
+- `ecad-3d-source`: Customer tag in which the 3D model url is stored in the `src` attribute
+- `convert_pcb_to_glb_url`: URL of the API endpoint for converting KiCad PCB to 3D model
 
 Check out the [Standalone example](debug/index.html)
 
@@ -172,8 +172,8 @@ Check out the [Standalone example](debug/index.html)
 
 Explanation:
 
--   `url`: URL of the KiCad PCB or AD design or multiple KiCad PCB or AD designs separated by semicolon
--   `is-bom`: If set to true, the embedded viewer will show the BOM instead of the schematic
+- `url`: URL of the KiCad PCB or AD design or multiple KiCad PCB or AD designs separated by semicolon
+- `is-bom`: If set to true, the embedded viewer will show the BOM instead of the schematic
 
 Check out the [Embedded example](debug/embedded.html)
 
@@ -210,5 +210,5 @@ python cli_srv.py
 
 This project contains copies or makes use of other works. These works and their respective license and terms are:
 
--   [kicanvas](https://github.com/theacodes/kicanvas) is under the [MIT license](https://github.com/theacodes/kicanvas/blob/main/LICENSE.md)
--   [three-gltf-viewer](https://github.com/donmccurdy/three-gltf-viewer) is under the [MIT license](https://github.com/donmccurdy/three-gltf-viewer/blob/main/LICENSE)
+- [kicanvas](https://github.com/theacodes/kicanvas) is under the [MIT license](https://github.com/theacodes/kicanvas/blob/main/LICENSE.md)
+- [three-gltf-viewer](https://github.com/donmccurdy/three-gltf-viewer) is under the [MIT license](https://github.com/donmccurdy/three-gltf-viewer/blob/main/LICENSE)

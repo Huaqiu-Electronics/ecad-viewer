@@ -5,8 +5,10 @@
 */
 
 import { BBox, Vec2 } from "../../base/math";
+import { is_showing_design_block } from "../../ecad-viewer/ecad_viewer_global";
 import { Color, Polygon, Polyline, Renderer } from "../../graphics";
 import { Canvas2DRenderer } from "../../graphics/canvas2d";
+import { NullRenderer } from "../../graphics/null-renderer";
 import { type SchematicTheme } from "../../kicad";
 import { HierarchicalSheetPin, KicadSch, Label } from "../../kicad/schematic";
 import { DocumentViewer } from "../base/document-viewer";
@@ -18,8 +20,35 @@ import {
     SheetLoadEvent,
 } from "../base/events";
 import { ViewerType } from "../base/viewer";
-import { LayerSet } from "./layers";
+import { LayerNames, LayerSet } from "./layers";
 import { SchematicPainter } from "./painter";
+
+export function get_sch_bbox(theme: SchematicTheme, sch: KicadSch): BBox {
+    const gfx = new NullRenderer();
+    const layerset = new LayerSet(theme);
+    const painter = new SchematicPainter(gfx, layerset, theme);
+
+    const layer_names = [
+        LayerNames.symbol_foreground,
+        LayerNames.symbol_background,
+        LayerNames.symbol_pin,
+        LayerNames.wire,
+        LayerNames.label,
+        LayerNames.junction,
+        LayerNames.notes,
+    ];
+
+    const bboxes = [];
+
+    for (const layer_name of layer_names) {
+        const layer = layerset.by_name(layer_name)!;
+        for (const it of sch.items()) layer.items.push(it);
+        painter.paint_layer(layer);
+        bboxes.push(layer.bbox);
+    }
+
+    return BBox.combine(bboxes);
+}
 
 export class SchematicViewer extends DocumentViewer<
     KicadSch,
@@ -159,10 +188,17 @@ export class SchematicViewer extends DocumentViewer<
     }
     public override zoom_fit_top_item() {
         if (!this.document.is_converted_from_ad)
-            this.viewport.camera.bbox = this.drawing_sheet.page_bbox.grow(10);
-        else
+            this.viewport.camera.bbox = get_sch_bbox(
+                this.theme,
+                this.document,
+            ).grow(10);
+        else if (is_showing_design_block()) {
             this.viewport.camera.bbox =
                 this.schematic_renderer.scene_bbox.grow(10);
+        } else {
+            this.viewport.camera.bbox =
+                this.schematic_renderer.scene_bbox.grow(10);
+        }
         this.draw();
     }
 
