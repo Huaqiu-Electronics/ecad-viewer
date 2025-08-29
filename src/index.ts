@@ -29,6 +29,7 @@ import { KCBoardAppElement } from "./kicanvas/elements/kc-board/app";
 import { KCSchematicAppElement } from "./kicanvas/elements/kc-schematic/app";
 import { ECadViewerEmbedded } from "./ecad-viewer/ecad_viewer_embedded ";
 import { html } from "./base/web-components/html";
+import { load_ecad_viewer_conf } from "./ecad-viewer/ecad_viewer_global";
 
 export {
     html,
@@ -51,3 +52,5 @@ export default {
     KCBoardAppElement,
     KCSchematicAppElement,
 };
+
+load_ecad_viewer_conf();

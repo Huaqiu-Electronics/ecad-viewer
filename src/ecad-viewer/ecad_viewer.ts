@@ -18,7 +18,7 @@ import { KCBoardAppElement } from "../kicanvas/elements/kc-board/app";
 import { KCSchematicAppElement } from "../kicanvas/elements/kc-schematic/app";
 import { BomApp } from "../kicanvas/elements/bom/app";
 
-import { TabHeaderElement } from "./tab_header";
+import { is_3d_model, is_kicad, TabHeaderElement } from "./tab_header";
 import {
     BoardContentReady,
     Online3dViewerLoaded,
@@ -34,6 +34,8 @@ import type { InputContainer } from "./input_container";
 import type { Online3dViewer } from "../3d-viewer/online_3d_viewer";
 import "../kc-ui/spinner";
 import { show_ecad_viewer } from "../eda_host/show_ecad_viewer";
+import "./ecad_viewer_global";
+import { ZipUtils } from "../utils/zip_utils";
 
 export class ECadViewer extends KCUIElement implements InputContainer {
     static override styles = [
@@ -142,19 +144,6 @@ export class ECadViewer extends KCUIElement implements InputContainer {
 
     @attribute({ type: Boolean })
     public loaded: boolean;
-
-    @attribute({ type: String })
-    public cli_server_addr: string;
-
-    @attribute({ type: String })
-    public zip_url?: string;
-
-    @attribute({ type: String })
-    public ai_url?: string;
-
-    @attribute({ type: String })
-    public host_origin?: string;
-
     override initialContentCallback() {
         this.#setup_events();
         later(() => {
@@ -164,20 +153,53 @@ export class ECadViewer extends KCUIElement implements InputContainer {
 
     async #setup_events() {}
 
-    async load_src() {
-        if (this.zip_url) {
-            this.#tab_header = new TabHeaderElement({
-                has_3d: false,
-                has_pcb: false,
-                has_sch: false,
-                has_bom: false,
-                cli_server_addr: this.cli_server_addr,
-                ai_url: this.ai_url,
+    async load_zip(file: Blob) {
+        const files = await ZipUtils.unzipFile(file);
+        const readFilePromises = Array.from(files).map((file) =>
+            this.readFile(file),
+        );
+
+        try {
+            const blobs: EcadBlob[] = [];
+
+            const results = await Promise.all(readFilePromises);
+
+            let idx = -1;
+            results.forEach(({ name, content }) => {
+                idx = idx + 1;
+                const names = name.split("/");
+                name = names[names.length - 1]!;
+
+                if (is_kicad(name)) {
+                    blobs.push({ filename: name, content });
+                } else if (is_3d_model(name)) {
+                    this.#project.ov_3d_url = URL.createObjectURL(files[idx]!);
+                }
             });
 
-            const file = await (await fetch(this.zip_url)).blob();
-            this.#tab_header.load_zip_content(this, file);
-            return;
+            await this.#setup_project({ vfs: new FetchFileSystem([]), blobs });
+        } catch (error) {
+            console.error("Error load_zip:", error);
+        }
+    }
+
+    private readFile(file: File): Promise<{ name: string; content: string }> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) =>
+                resolve({
+                    name: file.name,
+                    content: e.target!.result as string,
+                });
+            reader.onerror = (error) => reject(error);
+            reader.readAsText(file);
+        });
+    }
+    async load_src() {
+        if (window.zip_url) {
+            return await this.load_zip(
+                await (await fetch(window.zip_url)).blob(),
+            );
         }
 
         const files = [];
@@ -240,10 +262,9 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         return this.has_pcb || this.has_sch;
     }
     on_full_windows() {
-        if (typeof (window as any)["is_module_lib"] !== "undefined") {
-            console.log("is_module_lib", "true");
-            show_ecad_viewer();
-            return;
+        if (window.is_module_lib) {
+            console.log("is_module_lib " + window.is_module_lib);
+            return show_ecad_viewer();
         }
 
         if (!this.#is_full_screen) {
@@ -272,8 +293,6 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             has_pcb: this.has_pcb,
             has_sch: this.has_sch,
             has_bom: this.has_bom,
-            cli_server_addr: this.cli_server_addr,
-            ai_url: this.ai_url,
         });
 
         this.#tab_header.input_container = this;
@@ -404,7 +423,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         this.#content = html` <div class="vertical">
             ${this.#tab_header} ${this.#viewers_container}
             <a
-                href=${this.ai_url}
+                href=${window.ai_url}
                 class="bottom-left-icon"
                 target="_blank"
                 rel="noopener noreferrer"

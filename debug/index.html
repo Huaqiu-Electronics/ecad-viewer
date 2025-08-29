@@ -8,10 +8,7 @@
     </head>
     <body>
         <!-- Container div for the horizontal layout -->
-        <ecad-viewer
-            cli-server-addr="http://localhost:8989/convert_ad_to_kicad"
-            zip-url="./video.zip">
-        </ecad-viewer>
+        <ecad-viewer> </ecad-viewer>
     </body>
     <script type="importmap">
         {
@@ -24,76 +21,5 @@
         }
     </script>
     <script type="module" src="./ecad_viewer/ecad-viewer.js"></script>
-    <script>
-        // Function to get the value of a query parameter
-        function getQueryParam(name) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(name);
-        }
-
-        if (getQueryParam("is-module-lib")) {
-            // We are embedded in the webview used by KiCad as part of the module library website
-            this["is_module_lib"] = true;
-        }
-
-        // app : the standalone app name e.g. sch , pcb , bom , 3D ...
-        this["app"] = getQueryParam("app");
-
-        // Get the <ecad-viewer> element
-        const ecadViewer = document.querySelector("ecad-viewer");
-
-        // If fileZip exists, set it as the zip-url attribute
-        if (ecadViewer) {
-            for (const attr of ["zip-url", "cli-server-addr", "ai-url"]) {
-                const it = getQueryParam(attr);
-                if (it) ecadViewer.setAttribute(attr, it);
-            }
-        }
-
-        window.addEventListener("pcb:board_content:ready", function (event) {
-            // URL of the API endpoint
-            const convert_pcb_to_glb_url = document
-                .querySelector("ecad-viewer")
-                ?.getAttribute("cli-server-addr");
-
-            if (!convert_pcb_to_glb_url) return;
-
-            // Data to be sent in the POST request (you can format this according to your API requirements)
-            const postData = {
-                pcb_content: event.detail,
-            };
-
-            // Options for the fetch request
-            const fetchOptions = {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json", // Set the Content-Type header if sending JSON data
-                    // Add any other headers if required by your API
-                },
-                body: JSON.stringify(postData), // Convert JavaScript object to JSON string
-            };
-
-            // Make the POST request using fetch
-            fetch(convert_pcb_to_glb_url, fetchOptions)
-                .then((response) => {
-                    if (!response.ok) {
-                        throw new Error("Network response was not ok");
-                    }
-                    return response.json(); // Parse response JSON
-                })
-                .then((data) => {
-                    const url = data["url"];
-                    console.log("Response from API:", url); // Handle the response data
-                    window.dispatchEvent(
-                        new CustomEvent("3d:url:ready", { detail: url }),
-                    );
-                })
-                .catch((error) => {
-                    console.error(
-                        "There was a problem with the fetch operation:",
-                        error,
-                    );
-                });
-        });
-    </script>
+    <script></script>
 </html>

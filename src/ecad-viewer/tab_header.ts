@@ -9,13 +9,14 @@ import {
 } from "../viewers/base/events";
 import { Sections, TabKind } from "./constraint";
 import type { InputContainer } from "./input_container";
+import "./ecad_viewer_global";
 
 export interface TabData {
     title: string;
     content: HTMLElement;
 }
 
-const is_ad = (name: string) =>
+export const is_ad = (name: string) =>
     name.endsWith(".SchDoc") || name.endsWith(".PcbDoc");
 
 export const is_kicad = (name: string) =>
@@ -42,8 +43,6 @@ export class TabHeaderElement extends KCUIElement {
             has_pcb: boolean;
             has_sch: boolean;
             has_bom: boolean;
-            cli_server_addr: string | null;
-            ai_url?: string;
         },
     ) {
         super();
@@ -124,11 +123,7 @@ export class TabHeaderElement extends KCUIElement {
         return this.#elements.get(Sections.beginning)!.get(TabKind.sch)!;
     }
 
-    make_ecad_view = () =>
-        html`<ecad-viewer
-            ai-url=${this.option.ai_url}
-            cli-server-addr="${this.option.cli_server_addr}">
-        </ecad-viewer>`;
+    make_ecad_view = () => html`<ecad-viewer> </ecad-viewer>`;
 
     async load_zip_content(input_container: InputContainer, file: Blob) {
         const parent = input_container.target.parentElement;
@@ -143,7 +138,7 @@ export class TabHeaderElement extends KCUIElement {
             }
         });
 
-        if (designFilesToConvert.length && this.option.cli_server_addr) {
+        if (designFilesToConvert.length && window.cli_server_addr) {
             this.dispatchEvent(new OpenBarrierEvent());
             await this.uploadDesignFiles(designFilesToConvert, input_container);
         } else {
@@ -176,7 +171,7 @@ export class TabHeaderElement extends KCUIElement {
             if (zipFiles.length)
                 return this.load_zip_content(input_container, zipFiles[0]!);
 
-            if (designFilesToConvert.length && this.option.cli_server_addr) {
+            if (designFilesToConvert.length && window.cli_server_addr) {
                 this.dispatchEvent(new OpenBarrierEvent());
                 await this.uploadDesignFiles(
                     designFilesToConvert,
@@ -198,11 +193,11 @@ export class TabHeaderElement extends KCUIElement {
             formData.append("file_names", file.name);
         });
 
-        if (!this.option.cli_server_addr)
+        if (!window.cli_server_addr)
             throw new Error("CLI server address not found");
 
         try {
-            const response = await fetch(this.option.cli_server_addr, {
+            const response = await fetch(window.cli_server_addr, {
                 method: "POST",
                 body: formData,
             });
