@@ -16,6 +16,8 @@ import { ViewLayerNames, type ViewLayerSet } from "./view-layers";
 import { Viewer } from "./viewer";
 import { later } from "../../base/async";
 import { DrawingSheetPainter } from "../drawing-sheet/painter";
+import { is_showing_design_block } from "../../ecad-viewer/ecad_viewer_global";
+import { Color } from "../../graphics";
 
 type ViewableDocument = DrawingSheetDocument &
     PaintableDocument & {
@@ -34,7 +36,7 @@ export abstract class DocumentViewer<
 > extends Viewer {
     public document: DocumentT;
     public drawing_sheet: DrawingSheet;
-    public declare layers: ViewLayerSetT;
+    declare public layers: ViewLayerSetT;
     public theme: ThemeT;
 
     protected painter: PainterT;
@@ -90,7 +92,9 @@ export abstract class DocumentViewer<
         }
 
         // Update the renderer's background color to match the theme.
-        this.renderer.background_color = this.theme.background;
+        this.renderer.background_color = is_showing_design_block()
+            ? Color.white
+            : this.theme.background;
 
         // Load the default drawing sheet.
         if (!this.drawing_sheet) {
@@ -107,7 +111,7 @@ export abstract class DocumentViewer<
         this.painter.paint(this.document);
 
         // Paint the drawing sheet
-        if (!this.document.is_converted_from_ad)
+        if (!this.document.is_converted_from_ad && !is_showing_design_block())
             new DrawingSheetPainter(
                 this.renderer,
                 this.layers,

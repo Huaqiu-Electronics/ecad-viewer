@@ -34,10 +34,6 @@ export const load_ecad_viewer_conf = () => {
         }
     }
 
-    window.cli_server_addr =
-        window.cli_server_addr ?? "http://localhost:8989/convert_ad_to_kicad";
-    window.zip_url = window.zip_url ?? "./video.zip";
-
     window.addEventListener(
         BoardContentReady.type,
         (event: BoardContentReady) => {
@@ -79,3 +75,5 @@ export const load_ecad_viewer_conf = () => {
         },
     );
 };
+
+export const is_showing_design_block = () => window.app === "design_block";
