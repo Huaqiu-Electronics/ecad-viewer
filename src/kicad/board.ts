@@ -1559,6 +1559,8 @@ export class Text implements BoardNode {
     ];
 
     get shown_text() {
+        // FIXME : AD HOC , for kicad 5.x design file
+        if (!this.text) return "";
         return expand_text_vars(this.text, this.parent);
     }
 }
