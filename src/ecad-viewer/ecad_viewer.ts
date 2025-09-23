@@ -203,6 +203,37 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         if (window.zip_url) {
             return this.load_window_zip_url(window.zip_url);
         }
+        if (window.design_urls) {
+            const do_load_glb = () => {
+                if (window.design_urls?.glb_url) {
+                    this.load_window_zip_url(window.design_urls.glb_url);
+                }
+            };
+
+            const do_load_pcb = () => {
+                if (window.design_urls?.pcb_url) {
+                    this.load_window_zip_url(window.design_urls.pcb_url).then(
+                        () => {
+                            do_load_glb();
+                        },
+                    );
+                }
+            };
+
+            if (window.design_urls.sch_url) {
+                await this.load_window_zip_url(window.design_urls.sch_url);
+                if (window.design_urls.pcb_url) return do_load_pcb();
+                if (window.design_urls.glb_url) return do_load_glb();
+            }
+
+            if (window.design_urls.pcb_url) {
+                return do_load_pcb();
+            }
+
+            if (window.design_urls.glb_url) {
+                return do_load_glb();
+            }
+        }
 
         const urls = [];
         const blobs: EcadBlob[] = [];

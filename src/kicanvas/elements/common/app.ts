@@ -57,6 +57,10 @@ export abstract class KCViewerAppElement<
                 color: var(--fg);
                 contain: layout paint;
             }
+            .content_container {
+                height: 100%;
+                width: 100%;
+            }
         `,
     ];
     #viewer_elm: ViewerElementT;
@@ -176,7 +180,9 @@ export abstract class KCViewerAppElement<
     protected abstract do_render(): ElementOrFragment;
 
     override render() {
-        this.#content = this.do_render() as HTMLElement;
+        this.#content = html`<div class="content_container">
+            ${this.do_render()}
+        </div>` as HTMLElement;
         this.#content.hidden = true;
         return html`${this.#content} ${this.#placeholder}`;
     }

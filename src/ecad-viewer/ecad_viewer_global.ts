@@ -36,7 +36,7 @@ export const load_ecad_viewer_conf = () => {
         }
     }
 
-    const base64_encoded_design_urls = urlParams.get("design-urls");
+    const base64_encoded_design_urls = urlParams.get("design_urls");
 
     if (base64_encoded_design_urls) {
         try {
