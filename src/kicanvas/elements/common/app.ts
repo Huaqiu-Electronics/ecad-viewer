@@ -62,6 +62,8 @@ export abstract class KCViewerAppElement<
     #viewer_elm: ViewerElementT;
     #property_viewer: ElementOrFragment;
     #fitter_menu: HTMLElement;
+    #placeholder = html`<ecad-spinner></ecad-spinner>` as HTMLElement;
+    #content?: HTMLElement;
 
     public set tabMenuHidden(v: boolean) {
         this.#fitter_menu.hidden = v;
@@ -87,7 +89,6 @@ export abstract class KCViewerAppElement<
     }
 
     override connectedCallback() {
-        this.hidden = true;
         (async () => {
             this.project = await this.requestContext("project");
             await this.project.loaded;
@@ -105,8 +106,6 @@ export abstract class KCViewerAppElement<
                 const page = this.project.get_first_page(this.assert_type());
                 if (page) {
                     await this.load(page);
-                } else {
-                    this.hidden = true;
                 }
             }),
         );
@@ -123,11 +122,6 @@ export abstract class KCViewerAppElement<
             const target = e.target as KCUISelectElement;
             console.log("button", target);
             switch (target.name) {
-                case "download":
-                    if (this.project.active_sch_name) {
-                        this.project.download(this.project.active_sch_name);
-                    }
-                    break;
                 default:
                     console.warn("Unknown button", e);
             }
@@ -145,9 +139,15 @@ export abstract class KCViewerAppElement<
         await this.viewerReady;
         if (this.can_load(src)) {
             await this.#viewer_elm.load(src);
-            this.hidden = false;
+            if (this.#content) {
+                this.#content.hidden = false;
+            }
+            this.#placeholder.hidden = true;
         } else {
-            this.hidden = true;
+            if (this.#content) {
+                this.#content.hidden = true;
+            }
+            this.#placeholder.hidden = false;
         }
     }
 
@@ -157,7 +157,7 @@ export abstract class KCViewerAppElement<
 
     protected abstract make_fitter_menu(): HTMLElement;
 
-    override render() {
+    protected render_viewer() {
         this.#fitter_menu = this.make_fitter_menu();
         this.#fitter_menu.hidden = true;
         this.#fitter_menu.addEventListener(
@@ -171,6 +171,14 @@ export abstract class KCViewerAppElement<
         return html`
             ${this.#fitter_menu} ${this.#viewer_elm} ${this.#property_viewer}
         `;
+    }
+
+    protected abstract do_render(): ElementOrFragment;
+
+    override render() {
+        this.#content = this.do_render() as HTMLElement;
+        this.#content.hidden = true;
+        return html`${this.#content} ${this.#placeholder}`;
     }
 
     override renderedCallback(): void | undefined {

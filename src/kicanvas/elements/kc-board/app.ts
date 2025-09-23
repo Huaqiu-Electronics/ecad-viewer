@@ -83,10 +83,11 @@ export class KCBoardAppElement extends KCViewerAppElement<KCBoardViewerElement> 
     override make_viewer_element(): KCBoardViewerElement {
         return html`<kc-board-viewer></kc-board-viewer>` as KCBoardViewerElement;
     }
-    override render() {
+
+    protected override do_render() {
         const selection_menu =
             html`<kc-board-selection-menu></kc-board-selection-menu>` as HTMLElement;
-        const content = super.render();
+        const content = super.render_viewer();
         return html`${content} ${selection_menu}`;
     }
 }

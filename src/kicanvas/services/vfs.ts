@@ -12,7 +12,7 @@ export interface EcadBlob {
     content: string;
 }
 export interface EcadSources {
-    vfs: VirtualFileSystem;
+    urls: string[];
     blobs: EcadBlob[];
 }
 /**
@@ -27,6 +27,7 @@ export abstract class VirtualFileSystem {
     public abstract get(name: string): Promise<File>;
     public abstract has(name: string): Promise<boolean>;
     public abstract download(name: string): Promise<void>;
+    public abstract add(item: string | URL): void;
 
     public *list_matches(r: RegExp) {
         for (const filename of this.list()) {
@@ -55,14 +56,20 @@ export abstract class VirtualFileSystem {
 export class FetchFileSystem extends VirtualFileSystem {
     private urls: Map<string, URL> = new Map();
 
-    constructor(urls: (string | URL)[]) {
+    constructor(urls?: (string | URL)[]) {
         super();
 
-        for (const item of urls) {
-            const url = new URL(item, window.location.toString());
-            const name = basename(url);
-            this.urls.set(name, url);
+        if (urls) {
+            for (const url of urls) {
+                this.add(url);
+            }
         }
+    }
+
+    public add(item: string | URL) {
+        const url = new URL(item, window.location.toString());
+        const name = basename(url);
+        this.urls.set(name, url);
     }
 
     public override *list() {
@@ -106,6 +113,8 @@ export class DragAndDropFileSystem extends VirtualFileSystem {
     constructor(private items: FileSystemFileEntry[]) {
         super();
     }
+
+    public add(item: string | URL) {}
 
     static async fromDataTransfer(dt: DataTransfer) {
         let items: FileSystemEntry[] = [];

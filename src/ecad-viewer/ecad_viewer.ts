@@ -9,11 +9,7 @@ import {
 import { KCUIElement } from "../kc-ui";
 import kc_ui_styles from "../kc-ui/kc-ui.css";
 import { AssertType, Project } from "../kicanvas/project";
-import {
-    FetchFileSystem,
-    type EcadBlob,
-    type EcadSources,
-} from "../kicanvas/services/vfs";
+import { type EcadBlob, type EcadSources } from "../kicanvas/services/vfs";
 import { KCBoardAppElement } from "../kicanvas/elements/kc-board/app";
 import { KCSchematicAppElement } from "../kicanvas/elements/kc-schematic/app";
 import { BomApp } from "../kicanvas/elements/bom/app";
@@ -111,6 +107,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
 
     constructor() {
         super();
+        this.addDisposable(this.#project);
         this.provideContext("project", this.#project);
         this.addEventListener("contextmenu", function (event) {
             event.preventDefault();
@@ -179,9 +176,9 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                 }
             });
 
-            await this.#setup_project({ vfs: new FetchFileSystem([]), blobs });
+            await this.#setup_project({ urls: [], blobs });
         } catch (error) {
-            console.error("Error load_zip:", error);
+            console.error("Error while loading ZIP:", error);
         }
     }
 
@@ -197,20 +194,24 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             reader.readAsText(file);
         });
     }
+
+    async load_window_zip_url(url: string) {
+        return this.load_zip(await (await fetch(url)).blob());
+    }
+
     async load_src() {
         if (window.zip_url) {
-            this.load_zip(await (await fetch(window.zip_url)).blob());
-            return;
+            return this.load_window_zip_url(window.zip_url);
         }
 
-        const files = [];
+        const urls = [];
         const blobs: EcadBlob[] = [];
 
         for (const src_elm of this.querySelectorAll<EcadSourceElement>(
             "ecad-source",
         )) {
             if (src_elm.src) {
-                files.push(src_elm.src);
+                urls.push(src_elm.src);
             }
         }
 
@@ -232,8 +233,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             }
         }
 
-        const vfs = new FetchFileSystem(files);
-        await this.#setup_project({ vfs, blobs });
+        await this.#setup_project({ urls, blobs });
     }
 
     async #setup_project(sources: EcadSources) {

@@ -140,10 +140,10 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
         return src instanceof KicadSch;
     }
 
-    override render() {
+    protected override do_render() {
         this.#selection_pop_menu =
             html`<kc-sch-selection-menu></kc-sch-selection-menu>` as HTMLElement;
-        const content = super.render();
+        const content = super.render_viewer();
         return html`${content} ${this.#selection_pop_menu}`;
     }
 
