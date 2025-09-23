@@ -199,9 +199,8 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     }
     async load_src() {
         if (window.zip_url) {
-            return await this.load_zip(
-                await (await fetch(window.zip_url)).blob(),
-            );
+            this.load_zip(await (await fetch(window.zip_url)).blob());
+            return;
         }
 
         const files = [];

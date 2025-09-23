@@ -1,4 +1,5 @@
 import { BoardContentReady } from "../viewers/base/events";
+import type { DesignURLs } from "./design_urls";
 
 type PAGES = "sch" | "pcb" | "3d" | "bom" | "full" | "design_block";
 
@@ -11,6 +12,7 @@ declare global {
         ai_url?: string;
         app?: PAGES;
         default_page?: PAGES;
+        design_urls?: DesignURLs;
     }
 }
 
@@ -31,6 +33,17 @@ export const load_ecad_viewer_conf = () => {
             const var_name = key.replace(/-/g, "_");
             // @ts-expect-error 7015
             window[var_name] = value;
+        }
+    }
+
+    const base64_encoded_design_urls = urlParams.get("design-urls");
+
+    if (base64_encoded_design_urls) {
+        try {
+            const json_str = atob(base64_encoded_design_urls);
+            window.design_urls = JSON.parse(json_str);
+        } catch (e) {
+            console.error(e);
         }
     }
 
