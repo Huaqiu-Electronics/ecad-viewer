@@ -22,7 +22,12 @@ import type {
 import { SchematicBomVisitor } from "../kicad/schematic_bom_visitor";
 import { NewStrokeGlyph } from "../kicad/text/newstroke-glyphs";
 
-import type { EcadBlob, EcadSources, VirtualFileSystem } from "./services/vfs";
+import {
+    FetchFileSystem,
+    type EcadBlob,
+    type EcadSources,
+} from "./services/vfs";
+import "../ecad-viewer/ecad_viewer_global";
 
 const log = new Logger("kicanvas:project");
 
@@ -32,7 +37,6 @@ export enum AssertType {
 }
 
 export class Project extends EventTarget implements IDisposable {
-    _fs: VirtualFileSystem;
     _files_by_name: Map<string, KicadPCB | KicadSch> = new Map();
     _file_content: Map<string, string> = new Map();
     _pcb: KicadPCB[] = [];
@@ -103,14 +107,15 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     public async load(sources: EcadSources) {
-        this.settings = new ProjectSettings();
-        this.dispose();
+        const fetch_fs = new FetchFileSystem();
 
-        this._fs = sources.vfs;
+        for (const url of sources.urls) {
+            fetch_fs.add(url);
+        }
 
         const promises = [];
 
-        for (const filename of this._fs.list()) {
+        for (const filename of fetch_fs.list()) {
             promises.push(this._load_file(filename));
         }
 
@@ -292,7 +297,8 @@ export class Project extends EventTarget implements IDisposable {
     async get_file_text(filename: string) {
         if (this._file_content.has(filename))
             return this._file_content.get(filename);
-        return await (await this._fs.get(filename)).text();
+        // FIXME : shall not come here
+        return;
     }
 
     public *files() {
@@ -320,7 +326,10 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     public get has_3d() {
-        return this._ov_3d_url !== undefined;
+        return (
+            this._ov_3d_url !== undefined ||
+            window.design_urls?.pcb_url !== undefined
+        );
     }
 
     public set ov_3d_url(url: string | undefined) {
@@ -332,7 +341,10 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     public get has_boards() {
-        return length(this.boards()) > 0;
+        return (
+            length(this.boards()) > 0 ||
+            window.design_urls?.pcb_url !== undefined
+        );
     }
 
     public *schematics() {
@@ -344,7 +356,10 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     public get has_schematics() {
-        return length(this.schematics()) > 0;
+        return (
+            length(this.schematics()) > 0 ||
+            window.design_urls?.sch_url !== undefined
+        );
     }
 
     public get_first_page(kind: AssertType) {
@@ -364,13 +379,6 @@ export class Project extends EventTarget implements IDisposable {
 
     public page_by_path(project_path: string) {
         return this._files_by_name.get(project_path);
-    }
-
-    public async download(name: string) {
-        if (this._files_by_name.has(name)) {
-            name = this._files_by_name.get(name)!.filename;
-        }
-        return await this._fs.download(name);
     }
 
     public get is_empty() {

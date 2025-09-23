@@ -179,6 +179,22 @@ export class Online3dViewerLoaded extends CustomEvent<void> {
     }
 }
 
+export class SchViewerLoaded extends CustomEvent<void> {
+    static readonly type = "sch:viewer:loaded";
+
+    constructor() {
+        super(SchViewerLoaded.type);
+    }
+}
+
+export class PCBViewerLoaded extends CustomEvent<void> {
+    static readonly type = "pcb:viewer:loaded";
+
+    constructor() {
+        super(PCBViewerLoaded.type);
+    }
+}
+
 export class BoardContentReady extends CustomEvent<string> {
     static readonly type = "pcb:board_content:ready";
 
