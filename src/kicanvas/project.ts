@@ -328,7 +328,7 @@ export class Project extends EventTarget implements IDisposable {
     public get has_3d() {
         return (
             this._ov_3d_url !== undefined ||
-            window.design_urls?.pcb_url !== undefined
+            window.design_urls?.glb_url !== undefined
         );
     }
 
