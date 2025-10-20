@@ -1523,6 +1523,9 @@ export class TextRenderCache implements BoardNode {
             ),
         );
 
+        if (!this.polygons) {
+            this.polygons = [];
+        }
         for (const poly of this.polygons) {
             poly.fill = "solid";
         }
