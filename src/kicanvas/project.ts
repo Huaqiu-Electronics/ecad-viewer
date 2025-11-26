@@ -37,6 +37,7 @@ export enum AssertType {
 }
 
 export class Project extends EventTarget implements IDisposable {
+    _fs = new FetchFileSystem();
     _files_by_name: Map<string, KicadPCB | KicadSch> = new Map();
     _file_content: Map<string, string> = new Map();
     _pcb: KicadPCB[] = [];
@@ -107,15 +108,11 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     public async load(sources: EcadSources) {
-        const fetch_fs = new FetchFileSystem();
-
-        for (const url of sources.urls) {
-            fetch_fs.add(url);
-        }
+        this._fs = new FetchFileSystem(sources.urls);
 
         const promises = [];
 
-        for (const filename of fetch_fs.list()) {
+        for (const filename of this._fs.list()) {
             promises.push(this._load_file(filename));
         }
 
@@ -297,8 +294,7 @@ export class Project extends EventTarget implements IDisposable {
     async get_file_text(filename: string) {
         if (this._file_content.has(filename))
             return this._file_content.get(filename);
-        // FIXME : shall not come here
-        return;
+        return await (await this._fs.get(filename)).text();
     }
 
     public *files() {
