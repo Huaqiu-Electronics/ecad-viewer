@@ -15,6 +15,24 @@ import { Color } from "../base/color";
 
 type OptionalDefaultColor = Color | false | null;
 
+export class Image {
+    /**
+     * Create an image primitive
+     * @param img - The HTML image element to draw
+     * @param center - center of the image in world coordinates
+     * @param scale - scale factor to apply to the image dimensions
+     * @param src_bbox - The bounding box of the source image pixels (usually 0, 0, width, height)
+     * @param target_bbox - The bounding box of the destination in world coordinates
+     */
+    constructor(
+        public img: HTMLImageElement,
+        public center: Vec2,
+        public scale: number,
+        public src_bbox: BBox,
+        public target_bbox: BBox,
+    ) {}
+}
+
 /** A filled circle */
 export class Circle {
     /**
@@ -112,4 +130,4 @@ export class Polygon {
     }
 }
 
-export type Shape = Circle | Arc | Polygon | Polyline;
+export type Shape = Circle | Arc | Polygon | Polyline | Image;
