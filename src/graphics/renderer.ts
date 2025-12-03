@@ -7,7 +7,7 @@
 import { Color } from "../base/color";
 import type { IDisposable } from "../base/disposable";
 import { Angle, BBox, Arc as MathArc, Matrix3, Vec2 } from "../base/math";
-import { Arc, Circle, Polygon, Polyline } from "./shapes";
+import { Arc, Circle, Polygon, Polyline, Image } from "./shapes";
 
 /**
  * KiCanvas' abstraction over various graphics backends.
@@ -51,6 +51,59 @@ export abstract class Renderer implements IDisposable {
     abstract setup(): Promise<void>;
 
     abstract dispose(): void;
+
+    protected prep_image(
+        image_or_img: Image | HTMLImageElement,
+        x?: number,
+        y?: number,
+        scale?: number,
+    ): Image {
+        let image: Image;
+
+        // Convert pixels to world units (assuming mm)
+        // 25.4 mm / 96 DPI = ~0.26458 mm per pixel.
+        const PIXEL_TO_MM = 25.4 / 96;
+
+        if (image_or_img instanceof Image) {
+            image = image_or_img;
+        } else {
+            // Calculate the source BBox (usually the entire image)
+            const src_bbox = new BBox(
+                0,
+                0,
+                image_or_img.width,
+                image_or_img.height,
+            );
+
+            // Calculate the width/height in world units
+            const width = image_or_img.width * scale! * PIXEL_TO_MM;
+            const height = image_or_img.height * scale! * PIXEL_TO_MM;
+
+            // Calculate the target BBox (where it lands in the world)
+            const target_bbox = new BBox(
+                x! - width / 2,
+                y! - height / 2,
+                width,
+                height,
+            );
+
+            image = new Image(
+                image_or_img,
+                new Vec2(x!, y!),
+                scale!,
+                src_bbox,
+                target_bbox,
+            );
+        }
+
+        // Apply transformations to the center and the target bounding box
+        image.center = this.state.matrix.transform(image.center);
+        image.target_bbox = image.target_bbox.transform(this.state.matrix);
+
+        this.add_bbox(image.target_bbox);
+
+        return image;
+    }
 
     /**
      * Update the canvas and context with the new viewport size if needed. This

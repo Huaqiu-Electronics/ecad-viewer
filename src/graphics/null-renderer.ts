@@ -24,8 +24,13 @@ export class NullRenderLayer extends RenderLayer {
 }
 
 export class NullRenderer extends Renderer {
-    override image(img: HTMLImageElement, x: number, y: number, scale: number): void {
-        throw new Error("Method not implemented.");
+    override image(
+        img: HTMLImageElement,
+        x: number,
+        y: number,
+        scale: number,
+    ): void {
+        this.#active_layer!.shapes.push(super.prep_image(img, x, y, scale));
     }
     #active_layer: NullRenderLayer | null;
 

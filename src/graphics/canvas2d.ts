@@ -21,8 +21,6 @@ import { Arc, Circle, Polygon, Polyline } from "./shapes";
  *
  */
 
-// FIXME
-const MAX_LEN = 24;
 export class Canvas2DRenderer extends Renderer {
     override image(
         img: HTMLImageElement,
@@ -30,21 +28,17 @@ export class Canvas2DRenderer extends Renderer {
         y: number,
         scale: number,
     ): void {
-        const src_box = new BBox(0, 0, img.width, img.height);
-
-        let ss = new Vec2(img.width * scale, img.height * scale);
-
-        if (ss.x > MAX_LEN || ss.y > MAX_LEN) {
-            const factor = Math.min(MAX_LEN / ss.x, MAX_LEN / ss.y);
-            ss = ss.scale(new Vec2(factor, factor));
-        }
-
-        const target_bbox = new BBox(x - ss.x / 2, y - ss.y / 2, ss.x, ss.y);
+        const image_primitive = super.prep_image(img, x, y, scale);
 
         this.#active_layer?.commands.push(
-            new ImageCommand(img, src_box, target_bbox),
+            new ImageCommand(
+                img,
+                image_primitive.src_bbox,
+                image_primitive.target_bbox,
+            ),
         );
     }
+
     /** Graphics layers */
     #layers: Canvas2dRenderLayer[] = [];
 
