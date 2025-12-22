@@ -1,0 +1,65 @@
+[
+    {
+        "designator": "U102",
+        "pin_check": [
+            {
+                "content": "连接到VIN网络，但实际VIN电压未知，无法精确判断其25V额定电压的裕量。需要LDO U1的Datasheet来验证其输入电容要求。",
+                "level": "warning",
+                "pinName": "VCCPLL",
+                "pinNo": "74"
+            },
+            {
+                "content": "连接到VIN网络，但实际VIN电压未知，无法精确判断其25V额定电压的裕量。需要LDO U1的Datasheet来验证其输入电容要求。",
+                "level": "warning",
+                "pinName": "CLKIN/EXTAL",
+                "pinNo": "73"
+            },
+            {
+                "content": "连接到VIN网络，但实际VIN电压未知，无法精确判断其25V额定电压的裕量。需要LDO U1的Datasheet来验证其输入电容要求。",
+                "level": "warning",
+                "pinName": "JTAG_EN",
+                "pinNo": "26"
+            },
+            {
+                "content": "连接到VIN网络，但实际VIN电压未知，无法精确判断其25V额定电压的裕量。需要LDO U1的Datasheet来验证其输入电容要求。",
+                "level": "warning",
+                "pinName": "URXD2/PUC1",
+                "pinNo": "28"
+            }
+        ]
+    },
+    {
+        "designator": "BDM_PORT101",
+        "pin_check": [
+            {
+                "content": "连接到U1的BYP/ADJ引脚，但U1的Datasheet未提供，无法验证电容值10nF是否符合U1的要求，也无法验证该引脚上的实际电压是否在C3的25V额定电压范围内。",
+                "level": "warning",
+                "pinName": "aa",
+                "pinNo": "10"
+            }
+        ]
+    },
+    {
+        "designator": "U301",
+        "pin_check": [
+            {
+                "content": "连接到U1的BYP/ADJ引脚，但U1的Datasheet未提供，无法验证电容值10nF是否符合U1的要求，也无法验证该引脚上的实际电压是否在C3的25V额定电压范围内。",
+                "level": "warning",
+                "pinName": "H11",
+                "pinNo": "70"
+            },
+            {
+                "content": "连接到U1的BYP/ADJ引脚，但U1的Datasheet未提供，无法验证电容值10nF是否符合U1的要求，也无法验证该引脚上的实际电压是否在C3的25V额定电压范围内。",
+                "level": "warning",
+                "pinName": "I4",
+                "pinNo": "143"
+            },
+            {
+                "content": "连接到U1的BYP/ADJ引脚，但U1的Datasheet未提供，无法验证电容值10nF是否符合U1的要求，也无法验证该引脚上的实际电压是否在C3的25V额定电压范围内。",
+                "level": "warning",
+                "pinName": "J14",
+                "pinNo": "10"
+            }
+        ]
+    }
+]
