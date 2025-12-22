@@ -13,6 +13,7 @@ declare global {
         app?: PAGES;
         default_page?: PAGES;
         design_urls?: DesignURLs;
+        verification_result_url: string;
     }
 }
 
@@ -26,6 +27,7 @@ export const load_ecad_viewer_conf = () => {
         "is-module-lib",
         "app",
         "default-page",
+        "verification-result-url",
     ]) {
         const value = urlParams.get(key);
         if (value) {
