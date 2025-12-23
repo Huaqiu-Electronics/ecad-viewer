@@ -5,6 +5,7 @@
 */
 
 import type { TabKind } from "../../ecad-viewer/constraint";
+import type { ComponentERCResult } from "../../proto/component_erc_result";
 
 class KiCanvasEvent<T> extends CustomEvent<T> {
     constructor(name: string, detail: T, bubbles = false) {
@@ -235,6 +236,17 @@ export class SelectDesignatorEvent extends CustomEvent<DesignatorIndex> {
     }
 }
 
+
+export class ComponentERCResultEvent extends CustomEvent<ComponentERCResult> {
+    static readonly type = "sch:erc:component";
+
+    constructor(d: ComponentERCResult) {
+        super(ComponentERCResultEvent.type, { detail: d });
+    }
+}
+
+
+
 export class NetItemSelectEvent extends CustomEvent<NetItemIndex> {
     static readonly type = "net:select_item";
 
@@ -300,6 +312,8 @@ export interface KiCanvasEventMap {
     [SelectDesignatorEvent.type]: SelectDesignatorEvent;
     [PresetChangeEvent.type]: PresetChangeEvent;
     [PresetUnsetEvent.type]: PresetUnsetEvent;
+    [ComponentERCResultEvent.type]: ComponentERCResultEvent;
+
 }
 
 declare global {
@@ -317,6 +331,7 @@ declare global {
         [OpenBarrierEvent.type]: OpenBarrierEvent;
         [SelectDesignatorEvent.type]: SelectDesignatorEvent;
         [BoardContentReady.type]: BoardContentReady;
+        [ComponentERCResultEvent.type]: ComponentERCResultEvent;
     }
 
     interface HTMLElementEventMap {
@@ -333,5 +348,6 @@ declare global {
         [OpenBarrierEvent.type]: OpenBarrierEvent;
         [SelectDesignatorEvent.type]: SelectDesignatorEvent;
         [BoardContentReady.type]: BoardContentReady;
+        [ComponentERCResultEvent.type]: ComponentERCResultEvent;
     }
 }
