@@ -11,7 +11,7 @@ permissions:
   packages: write
   contents: read
 jobs:
-  publish-ecad-viewer-lite:
+  publish-ecad-viewer-service:
     runs-on: ubuntu-latest
     steps:
       - name: Get latest tag
@@ -46,7 +46,7 @@ jobs:
             IMAGE_TAG=${{ steps.latest-release.outputs.tag }}
 
 
-  publish-ecad-viewer-lite-aliyun:
+  publish-ecad-viewer-service-aliyun:
     runs-on: ubuntu-latest
     steps:
       - name: Get latest tag
