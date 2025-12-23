@@ -11,7 +11,10 @@ import { first, length, map } from "../base/iterator";
 import { Logger } from "../base/log";
 import { type Constructor } from "../base/types";
 import { KicadPCB, KicadSch, ProjectSettings } from "../kicad";
-import { BoardBomItemVisitor } from "../kicad/board_bom_visitor";
+import {
+    BoardBomItemVisitor,
+    type DesignatorRef,
+} from "../kicad/board_bom_visitor";
 import type { BomItem } from "../kicad/bom_item";
 import { ItemsGroupedByFpValueDNP } from "../kicad/ItemsGroupedByFpValueDNP";
 import { NetRef } from "../kicad/net_ref";
@@ -47,7 +50,7 @@ export class Project extends EventTarget implements IDisposable {
     _bom_items: BomItem[] = [];
     _label_name_refs = new Map<string, NetRef[]>();
     _net_item_refs = new Map<string, NetRef>();
-    _designator_refs = new Map<string, string>();
+    _designator_refs = new Map<string, DesignatorRef>();
     _project_name: string;
     active_sch_file_name?: string;
     _found_cjk = false;

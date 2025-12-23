@@ -18,6 +18,8 @@ export enum LayerNames {
     interactive = ":Interactive",
     // DNP and other marks.
     marks = ":Marks",
+    // ERC markers and text
+    erc = ":ERC",
     // reference, value, other symbol fields
     symbol_field = ":Symbol:Field",
     // hierarchical, global, and local labels
@@ -76,6 +78,7 @@ export class LayerSet extends BaseLayerSet {
         yield this.by_name(LayerNames.wire)!;
         yield this.by_name(LayerNames.symbol_pin)!;
         yield this.by_name(LayerNames.label)!;
+        yield this.by_name(LayerNames.erc)!;
         yield this.by_name(LayerNames.interactive)!;
     }
 }
