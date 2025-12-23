@@ -19,6 +19,7 @@ import { AssertType } from "../../project";
 import { SchPreviewListElement } from "./sch-preview-list";
 import "./selection-pop-menu";
 import {
+    ComponentERCResultEvent,
     HierarchicalSheetPinClickEvent,
     KiCanvasFitterMenuEvent,
     LabelClickEvent,
@@ -30,6 +31,7 @@ import {
 } from "../../../viewers/base/events";
 import type { NetRef } from "../../../kicad/net_ref";
 import type { SchematicViewer } from "../../../viewers/schematic/viewer";
+import type { ComponentERCResult } from "../../../proto/component_erc_result";
 
 /**
  * Internal "parent" element for KiCanvas's schematic viewer. Handles
@@ -92,6 +94,11 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
                 console.log(`cannot find designator ${e.detail.designator}`);
             }
         });
+
+
+        window.addEventListener(ComponentERCResultEvent.type, (e) => {
+const component_erc :ComponentERCResult = e.detail
+        });        
 
         this.viewer.addEventListener(LabelClickEvent.type, (e) => {
             const its = this.project.find_labels_by_name(e.detail.name);
