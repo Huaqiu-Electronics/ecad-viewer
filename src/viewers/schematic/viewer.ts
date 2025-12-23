@@ -6,7 +6,7 @@
 
 import { BBox, Vec2 } from "../../base/math";
 import { is_showing_design_block } from "../../ecad-viewer/ecad_viewer_global";
-import { Color, Polygon, Polyline, Renderer } from "../../graphics";
+import { Circle, Color, Polygon, Polyline, Renderer } from "../../graphics";
 import { Canvas2DRenderer } from "../../graphics/canvas2d";
 import { NullRenderer } from "../../graphics/null-renderer";
 import { type SchematicTheme } from "../../kicad";
@@ -22,6 +22,9 @@ import {
 import { ViewerType } from "../base/viewer";
 import { LayerNames, LayerSet } from "./layers";
 import { SchematicPainter } from "./painter";
+import { get_symbol_transform } from "./painters/symbol";
+import { StrokeFont, TextAttributes } from "../../kicad/text";
+import type { PinCheckResult } from "../../proto/component_erc_result";
 
 export function get_sch_bbox(theme: SchematicTheme, sch: KicadSch): BBox {
     const gfx = new NullRenderer();
@@ -70,7 +73,7 @@ export class SchematicViewer extends DocumentViewer<
 
     override async load(src: KicadSch) {
         this.schematic_renderer.reset_scene_bbox();
-        super.load(src);
+        await super.load(src);
         this.dispatchEvent(new SheetLoadEvent(src.filename));
     }
 
@@ -243,6 +246,94 @@ export class SchematicViewer extends DocumentViewer<
             layer.graphics.composite_operation = "source-over";
         }
 
+        this.paint_erc();
+
         this.draw();
+    }
+
+    #erc_data?: { uuid: string; pins: PinCheckResult[] };
+
+    public show_erc(uuid: string, pins: PinCheckResult[]) {
+        this.#erc_data = { uuid, pins };
+        this.zoom_fit_item(uuid);
+        // zoom_fit_item calls paint_selected, which now calls paint_erc
+    }
+
+    protected paint_erc() {
+        const layer = this.layers.by_name(LayerNames.erc)!;
+        layer.clear();
+
+        if (!this.#erc_data) {
+            return;
+        }
+
+        const { uuid, pins } = this.#erc_data;
+        // Verify the item is still in the document
+        const symbol = this.document.find_symbol(uuid);
+        if (!symbol) {
+            return;
+        }
+
+        const transform = get_symbol_transform(symbol);
+        const matrix = transform.matrix;
+        const symbol_pos = symbol.at.position;
+
+        this.renderer.start_layer(layer.name);
+
+        // Highlight the component
+        const bbox = this.schematic_renderer.get_item_bbox(uuid);
+        if (bbox) {
+            const color = this.theme.erc_error ?? new Color(1, 0, 0, 0.5);
+            this.renderer.line(
+                Polyline.from_BBox(
+                    bbox,
+                    SchematicViewer.InterActiveBBoxLineWidth * 2,
+                    color,
+                ),
+            );
+        }
+
+        const font = StrokeFont.default();
+
+        for (const pin_err of pins) {
+            // Find pin in symbol
+            // symbol.pins contains PinInstance
+            const pin_inst = symbol.pins.find(
+                (p) => p.number == pin_err.pin_num,
+            );
+            if (!pin_inst) continue;
+
+            // pin_inst.definition returns PinDefinition directly (from LibSymbol.pin_by_number)
+            const pin_def = pin_inst.definition;
+            const pin_pos = symbol_pos.add(
+                matrix.transform(pin_def.at.position),
+            );
+
+            const severity_color =
+                pin_err.severity == "error"
+                    ? (this.theme.erc_error ?? new Color(1, 0, 0))
+                    : (this.theme.erc_warning ?? new Color(1, 0.6, 0));
+
+            // Draw marker circle
+            this.renderer.circle(new Circle(pin_pos, 0.5, severity_color));
+
+            // Draw text
+            this.renderer.state.push();
+            // Position text slightly offset from pin
+            const text_pos = pin_pos.add(new Vec2(1, -1));
+
+            const attrs = new TextAttributes();
+            attrs.size = new Vec2(1.27, 1.27);
+            attrs.stroke_width = 0.15;
+            attrs.color = severity_color;
+            attrs.h_align = "left";
+            attrs.v_align = "bottom";
+
+            font.draw(this.renderer, pin_err.message, text_pos, attrs);
+            this.renderer.state.pop();
+        }
+
+        layer.graphics = this.renderer.end_layer();
+        layer.graphics.composite_operation = "source-over";
     }
 }

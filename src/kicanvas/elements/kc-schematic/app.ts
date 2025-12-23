@@ -83,7 +83,9 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
         );
 
         window.addEventListener(SelectDesignatorEvent.type, (e) => {
-            const uuid = this.project.find_designator(e.detail.designator);
+            const uuid = this.project.find_designator(
+                e.detail.designator,
+            )?.uuid;
 
             if (uuid)
                 this.#select_item({
@@ -95,10 +97,42 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
             }
         });
 
-
         window.addEventListener(ComponentERCResultEvent.type, (e) => {
-const component_erc :ComponentERCResult = e.detail
-        });        
+            const component_erc_result: ComponentERCResult = e.detail;
+            const sch_symbol = this.project.find_designator(
+                component_erc_result.designator,
+            );
+
+            if (sch_symbol) {
+                // Switch sheet if necessary
+                if (sch_symbol.sheet_name !== this.sch_viewer.sch_name) {
+                    // We need to use project.file_by_name to get the KicadSch object
+                    // But we also need to be careful about async load or if viewer needs time?
+                    // viewer.load is synchronous? KicadSch is already loaded in project?
+                    // viewer.load triggers rendering.
+                    const sch = this.project.file_by_name(
+                        sch_symbol.sheet_name,
+                    );
+                    if (sch instanceof KicadSch) {
+                        this.viewer.load(sch);
+                    }
+                }
+
+                setTimeout(() => {
+                    this.sch_viewer.show_erc(
+                        sch_symbol.uuid,
+                        component_erc_result.pins,
+                    );
+                }, 500);
+
+                // Defer slightly to ensure load/render cycle?
+                // Or just call it. show_erc calls zoom_fit_item which calls draw.
+            } else {
+                console.warn(
+                    `ERC: Cannot find designator ${component_erc_result.designator}`,
+                );
+            }
+        });
 
         this.viewer.addEventListener(LabelClickEvent.type, (e) => {
             const its = this.project.find_labels_by_name(e.detail.name);

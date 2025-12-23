@@ -1,10 +1,12 @@
+import type { DesignatorRef } from "./board_bom_visitor";
 import type { BomItem } from "./bom_item";
-import type { SchematicSymbol } from "./schematic";
+import type { KicadSch, SchematicSymbol } from "./schematic";
 import { SchematicVisitorBase } from "./schematic_visitor_base";
 
 export class SchematicBomVisitor extends SchematicVisitorBase {
     #bom_list: BomItem[] = [];
-    #designator_refs = new Map<string, string>();
+    #designator_refs = new Map<string, DesignatorRef>();
+    #current_sch_file: string;
 
     public constructor() {
         super();
@@ -17,6 +19,11 @@ export class SchematicBomVisitor extends SchematicVisitorBase {
     get designator_refs() {
         return this.#designator_refs;
     }
+
+    visitKicadSch(sheet: KicadSch) {
+        this.#current_sch_file = sheet.filename;
+    }
+
     visitSchematicSymbol(node: SchematicSymbol) {
         if (
             node.footprint.length == 0 ||
@@ -44,7 +51,10 @@ export class SchematicBomVisitor extends SchematicVisitorBase {
                 Name: ins.value ?? schematicSymbol.Name,
                 Footprint: ins.footprint ?? schematicSymbol.Footprint,
             });
-            this.#designator_refs.set(Reference, node.uuid);
+            this.#designator_refs.set(Reference, {
+                uuid: node.uuid,
+                sheet_name: this.#current_sch_file,
+            });
         }
     }
 }
