@@ -110,6 +110,13 @@ export class Project extends EventTarget implements IDisposable {
         this._designator_refs.clear();
     }
 
+    public static async import_cjk_glyphs() {
+        // @ts-expect-error It's imported in the import map
+        await import("glyph-full").then((mod) => {
+            NewStrokeGlyph.glyph_data = mod.glyph_data;
+        });
+    }
+
     public async load(sources: EcadSources) {
         this._fs = new FetchFileSystem(sources.urls);
 
@@ -138,10 +145,7 @@ export class Project extends EventTarget implements IDisposable {
         await Promise.all(promises);
 
         if (this._found_cjk) {
-            // @ts-expect-error It's imported in the import map
-            await import("glyph-full").then((mod) => {
-                NewStrokeGlyph.glyph_data = mod.glyph_data;
-            });
+            await Project.import_cjk_glyphs();
         }
 
         let has_root_sch = false;

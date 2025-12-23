@@ -280,19 +280,6 @@ export class SchematicViewer extends DocumentViewer<
 
         this.renderer.start_layer(layer.name);
 
-        // Highlight the component
-        const bbox = this.schematic_renderer.get_item_bbox(uuid);
-        if (bbox) {
-            const color = this.theme.erc_error ?? new Color(1, 0, 0, 0.5);
-            this.renderer.line(
-                Polyline.from_BBox(
-                    bbox,
-                    SchematicViewer.InterActiveBBoxLineWidth * 2,
-                    color,
-                ),
-            );
-        }
-
         const font = StrokeFont.default();
 
         for (const pin_err of pins) {
@@ -332,7 +319,12 @@ export class SchematicViewer extends DocumentViewer<
             attrs.h_align = "left";
             attrs.v_align = "bottom";
 
-            font.draw(this.renderer, pin_err.message, text_pos, attrs);
+            font.draw(
+                this.renderer,
+                pin_err.message,
+                new Vec2(text_pos.x * 10000, text_pos.y * 10000),
+                attrs,
+            );
             this.renderer.state.pop();
         }
 
