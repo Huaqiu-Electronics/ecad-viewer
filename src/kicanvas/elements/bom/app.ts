@@ -17,11 +17,10 @@ export class BomApp extends KCUIElement {
                 display: flex;
                 position: relative;
                 width: 100%;
-                max-height: 100%;
+                height: 100%;
                 aspect-ratio: 1.414;
                 background-color: white;
                 color: var(--fg);
-                contain: layout paint;
             }
 
             .vertical {
