@@ -443,7 +443,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             embed_to_tab(this.#step_viewer_placeholder, TabKind.step);
             this.project.addEventListener(Online3dViewerLoaded.type, () => {
                 this.#step_viewer_placeholder.hidden = true;
-                this.#ov_d_app.style.display = "block";
+                this.#ov_d_app.style.display = "";
             });
         }
         if (this.has_bom) {
