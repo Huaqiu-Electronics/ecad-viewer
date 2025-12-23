@@ -15,7 +15,7 @@ import "./viewer";
 
 import { KicadSch } from "../../../kicad";
 import { SchematicSheet } from "../../../kicad/schematic";
-import { AssertType } from "../../project";
+import { AssertType, Project } from "../../project";
 import { SchPreviewListElement } from "./sch-preview-list";
 import "./selection-pop-menu";
 import {
@@ -98,6 +98,7 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
         });
 
         window.addEventListener(ComponentERCResultEvent.type, (e) => {
+            Project.import_cjk_glyphs();
             const component_erc_result: ComponentERCResult = e.detail;
             const sch_symbol = this.project.find_designator(
                 component_erc_result.designator,
