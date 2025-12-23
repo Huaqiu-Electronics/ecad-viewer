@@ -47,9 +47,16 @@ export class KCUIIconElement extends KCUIElement {
         if (text.startsWith("svg:")) {
             const name = text.slice(4);
             const url = `${KCUIIconElement.sprites_url}#${name}`;
-            return html`<svg viewBox="0 0 48 48" width="48">
-                <use xlink:href="${url}" />
-            </svg>`;
+            // Manually construct SVG to avoid $$:0:$$ 404 error from html tag template
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("viewBox", "0 0 48 48");
+            svg.setAttribute("width", "48");
+
+            const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+            use.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", url);
+
+            svg.appendChild(use);
+            return svg;
         } else {
             return html`<slot></slot>`;
         }
