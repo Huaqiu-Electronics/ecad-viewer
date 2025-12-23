@@ -21,7 +21,7 @@ export class BomViewer extends KCUIElement {
                 display: flex;
                 position: relative;
                 width: 100%;
-                max-height: 100%;
+                height: 100%;
                 aspect-ratio: 1.414;
                 background-color: white;
                 color: var(--fg);
@@ -33,16 +33,6 @@ export class BomViewer extends KCUIElement {
                 flex-direction: column;
                 height: 100%;
                 width: 100%;
-            }
-            .tab-content {
-                height: 100%;
-                width: 100%;
-                flex: 1;
-                display: none;
-            }
-
-            .tab-content.active {
-                display: inherit;
             }
             table {
                 border-collapse: collapse;
