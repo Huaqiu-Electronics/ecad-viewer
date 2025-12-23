@@ -323,8 +323,11 @@ export class SchematicViewer extends DocumentViewer<
             const text_pos = pin_pos.add(new Vec2(1, -1));
 
             const attrs = new TextAttributes();
-            attrs.size = new Vec2(1.27, 1.27);
-            attrs.stroke_width = 0.15;
+            // KiCad StrokeFont expects units in 10000 scale (1mm = 10000IU approx for these internal calcs)
+            // StrokeFont.draw applies a 0.0001 scale transform.
+            // So 1.27mm should be passed as 12700.
+            attrs.size = new Vec2(1.27 * 10000, 1.27 * 10000);
+            attrs.stroke_width = 0.15 * 10000;
             attrs.color = severity_color;
             attrs.h_align = "left";
             attrs.v_align = "bottom";

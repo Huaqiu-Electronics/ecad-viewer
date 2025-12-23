@@ -106,10 +106,6 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
             if (sch_symbol) {
                 // Switch sheet if necessary
                 if (sch_symbol.sheet_name !== this.sch_viewer.sch_name) {
-                    // We need to use project.file_by_name to get the KicadSch object
-                    // But we also need to be careful about async load or if viewer needs time?
-                    // viewer.load is synchronous? KicadSch is already loaded in project?
-                    // viewer.load triggers rendering.
                     const sch = this.project.file_by_name(
                         sch_symbol.sheet_name,
                     );
@@ -117,7 +113,7 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
                         this.viewer.load(sch);
                     }
                 }
-
+                // FIXME : Hacky timeout to allow time for sheet to load before showing ERC results.
                 setTimeout(() => {
                     this.sch_viewer.show_erc(
                         sch_symbol.uuid,
