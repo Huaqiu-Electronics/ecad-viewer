@@ -1,7 +1,7 @@
 name: Publish to Docker
 on:
   release:
-    branches: ecad-viewer-service
+    branches: main
     types:
       - published
 
