@@ -304,28 +304,30 @@ export class SchematicViewer extends DocumentViewer<
             // Draw marker circle
             this.renderer.circle(new Circle(pin_pos, 0.5, severity_color));
 
-            // Draw text
-            this.renderer.state.push();
-            // Position text slightly offset from pin
-            const text_pos = pin_pos.add(new Vec2(1, -1));
+            if (pin_err.message) {
+                // Draw text
+                this.renderer.state.push();
+                // Position text slightly offset from pin
+                const text_pos = pin_pos.add(new Vec2(1, -1));
 
-            const attrs = new TextAttributes();
-            // KiCad StrokeFont expects units in 10000 scale (1mm = 10000IU approx for these internal calcs)
-            // StrokeFont.draw applies a 0.0001 scale transform.
-            // So 1.27mm should be passed as 12700.
-            attrs.size = new Vec2(1.27 * 10000, 1.27 * 10000);
-            attrs.stroke_width = 0.15 * 10000;
-            attrs.color = severity_color;
-            attrs.h_align = "left";
-            attrs.v_align = "bottom";
+                const attrs = new TextAttributes();
+                // KiCad StrokeFont expects units in 10000 scale (1mm = 10000IU approx for these internal calcs)
+                // StrokeFont.draw applies a 0.0001 scale transform.
+                // So 1.27mm should be passed as 12700.
+                attrs.size = new Vec2(1.27 * 10000, 1.27 * 10000);
+                attrs.stroke_width = 0.15 * 10000;
+                attrs.color = severity_color;
+                attrs.h_align = "left";
+                attrs.v_align = "bottom";
 
-            font.draw(
-                this.renderer,
-                pin_err.message,
-                new Vec2(text_pos.x * 10000, text_pos.y * 10000),
-                attrs,
-            );
-            this.renderer.state.pop();
+                font.draw(
+                    this.renderer,
+                    pin_err.message,
+                    new Vec2(text_pos.x * 10000, text_pos.y * 10000),
+                    attrs,
+                );
+                this.renderer.state.pop();
+            }
         }
 
         layer.graphics = this.renderer.end_layer();
