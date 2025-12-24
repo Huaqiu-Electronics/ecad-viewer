@@ -17,6 +17,9 @@ const gh = new GitHub();
  * Virtual file system for GitHub.
  */
 export class GitHubFileSystem extends VirtualFileSystem {
+    public override add(item: string | URL): void {
+        throw new Error("Method not implemented.");
+    }
     constructor(private files_to_urls: Map<string, URL>) {
         super();
     }
