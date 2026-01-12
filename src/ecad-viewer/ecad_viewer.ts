@@ -192,15 +192,36 @@ export class ECadViewer extends KCUIElement implements InputContainer {
      */
     public zoomToLocation(x: number, y: number): void {
         const pos = new Vec2(x, y);
+        // Helper to move camera on a viewer
+        const moveCamera = (viewer: any) => {
+            if (viewer?.viewport?.camera) {
+                viewer.viewport.camera.center.set(pos.x, pos.y);
+                viewer.draw();
+            }
+        };
+
         if (this.#board_app?.viewer) {
-            this.#board_app.viewer.move(pos);
-            // Also ensure we are on the PCB tab if targeting PCB
-            // But we don't know context here easily without passing it.
-            // For now assume user switches tab or we rely on active viewer.
+            moveCamera(this.#board_app.viewer);
         }
         if (this.#schematic_app?.viewer) {
-            this.#schematic_app.viewer.move(pos);
+            moveCamera(this.#schematic_app.viewer);
         }
+    }
+
+    /**
+     * Get screen coordinates from world coordinates
+     */
+    public getScreenLocation(x: number, y: number): { x: number; y: number } | null {
+        const pos = new Vec2(x, y);
+        // Try board viewer first, then schematic
+        const viewer = (this.#board_app?.viewer || this.#schematic_app?.viewer) as any;
+
+        if (viewer?.viewport?.camera) {
+            // Note: Camera2 uses snake_case world_to_screen
+            const screenPos = viewer.viewport.camera.world_to_screen(pos);
+            return { x: screenPos.x, y: screenPos.y };
+        }
+        return null;
     }
 
     attributeChangedCallback(
