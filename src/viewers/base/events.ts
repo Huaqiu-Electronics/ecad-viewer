@@ -288,7 +288,7 @@ export class PresetUnsetEvent extends CustomEvent<undefined> {
 
 /**
  * Event dispatched when user clicks in comment mode.
- * Contains both world (board) coordinates and screen coordinates.
+ * Contains world coordinates and element information.
  */
 export interface CommentClickDetails {
     /** X coordinate in board units (mm) */
@@ -303,6 +303,14 @@ export interface CommentClickDetails {
     layer: string;
     /** Context type: "PCB" or "SCH" */
     context: "PCB" | "SCH";
+    /** Element type (e.g., "Footprint", "Pad", "Via", "Symbol", "Pin") */
+    elementType?: string;
+    /** Element ID or reference (e.g., footprint UUID) */
+    elementId?: string;
+    /** Element designator/reference (e.g., "U1", "R5", "C3") */
+    elementRef?: string;
+    /** Raw element object for additional info */
+    element?: unknown;
 }
 
 export class CommentClickEvent extends KiCanvasEvent<CommentClickDetails> {

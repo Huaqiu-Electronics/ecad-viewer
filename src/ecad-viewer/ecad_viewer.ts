@@ -1,4 +1,5 @@
 import { later } from "../base/async";
+import { Vec2 } from "../base/math";
 import {
     CSS,
     CustomElement,
@@ -17,6 +18,7 @@ import { BomApp } from "../kicanvas/elements/bom/app";
 import { is_3d_model, is_kicad, TabHeaderElement } from "./tab_header";
 import {
     BoardContentReady,
+    CommentClickEvent,
     Online3dViewerLoaded,
     OpenBarrierEvent,
     SheetLoadEvent,
@@ -26,7 +28,6 @@ import {
 } from "../viewers/base/events";
 
 import { TabKind } from "./constraint";
-import type { DesignURLs } from "./design_urls";
 import type { InputContainer } from "./input_container";
 import type { Online3dViewer } from "../3d-viewer/online_3d_viewer";
 import "../kc-ui/spinner";
@@ -145,12 +146,6 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     @attribute({ type: Boolean })
     public loaded: boolean;
 
-    @attribute({ type: String })
-    public url: string | null;
-
-    @attribute({ type: "json" })
-    public "design-urls": DesignURLs | null;
-
     /**
      * When true, clicking on the viewer dispatches CommentClickEvent
      * instead of selecting items. Used for design review commenting.
@@ -164,11 +159,47 @@ export class ECadViewer extends KCUIElement implements InputContainer {
      */
     public setCommentMode(enabled: boolean): void {
         this["comment-mode"] = enabled;
+
+        // Helper to forward CommentClickEvent from internal viewer to this element
+        const forwardEvent = (event: Event) => {
+            const e = event as CommentClickEvent;
+            // Re-dispatch the event from this element so React can listen
+            this.dispatchEvent(new CommentClickEvent(e.detail));
+        };
+
         if (this.#board_app?.viewer) {
-            (this.#board_app.viewer as any).commentModeEnabled = enabled;
+            const viewer = this.#board_app.viewer as any;
+            viewer.commentModeEnabled = enabled;
+            if (enabled) {
+                viewer.addEventListener(CommentClickEvent.type, forwardEvent);
+            } else {
+                viewer.removeEventListener(CommentClickEvent.type, forwardEvent);
+            }
         }
         if (this.#schematic_app?.viewer) {
-            (this.#schematic_app.viewer as any).commentModeEnabled = enabled;
+            const viewer = this.#schematic_app.viewer as any;
+            viewer.commentModeEnabled = enabled;
+            if (enabled) {
+                viewer.addEventListener(CommentClickEvent.type, forwardEvent);
+            } else {
+                viewer.removeEventListener(CommentClickEvent.type, forwardEvent);
+            }
+        }
+    }
+
+    /**
+     * Move the camera to a specific location (in world coordinates)
+     */
+    public zoomToLocation(x: number, y: number): void {
+        const pos = new Vec2(x, y);
+        if (this.#board_app?.viewer) {
+            this.#board_app.viewer.move(pos);
+            // Also ensure we are on the PCB tab if targeting PCB
+            // But we don't know context here easily without passing it.
+            // For now assume user switches tab or we rely on active viewer.
+        }
+        if (this.#schematic_app?.viewer) {
+            this.#schematic_app.viewer.move(pos);
         }
     }
 
@@ -178,11 +209,9 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         new_value: string,
     ) {
         super.attributeChangedCallback(name, old_value, new_value);
-        if (this.loaded && (name === "url" || name === "design-urls")) {
-            this.load_src();
-        }
         // Sync comment-mode attribute to viewer's commentModeEnabled property
-        if (name === "comment-mode") {
+        // Only update if loaded (viewers exist)
+        if (name === "comment-mode" && this.loaded) {
             const enabled = new_value !== null && new_value !== "false";
             this.setCommentMode(enabled);
         }
@@ -247,23 +276,16 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         if (window.zip_url) {
             return this.load_window_zip_url(window.zip_url);
         }
-
-        const design_urls = this["design-urls"] || window.design_urls;
-
-        if (this.url) {
-            return this.load_window_zip_url(this.url);
-        }
-
-        if (design_urls) {
+        if (window.design_urls) {
             const do_load_glb = () => {
-                if (design_urls?.glb_url) {
-                    this.load_window_zip_url(design_urls.glb_url);
+                if (window.design_urls?.glb_url) {
+                    this.load_window_zip_url(window.design_urls.glb_url);
                 }
             };
 
             const do_load_pcb = () => {
-                if (design_urls?.pcb_url) {
-                    this.load_window_zip_url(design_urls.pcb_url).then(
+                if (window.design_urls?.pcb_url) {
+                    this.load_window_zip_url(window.design_urls.pcb_url).then(
                         () => {
                             do_load_glb();
                         },
@@ -271,17 +293,17 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                 }
             };
 
-            if (design_urls.sch_url) {
-                await this.load_window_zip_url(design_urls.sch_url);
-                if (design_urls.pcb_url) return do_load_pcb();
-                if (design_urls.glb_url) return do_load_glb();
+            if (window.design_urls.sch_url) {
+                await this.load_window_zip_url(window.design_urls.sch_url);
+                if (window.design_urls.pcb_url) return do_load_pcb();
+                if (window.design_urls.glb_url) return do_load_glb();
             }
 
-            if (design_urls.pcb_url) {
+            if (window.design_urls.pcb_url) {
                 return do_load_pcb();
             }
 
-            if (design_urls.glb_url) {
+            if (window.design_urls.glb_url) {
                 return do_load_glb();
             }
         }

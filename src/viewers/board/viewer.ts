@@ -19,7 +19,7 @@ import {
 } from "../../kicad/board_bbox_visitor";
 import type { KCBoardLayersPanelElement } from "../../kicanvas/elements/kc-board/layers-panel";
 import { DocumentViewer } from "../base/document-viewer";
-import { KiCanvasFitterMenuEvent, KiCanvasSelectEvent } from "../base/events";
+import { CommentClickEvent, KiCanvasFitterMenuEvent, KiCanvasSelectEvent } from "../base/events";
 import type { VisibilityType } from "../base/view-layers";
 import { ViewerType } from "../base/viewer";
 import { LayerNames, LayerSet, ViewLayer } from "./layers";
@@ -108,9 +108,37 @@ export class BoardViewer extends DocumentViewer<
         }
     }
 
-    override on_click(pos: Vec2): void {
+    override on_click(pos: Vec2, event?: MouseEvent): void {
         const items = this.find_items_under_pos(pos);
 
+        // In comment mode, dispatch CommentClickEvent with element info
+        if (this.commentModeEnabled && event) {
+            // Only dispatch if we found an element
+            if (items.length > 0) {
+                const it = items[0]!;
+                const item = it.item as any;
+
+                const rect = this.canvas.getBoundingClientRect();
+                this.dispatchEvent(
+                    new CommentClickEvent({
+                        worldX: pos.x,
+                        worldY: pos.y,
+                        screenX: event.clientX,
+                        screenY: event.clientY,
+                        layer: it.is_on_layer?.("F.Cu") ? "F.Cu" : "B.Cu",
+                        context: "PCB",
+                        elementType: item?.typeId || "Unknown",
+                        elementId: item?.uuid || "",
+                        elementRef: item?.reference || item?.designator || "",
+                        element: item,
+                    }),
+                );
+            }
+            // Don't dispatch select event in comment mode
+            return;
+        }
+
+        // Normal mode - dispatch selection events
         if (items.length > 0) {
             if (items.length == 1) {
                 const it = items[0];
