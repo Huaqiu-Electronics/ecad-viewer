@@ -286,6 +286,33 @@ export class PresetUnsetEvent extends CustomEvent<undefined> {
     }
 }
 
+/**
+ * Event dispatched when user clicks in comment mode.
+ * Contains both world (board) coordinates and screen coordinates.
+ */
+export interface CommentClickDetails {
+    /** X coordinate in board units (mm) */
+    worldX: number;
+    /** Y coordinate in board units (mm) */
+    worldY: number;
+    /** X coordinate on screen (pixels) */
+    screenX: number;
+    /** Y coordinate on screen (pixels) */
+    screenY: number;
+    /** Active layer name (e.g., "F.Cu") */
+    layer: string;
+    /** Context type: "PCB" or "SCH" */
+    context: "PCB" | "SCH";
+}
+
+export class CommentClickEvent extends KiCanvasEvent<CommentClickDetails> {
+    static readonly type = "ecad-viewer:comment:click";
+
+    constructor(detail: CommentClickDetails) {
+        super(CommentClickEvent.type, detail, true);
+    }
+}
+
 // Event maps for type safe addEventListener.
 
 export interface KiCanvasEventMap {
@@ -313,7 +340,7 @@ export interface KiCanvasEventMap {
     [PresetChangeEvent.type]: PresetChangeEvent;
     [PresetUnsetEvent.type]: PresetUnsetEvent;
     [ComponentERCResultEvent.type]: ComponentERCResultEvent;
-
+    [CommentClickEvent.type]: CommentClickEvent;
 }
 
 declare global {
@@ -332,6 +359,7 @@ declare global {
         [SelectDesignatorEvent.type]: SelectDesignatorEvent;
         [BoardContentReady.type]: BoardContentReady;
         [ComponentERCResultEvent.type]: ComponentERCResultEvent;
+        [CommentClickEvent.type]: CommentClickEvent;
     }
 
     interface HTMLElementEventMap {
@@ -349,5 +377,6 @@ declare global {
         [SelectDesignatorEvent.type]: SelectDesignatorEvent;
         [BoardContentReady.type]: BoardContentReady;
         [ComponentERCResultEvent.type]: ComponentERCResultEvent;
+        [CommentClickEvent.type]: CommentClickEvent;
     }
 }
