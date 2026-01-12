@@ -26,6 +26,7 @@ import {
 } from "../viewers/base/events";
 
 import { TabKind } from "./constraint";
+import type { DesignURLs } from "./design_urls";
 import type { InputContainer } from "./input_container";
 import type { Online3dViewer } from "../3d-viewer/online_3d_viewer";
 import "../kc-ui/spinner";
@@ -143,6 +144,49 @@ export class ECadViewer extends KCUIElement implements InputContainer {
 
     @attribute({ type: Boolean })
     public loaded: boolean;
+
+    @attribute({ type: String })
+    public url: string | null;
+
+    @attribute({ type: "json" })
+    public "design-urls": DesignURLs | null;
+
+    /**
+     * When true, clicking on the viewer dispatches CommentClickEvent
+     * instead of selecting items. Used for design review commenting.
+     */
+    @attribute({ type: Boolean })
+    public "comment-mode": boolean;
+
+    /**
+     * Enable or disable comment mode programmatically.
+     * When enabled, clicks dispatch CommentClickEvent with coordinates.
+     */
+    public setCommentMode(enabled: boolean): void {
+        this["comment-mode"] = enabled;
+        if (this.#board_app?.viewer) {
+            (this.#board_app.viewer as any).commentModeEnabled = enabled;
+        }
+        if (this.#schematic_app?.viewer) {
+            (this.#schematic_app.viewer as any).commentModeEnabled = enabled;
+        }
+    }
+
+    attributeChangedCallback(
+        name: string,
+        old_value: string,
+        new_value: string,
+    ) {
+        super.attributeChangedCallback(name, old_value, new_value);
+        if (this.loaded && (name === "url" || name === "design-urls")) {
+            this.load_src();
+        }
+        // Sync comment-mode attribute to viewer's commentModeEnabled property
+        if (name === "comment-mode") {
+            const enabled = new_value !== null && new_value !== "false";
+            this.setCommentMode(enabled);
+        }
+    }
     override initialContentCallback() {
         this.#setup_events();
         later(() => {
@@ -150,7 +194,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         });
     }
 
-    async #setup_events() {}
+    async #setup_events() { }
 
     async load_zip(file: Blob) {
         const files = await ZipUtils.unzipFile(file);
@@ -203,16 +247,23 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         if (window.zip_url) {
             return this.load_window_zip_url(window.zip_url);
         }
-        if (window.design_urls) {
+
+        const design_urls = this["design-urls"] || window.design_urls;
+
+        if (this.url) {
+            return this.load_window_zip_url(this.url);
+        }
+
+        if (design_urls) {
             const do_load_glb = () => {
-                if (window.design_urls?.glb_url) {
-                    this.load_window_zip_url(window.design_urls.glb_url);
+                if (design_urls?.glb_url) {
+                    this.load_window_zip_url(design_urls.glb_url);
                 }
             };
 
             const do_load_pcb = () => {
-                if (window.design_urls?.pcb_url) {
-                    this.load_window_zip_url(window.design_urls.pcb_url).then(
+                if (design_urls?.pcb_url) {
+                    this.load_window_zip_url(design_urls.pcb_url).then(
                         () => {
                             do_load_glb();
                         },
@@ -220,17 +271,17 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                 }
             };
 
-            if (window.design_urls.sch_url) {
-                await this.load_window_zip_url(window.design_urls.sch_url);
-                if (window.design_urls.pcb_url) return do_load_pcb();
-                if (window.design_urls.glb_url) return do_load_glb();
+            if (design_urls.sch_url) {
+                await this.load_window_zip_url(design_urls.sch_url);
+                if (design_urls.pcb_url) return do_load_pcb();
+                if (design_urls.glb_url) return do_load_glb();
             }
 
-            if (window.design_urls.pcb_url) {
+            if (design_urls.pcb_url) {
                 return do_load_pcb();
             }
 
-            if (window.design_urls.glb_url) {
+            if (design_urls.glb_url) {
                 return do_load_glb();
             }
         }
