@@ -123,11 +123,9 @@ export abstract class Viewer extends EventTarget {
 
             this.disposables.add(
                 listen(this.canvas, "click", (e) => {
-                    if (this.commentModeEnabled) {
-                        this.dispatchCommentClick(e);
-                    } else {
-                        this.on_click(this.#mouse_position);
-                    }
+                    // Always call on_click - subclasses can check commentModeEnabled
+                    // to dispatch CommentClickEvent with element info
+                    this.on_click(this.#mouse_position, e);
                 }),
             );
 
@@ -228,7 +226,7 @@ export abstract class Viewer extends EventTarget {
 
     abstract on_hover(pos: Vec2): void;
 
-    abstract on_click(pos: Vec2): void;
+    abstract on_click(pos: Vec2, event?: MouseEvent): void;
 
     abstract on_dblclick(pos: Vec2): void;
 
