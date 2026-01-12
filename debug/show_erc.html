@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>ERC Parent Host</title>
+
+        <style>
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                height: 100%;
+            }
+
+            iframe {
+                width: 100%;
+                height: 100%;
+                border: none;
+            }
+
+            /* Floating trigger button */
+            #triggerErcBtn {
+                position: fixed;
+                top: 12px;
+                right: 12px;
+                z-index: 1000;
+                padding: 8px 12px;
+                font-size: 14px;
+                cursor: pointer;
+            }
+        </style>
+    </head>
+    <body>
+        <button id="triggerErcBtn">Trigger ERC</button>
+
+        <iframe
+            id="ercFrame"
+            src="http://localhost:8080/?zip-url=./video.zip"
+            allow="clipboard-read; clipboard-write"></iframe>
+
+        <script>
+            const iframe = document.getElementById("ercFrame");
+            const triggerBtn = document.getElementById("triggerErcBtn");
+
+            function sendERC() {
+                if (!iframe.contentWindow) {
+                    console.warn("Iframe not ready");
+                    return;
+                }
+
+                iframe.contentWindow.postMessage(
+                    {
+                        type: "sch:erc:component",
+                        detail: {
+                            designator: "U1",
+                            pins: [
+                                {
+                                    pin_num: "1",
+                                    message: "Unconnected pin",
+                                    severity: "warning",
+                                },
+                                {
+                                    pin_num: "5",
+                                    message: "Short circuit detected",
+                                    severity: "error",
+                                },
+                            ],
+                        },
+                    },
+                    "*",
+                );
+            }
+
+            // Auto-send once after iframe load (optional)
+            iframe.addEventListener("load", () => {
+                console.log("Iframe loaded");
+            });
+
+            // Manual trigger
+            triggerBtn.addEventListener("click", () => {
+                console.log("Triggering ERC event");
+                sendERC();
+            });
+
+            // Optional: receive messages from iframe
+            window.addEventListener("message", (event) => {
+                if (event.origin !== "http://localhost:8080") return;
+                console.log("Message from iframe:", event.data);
+            });
+        </script>
+    </body>
+</html>
