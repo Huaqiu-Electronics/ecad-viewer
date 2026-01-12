@@ -27,6 +27,12 @@ import {
     TabMenuVisibleChangeEvent,
 } from "../viewers/base/events";
 
+export {
+    CommentClickEvent,
+    TabActivateEvent,
+    SheetLoadEvent,
+} from "../viewers/base/events";
+
 import { TabKind } from "./constraint";
 import type { InputContainer } from "./input_container";
 import type { Online3dViewer } from "../3d-viewer/online_3d_viewer";
@@ -209,6 +215,32 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     }
 
     /**
+     * Switch to a specific schematic page (by filename or sheet path)
+     */
+    public switchPage(pageId: string): void {
+        if (!this.#schematic_app) return;
+
+        // Ensure we are on the schematic tab
+        if (this.#tab_header) {
+            // We can't easily programmatically click the tab header without exposing it or duplicating logic,
+            // but we can simulate the tab switch if needed. 
+            // Ideally ecad-viewer should expose a method to set active tab.
+            // For now, let's assume the caller handles tab switching or we just switch the internal view.
+        }
+
+        const project = this.#project;
+        // Try to find by filename first
+        const sch = project.file_by_name(pageId);
+        if (sch) {
+            this.#schematic_app.viewer.load(sch as any);
+            return;
+        }
+
+        // Try to find by sheet path/UUID if needed - but filename is usually sufficient for now
+        console.warn(`switchPage: Could not find page with ID ${pageId}`);
+    }
+
+    /**
      * Get screen coordinates from world coordinates
      */
     public getScreenLocation(x: number, y: number): { x: number; y: number } | null {
@@ -229,7 +261,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         old_value: string,
         new_value: string,
     ) {
-        super.attributeChangedCallback(name, old_value, new_value);
+        // super.attributeChangedCallback(name, old_value, new_value);
         // Sync comment-mode attribute to viewer's commentModeEnabled property
         // Only update if loaded (viewers exist)
         if (name === "comment-mode" && this.loaded) {
@@ -428,6 +460,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         this.#tab_header.input_container = this;
         this.#tab_header.addEventListener(TabActivateEvent.type, (event) => {
             const tab = (event as TabActivateEvent).detail;
+            this.dispatchEvent(new TabActivateEvent(tab));
             if (tab.previous) {
                 switch (tab.previous) {
                     case TabKind.pcb:
@@ -528,6 +561,8 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             embed_to_tab(this.#schematic_app, TabKind.sch);
             this.#schematic_app.addEventListener(SheetLoadEvent.type, (e) => {
                 this.#tab_header.dispatchEvent(new SheetLoadEvent(e.detail));
+                // Re-dispatch from viewer so visualizer can track active sheet
+                this.dispatchEvent(new SheetLoadEvent(e.detail));
             });
         }
 

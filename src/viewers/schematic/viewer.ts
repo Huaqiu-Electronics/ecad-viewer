@@ -18,6 +18,7 @@ import {
     LabelClickEvent,
     SheetChangeEvent,
     SheetLoadEvent,
+    CommentClickEvent,
 } from "../base/events";
 import { ViewerType } from "../base/viewer";
 import { LayerNames, LayerSet } from "./layers";
@@ -61,6 +62,8 @@ export class SchematicViewer extends DocumentViewer<
 > {
     static InterActiveBBoxLineWidth = 0.265;
 
+    public override commentModeEnabled = false;
+
     #focus_net_item?: string;
 
     get sch_name() {
@@ -98,6 +101,29 @@ export class SchematicViewer extends DocumentViewer<
 
     override on_click(pos: Vec2): void {
         const ct = this.find_item(pos);
+
+        if (this.commentModeEnabled) {
+            // Dispatch comment click event
+            this.dispatchEvent(
+                new CommentClickEvent({
+                    worldX: pos.x,
+                    worldY: pos.y,
+                    screenX: 0, // Viewer doesn't easily know screen coords here without viewport transform, but visualizer uses world anyway.
+                    // Actually we can get screen coords if needed, but let's stick to world for now or calc it.
+                    // Visualizer.tsx calculation:
+                    //   setPendingLocation({ x: detail.worldX, y: detail.worldY, layer: detail.layer || "F.Cu" });
+                    // It uses worldX/Y.
+
+                    screenY: 0,
+                    layer: "Schematic",
+                    context: "SCH",
+                    element: ct.item,
+                    elementType: ct.item?.constructor.name,
+                })
+            );
+            return;
+        }
+
         if (ct.item) {
             const it = ct.item;
             this.dispatchEvent(
