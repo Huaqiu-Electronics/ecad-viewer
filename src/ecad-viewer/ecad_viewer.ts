@@ -130,6 +130,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     }
 
     #tab_contents: Record<string, HTMLElement> = {};
+    #active_tab: TabKind = TabKind.pcb;
     #project: Project = new Project();
     #schematic_app: KCSchematicAppElement;
     #ov_d_app: Online3dViewer;
@@ -245,8 +246,16 @@ export class ECadViewer extends KCUIElement implements InputContainer {
      */
     public getScreenLocation(x: number, y: number): { x: number; y: number } | null {
         const pos = new Vec2(x, y);
-        // Try board viewer first, then schematic
-        const viewer = (this.#board_app?.viewer || this.#schematic_app?.viewer) as any;
+
+        let viewer: any = null;
+        if (this.#active_tab === TabKind.pcb && this.#board_app) {
+            viewer = this.#board_app.viewer;
+        } else if (this.#active_tab === TabKind.sch && this.#schematic_app) {
+            viewer = this.#schematic_app.viewer;
+        } else {
+            // Fallback
+            viewer = (this.#board_app?.viewer || this.#schematic_app?.viewer) as any;
+        }
 
         if (viewer?.viewport?.camera) {
             // Note: Camera2 uses snake_case world_to_screen
@@ -460,6 +469,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         this.#tab_header.input_container = this;
         this.#tab_header.addEventListener(TabActivateEvent.type, (event) => {
             const tab = (event as TabActivateEvent).detail;
+            this.#active_tab = tab.current;
             this.dispatchEvent(new TabActivateEvent(tab));
             if (tab.previous) {
                 switch (tab.previous) {
