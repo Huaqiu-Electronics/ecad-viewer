@@ -7,3 +7,4 @@ ecad_viewer
 *.code-workspace
 defects
 tmp
+.DS_Store
