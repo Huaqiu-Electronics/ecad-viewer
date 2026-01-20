@@ -89,8 +89,8 @@ export class Project extends EventTarget implements IDisposable {
             (this._pcb.length
                 ? this._pcb[0]?.filename
                 : this._sch.length
-                  ? this._root_schematic_page?.filename
-                  : "") ?? "";
+                    ? this._root_schematic_page?.filename
+                    : "") ?? "";
 
         const fns = fn.split(".");
 
@@ -317,7 +317,18 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     public file_by_name(name: string) {
-        return this._files_by_name.get(name);
+        if (this._files_by_name.has(name)) {
+            return this._files_by_name.get(name);
+        }
+
+        // Fuzzy match: check if any stored filename ends with the requested name
+        for (const [key, value] of this._files_by_name) {
+            if (key.endsWith(`/${name}`)) {
+                return value;
+            }
+        }
+
+        return undefined;
     }
 
     public *boards() {
@@ -529,7 +540,7 @@ export class ProjectPage {
         public sheet_path: string,
         public name?: string,
         public page?: string,
-    ) {}
+    ) { }
 
     /**
      * A unique identifier for this page within the project,
