@@ -118,7 +118,7 @@ export class BoardViewer extends DocumentViewer<
                 const it = items[0]!;
                 const item = it.item as any;
 
-                const rect = this.canvas.getBoundingClientRect();
+                // const rect = this.canvas.getBoundingClientRect();
                 this.dispatchEvent(
                     new CommentClickEvent({
                         worldX: pos.x,
