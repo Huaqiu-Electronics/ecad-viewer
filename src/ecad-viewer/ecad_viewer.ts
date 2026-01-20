@@ -183,6 +183,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                 viewer.removeEventListener(CommentClickEvent.type, forwardEvent);
             }
         }
+
         if (this.#schematic_app?.viewer) {
             const viewer = this.#schematic_app.viewer as any;
             viewer.commentModeEnabled = enabled;
