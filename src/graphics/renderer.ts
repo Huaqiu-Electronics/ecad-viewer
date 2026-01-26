@@ -57,12 +57,15 @@ export abstract class Renderer implements IDisposable {
         x?: number,
         y?: number,
         scale?: number,
+        ppi?: number,
     ): Image {
+
         let image: Image;
 
         // Convert pixels to world units (assuming mm)
         // 25.4 mm / 96 DPI = ~0.26458 mm per pixel.
-        const PIXEL_TO_MM = 25.4 / 96;
+        // If ppi is provided, use it. Otherwise default to 96
+        const PIXEL_TO_MM = 25.4 / (ppi ?? 96);
 
         if (image_or_img instanceof Image) {
             image = image_or_img;
@@ -287,6 +290,7 @@ export abstract class Renderer implements IDisposable {
         x: number,
         y: number,
         scale: number,
+        ppi?: number,
     ): void;
 
     /**

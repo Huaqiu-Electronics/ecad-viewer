@@ -398,7 +398,13 @@ class ImagePainter extends SchematicItemPainter {
         const img = t.img;
         if (!img.complete) throw new Error("Image not ready");
         this.gfx.state.push();
-        this.gfx.image(img, t.at.position.x, t.at.position.y, t.scale);
+        this.gfx.image(
+            img,
+            t.at.position.x,
+            t.at.position.y,
+            t.scale,
+            t.ppi ?? undefined,
+        );
         this.gfx.state.pop();
     }
 }
