@@ -30,6 +30,7 @@ import { KCSchematicAppElement } from "./kicanvas/elements/kc-schematic/app";
 import { ECadViewerEmbedded } from "./ecad-viewer/ecad_viewer_embedded";
 import { html } from "./base/web-components/html";
 import { load_ecad_viewer_conf } from "./ecad-viewer/ecad_viewer_global";
+import { setup_iframe_bridge } from "./ecad-viewer/iframe_bridge";
 
 export {
     html,
@@ -54,3 +55,4 @@ export default {
 };
 
 load_ecad_viewer_conf();
+setup_iframe_bridge();

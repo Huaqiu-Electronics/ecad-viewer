@@ -6,6 +6,7 @@
 
 import type { TabKind } from "../../ecad-viewer/constraint";
 import type { ComponentERCResult } from "../../proto/component_erc_result";
+import type { ProjectErcResult } from "../../proto/project_erc_result";
 
 class KiCanvasEvent<T> extends CustomEvent<T> {
     constructor(name: string, detail: T, bubbles = false) {
@@ -236,7 +237,6 @@ export class SelectDesignatorEvent extends CustomEvent<DesignatorIndex> {
     }
 }
 
-
 export class ComponentERCResultEvent extends CustomEvent<ComponentERCResult> {
     static readonly type = "sch:erc:component";
 
@@ -245,7 +245,13 @@ export class ComponentERCResultEvent extends CustomEvent<ComponentERCResult> {
     }
 }
 
+export class ProjectERCResultEvent extends CustomEvent<ProjectErcResult[]> {
+    static readonly type = "sch:erc:project";
 
+    constructor(detail: ProjectErcResult[]) {
+        super(ProjectERCResultEvent.type, { detail });
+    }
+}
 
 export class NetItemSelectEvent extends CustomEvent<NetItemIndex> {
     static readonly type = "net:select_item";
@@ -348,6 +354,7 @@ export interface KiCanvasEventMap {
     [PresetChangeEvent.type]: PresetChangeEvent;
     [PresetUnsetEvent.type]: PresetUnsetEvent;
     [ComponentERCResultEvent.type]: ComponentERCResultEvent;
+    [ProjectERCResultEvent.type]: ProjectERCResultEvent;
     [CommentClickEvent.type]: CommentClickEvent;
 }
 
@@ -367,6 +374,7 @@ declare global {
         [SelectDesignatorEvent.type]: SelectDesignatorEvent;
         [BoardContentReady.type]: BoardContentReady;
         [ComponentERCResultEvent.type]: ComponentERCResultEvent;
+        [ProjectERCResultEvent.type]: ProjectERCResultEvent;
         [CommentClickEvent.type]: CommentClickEvent;
     }
 
@@ -385,6 +393,7 @@ declare global {
         [SelectDesignatorEvent.type]: SelectDesignatorEvent;
         [BoardContentReady.type]: BoardContentReady;
         [ComponentERCResultEvent.type]: ComponentERCResultEvent;
+        [ProjectERCResultEvent.type]: ProjectERCResultEvent;
         [CommentClickEvent.type]: CommentClickEvent;
     }
 }

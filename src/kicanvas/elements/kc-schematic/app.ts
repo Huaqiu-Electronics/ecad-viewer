@@ -97,19 +97,6 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
             }
         });
 
-        window.addEventListener("message", (msg) => {
-            console.log(` ECAD VIEWER Received message`);
-            if (msg.data.type === ComponentERCResultEvent.type) {
-                console.log(
-                    `Receive Component ERC MSG, ${JSON.stringify(msg.data.detail)}`,
-                );
-                const evt = new CustomEvent(ComponentERCResultEvent.type, {
-                    detail: msg.data.detail,
-                });
-                window.dispatchEvent(evt);
-            }
-        });
-
         window.addEventListener(ComponentERCResultEvent.type, (e) => {
             Project.import_cjk_glyphs();
             const component_erc_result: ComponentERCResult = e.detail;
