@@ -12,6 +12,8 @@ import { KCSchematicViewerElement } from "./viewer";
 import "./info-panel";
 import "./properties-panel";
 import "./viewer";
+import "./erc-inspector";
+import type { KCErcInspectorElement } from "./erc-inspector";
 
 import { KicadSch } from "../../../kicad";
 import { SchematicSheet } from "../../../kicad/schematic";
@@ -24,6 +26,7 @@ import {
     KiCanvasFitterMenuEvent,
     LabelClickEvent,
     NetItemSelectEvent,
+    ProjectERCResultEvent,
     SelectDesignatorEvent,
     SheetChangeEvent,
     SheetLoadEvent,
@@ -139,6 +142,38 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
                 its.filter((it) => it.uuid !== e.detail.uuid),
             );
         });
+
+        this.renderRoot.addEventListener("erc-jump", (e: any) => {
+            const { designator, pins } = e.detail;
+            const sch_symbol = this.project.find_designator(designator);
+
+            if (sch_symbol) {
+                // Switch sheet if necessary
+                if (sch_symbol.sheet_name !== this.sch_viewer.sch_name) {
+                    const sch = this.project.file_by_name(
+                        sch_symbol.sheet_name,
+                    );
+                    if (sch instanceof KicadSch) {
+                        this.viewer.load(sch);
+                    }
+                }
+
+                // Allow time for sheet load if needed, then highlight
+                setTimeout(() => {
+                    this.sch_viewer.show_erc(sch_symbol.uuid, pins);
+                }, 100);
+            } else {
+                console.warn(`ERC: Cannot find designator ${designator}`);
+            }
+        });
+
+        window.addEventListener(ProjectERCResultEvent.type, (e) => {
+            console.log("Project ERC Result", e.detail);
+            const inspector = this.renderRoot.querySelector('kc-erc-inspector') as KCErcInspectorElement;
+            if (inspector && e.detail) {
+                 inspector.ercResult = e.detail;
+            }
+        });
     }
 
     #select_item(idx: NetItemIndex) {
@@ -181,8 +216,9 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
     protected override do_render() {
         this.#selection_pop_menu =
             html`<kc-sch-selection-menu></kc-sch-selection-menu>` as HTMLElement;
+        const inspector = html`<kc-erc-inspector></kc-erc-inspector>` as KCErcInspectorElement;
         const content = super.render_viewer();
-        return html`${content} ${this.#selection_pop_menu}`;
+        return html`${content} ${this.#selection_pop_menu} ${inspector}`;
     }
 
     override make_viewer_element(): KCSchematicViewerElement {

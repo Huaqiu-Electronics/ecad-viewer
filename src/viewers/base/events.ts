@@ -245,10 +245,10 @@ export class ComponentERCResultEvent extends CustomEvent<ComponentERCResult> {
     }
 }
 
-export class ProjectERCResultEvent extends CustomEvent<ProjectErcResult[]> {
+export class ProjectERCResultEvent extends CustomEvent<ProjectErcResult> {
     static readonly type = "sch:erc:project";
 
-    constructor(detail: ProjectErcResult[]) {
+    constructor(detail: ProjectErcResult) {
         super(ProjectERCResultEvent.type, { detail });
     }
 }

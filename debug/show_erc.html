@@ -10,6 +10,7 @@
                 margin: 0;
                 padding: 0;
                 height: 100%;
+                font-family: sans-serif;
             }
 
             iframe {
@@ -18,20 +19,37 @@
                 border: none;
             }
 
-            /* Floating trigger button */
-            #triggerErcBtn {
+            /* Container for floating buttons */
+            .button-container {
                 position: fixed;
-                top: 12px;
-                right: 12px;
+                bottom: 12px;
+                left: 12px;
                 z-index: 1000;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            button {
                 padding: 8px 12px;
                 font-size: 14px;
                 cursor: pointer;
+                background-color: #fff;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+
+            button:hover {
+                background-color: #f0f0f0;
             }
         </style>
     </head>
     <body>
-        <button id="triggerErcBtn">Trigger ERC</button>
+        <div class="button-container">
+            <button id="triggerErcBtn">Trigger Component ERC</button>
+            <button id="triggerProjectErcBtn">Show Project ERC</button>
+        </div>
 
         <iframe
             id="ercFrame"
@@ -41,7 +59,11 @@
         <script>
             const iframe = document.getElementById("ercFrame");
             const triggerBtn = document.getElementById("triggerErcBtn");
+            const projectTriggerBtn = document.getElementById("triggerProjectErcBtn");
 
+            /**
+             * Sends a single component ERC result
+             */
             function sendERC() {
                 if (!iframe.contentWindow) {
                     console.warn("Iframe not ready");
@@ -71,18 +93,67 @@
                 );
             }
 
+            /**
+             * Sends a full project ERC result containing multiple components
+             */
+            function sendProjectERC() {
+                if (!iframe.contentWindow) {
+                    console.warn("Iframe not ready");
+                    return;
+                }
+
+                const mockProjectResult = {
+                    components: [
+                        {
+                            designator: "U1",
+                            pins: [
+                                { pin_num: "1", message: "Floating Input", severity: "warning" },
+                                { pin_num: "3", message: "Power overload potential", severity: "error" }
+
+                            ]
+                        },
+                        {
+                            designator: "R1",
+                            pins: [
+                                { pin_num: "2", message: "Power overload potential", severity: "error" }
+                            ]
+                        },
+                        {
+                            designator: "C5",
+                            pins: [
+                                { pin_num: "1", message: "Polarity mismatch", severity: "error" }
+                            ]
+                        }
+                    ]
+                };
+
+                iframe.contentWindow.postMessage(
+                    {
+                        type: "sch:erc:project", // Assuming a specific type for project-wide results
+                        detail: mockProjectResult,
+                    },
+                    "*",
+                );
+            }
+
             // Auto-send once after iframe load (optional)
             iframe.addEventListener("load", () => {
                 console.log("Iframe loaded");
             });
 
-            // Manual trigger
+            // Manual trigger for Component ERC
             triggerBtn.addEventListener("click", () => {
-                console.log("Triggering ERC event");
+                console.log("Triggering Component ERC event");
                 sendERC();
             });
 
-            // Optional: receive messages from iframe
+            // Manual trigger for Project ERC
+            projectTriggerBtn.addEventListener("click", () => {
+                console.log("Triggering Project ERC event");
+                sendProjectERC();
+            });
+
+            // Receive messages from iframe
             window.addEventListener("message", (event) => {
                 if (event.origin !== "http://localhost:8080") return;
                 console.log("Message from iframe:", event.data);
