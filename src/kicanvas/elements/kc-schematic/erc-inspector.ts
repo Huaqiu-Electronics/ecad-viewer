@@ -683,11 +683,7 @@ export class KCErcInspectorElement extends KCUIElement {
             <div class="comp-item">
                 <button class="comp-btn" data-designator="${comp.designator}">
                     <div class="comp-info">
-                        <kc-ui-icon
-                            class="text-slate-400"
-                            style="font-size: 1rem;"
-                            >memory</kc-ui-icon
-                        >
+                        <kc-ui-icon>svg:cpu</kc-ui-icon>
                         <span class="designator">${comp.designator}</span>
                         <span class="count-badge">${comp.pins.length}</span>
                     </div>
