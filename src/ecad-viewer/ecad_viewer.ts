@@ -1,4 +1,5 @@
 import { later } from "../base/async";
+import { Vec2 } from "../base/math";
 import {
     CSS,
     CustomElement,
@@ -17,12 +18,19 @@ import { BomApp } from "../kicanvas/elements/bom/app";
 import { is_3d_model, is_kicad, TabHeaderElement } from "./tab_header";
 import {
     BoardContentReady,
+    CommentClickEvent,
     Online3dViewerLoaded,
     OpenBarrierEvent,
     SheetLoadEvent,
     TabActivateEvent,
     TabMenuClickEvent,
     TabMenuVisibleChangeEvent,
+} from "../viewers/base/events";
+
+export {
+    CommentClickEvent,
+    TabActivateEvent,
+    SheetLoadEvent,
 } from "../viewers/base/events";
 
 import { TabKind } from "./constraint";
@@ -122,6 +130,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     }
 
     #tab_contents: Record<string, HTMLElement> = {};
+    #active_tab: TabKind = TabKind.pcb;
     #project: Project = new Project();
     #schematic_app: KCSchematicAppElement;
     #ov_d_app: Online3dViewer;
@@ -143,6 +152,133 @@ export class ECadViewer extends KCUIElement implements InputContainer {
 
     @attribute({ type: Boolean })
     public loaded: boolean;
+
+    /**
+     * When true, clicking on the viewer dispatches CommentClickEvent
+     * instead of selecting items. Used for design review commenting.
+     */
+    @attribute({ type: Boolean })
+    public "comment-mode": boolean;
+
+    /**
+     * Enable or disable comment mode programmatically.
+     * When enabled, clicks dispatch CommentClickEvent with coordinates.
+     */
+    public setCommentMode(enabled: boolean): void {
+        this["comment-mode"] = enabled;
+
+        // Helper to forward CommentClickEvent from internal viewer to this element
+        const forwardEvent = (event: Event) => {
+            const e = event as CommentClickEvent;
+            // Re-dispatch the event from this element so React can listen
+            this.dispatchEvent(new CommentClickEvent(e.detail));
+        };
+
+        if (this.#board_app?.viewer) {
+            const viewer = this.#board_app.viewer as any;
+            viewer.commentModeEnabled = enabled;
+            if (enabled) {
+                viewer.addEventListener(CommentClickEvent.type, forwardEvent);
+            } else {
+                viewer.removeEventListener(CommentClickEvent.type, forwardEvent);
+            }
+        }
+
+        if (this.#schematic_app?.viewer) {
+            const viewer = this.#schematic_app.viewer as any;
+            viewer.commentModeEnabled = enabled;
+            if (enabled) {
+                viewer.addEventListener(CommentClickEvent.type, forwardEvent);
+            } else {
+                viewer.removeEventListener(CommentClickEvent.type, forwardEvent);
+            }
+        }
+    }
+
+    /**
+     * Move the camera to a specific location (in world coordinates)
+     */
+    public zoomToLocation(x: number, y: number): void {
+        const pos = new Vec2(x, y);
+        // Helper to move camera on a viewer
+        const moveCamera = (viewer: any) => {
+            if (viewer?.viewport?.camera) {
+                viewer.viewport.camera.center.set(pos.x, pos.y);
+                viewer.draw();
+            }
+        };
+
+        if (this.#board_app?.viewer) {
+            moveCamera(this.#board_app.viewer);
+        }
+        if (this.#schematic_app?.viewer) {
+            moveCamera(this.#schematic_app.viewer);
+        }
+    }
+
+    /**
+     * Switch to a specific schematic page (by filename or sheet path)
+     */
+    public switchPage(pageId: string): void {
+        if (!this.#schematic_app) return;
+
+        // Ensure we are on the schematic tab
+        if (this.#tab_header) {
+            // We can't easily programmatically click the tab header without exposing it or duplicating logic,
+            // but we can simulate the tab switch if needed. 
+            // Ideally ecad-viewer should expose a method to set active tab.
+            // For now, let's assume the caller handles tab switching or we just switch the internal view.
+        }
+
+        const project = this.#project;
+        // Try to find by filename first
+        const sch = project.file_by_name(pageId);
+        if (sch) {
+            this.#schematic_app.viewer.load(sch as any);
+            return;
+        }
+
+        // Try to find by sheet path/UUID if needed - but filename is usually sufficient for now
+        console.warn(`switchPage: Could not find page with ID ${pageId}`);
+    }
+
+    /**
+     * Get screen coordinates from world coordinates
+     */
+    public getScreenLocation(x: number, y: number): { x: number; y: number } | null {
+        const pos = new Vec2(x, y);
+
+        let viewer: any = null;
+        if (this.#active_tab === TabKind.pcb && this.#board_app) {
+            viewer = this.#board_app.viewer;
+        } else if (this.#active_tab === TabKind.sch && this.#schematic_app) {
+            viewer = this.#schematic_app.viewer;
+        } else {
+            // Fallback
+            viewer = (this.#board_app?.viewer || this.#schematic_app?.viewer) as any;
+        }
+
+        if (viewer?.viewport?.camera) {
+            // Note: Camera2 uses snake_case world_to_screen
+            const screenPos = viewer.viewport.camera.world_to_screen(pos);
+            return { x: screenPos.x, y: screenPos.y };
+        }
+        return null;
+    }
+
+    attributeChangedCallback(
+        name: string,
+        old_value: string,
+        new_value: string,
+    ) {
+        // super.attributeChangedCallback(name, old_value, new_value);
+        // Sync comment-mode attribute to viewer's commentModeEnabled property
+        // Only update if loaded (viewers exist)
+        if (name === "comment-mode" && this.loaded) {
+            const enabled = new_value !== null && new_value !== "false";
+            this.setCommentMode(enabled);
+        }
+    }
     override initialContentCallback() {
         this.#setup_events();
         later(() => {
@@ -150,7 +286,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         });
     }
 
-    async #setup_events() {}
+    async #setup_events() { }
 
     async load_zip(file: Blob) {
         const files = await ZipUtils.unzipFile(file);
@@ -334,6 +470,8 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         this.#tab_header.input_container = this;
         this.#tab_header.addEventListener(TabActivateEvent.type, (event) => {
             const tab = (event as TabActivateEvent).detail;
+            this.#active_tab = tab.current;
+            this.dispatchEvent(new TabActivateEvent(tab));
             if (tab.previous) {
                 switch (tab.previous) {
                     case TabKind.pcb:
@@ -434,6 +572,8 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             embed_to_tab(this.#schematic_app, TabKind.sch);
             this.#schematic_app.addEventListener(SheetLoadEvent.type, (e) => {
                 this.#tab_header.dispatchEvent(new SheetLoadEvent(e.detail));
+                // Re-dispatch from viewer so visualizer can track active sheet
+                this.dispatchEvent(new SheetLoadEvent(e.detail));
             });
         }
 

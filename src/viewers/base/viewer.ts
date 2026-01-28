@@ -10,6 +10,7 @@ import { listen } from "../../base/events";
 import { Vec2 } from "../../base/math";
 import { Renderer } from "../../graphics";
 import {
+    CommentClickEvent,
     KiCanvasLoadEvent,
     KiCanvasMouseMoveEvent,
     type KiCanvasEventMap,
@@ -47,6 +48,18 @@ export abstract class Viewer extends EventTarget {
 
     protected disposables = new Disposables();
     protected setup_finished = new Barrier();
+
+    /**
+     * When true, clicks dispatch CommentClickEvent instead of normal selection.
+     */
+    public commentModeEnabled = false;
+
+    /**
+     * Current active layer name for comments (override in subclass).
+     */
+    protected get activeLayerName(): string {
+        return "";
+    }
 
     constructor(
         public canvas: HTMLCanvasElement,
@@ -110,7 +123,9 @@ export abstract class Viewer extends EventTarget {
 
             this.disposables.add(
                 listen(this.canvas, "click", (e) => {
-                    this.on_click(this.#mouse_position);
+                    // Always call on_click - subclasses can check commentModeEnabled
+                    // to dispatch CommentClickEvent with element info
+                    this.on_click(this.#mouse_position, e);
                 }),
             );
 
@@ -163,7 +178,7 @@ export abstract class Viewer extends EventTarget {
 
     public abstract paint(): void;
 
-    protected on_document_clicked(): void {}
+    protected on_document_clicked(): void { }
 
     protected on_draw() {
         this.renderer.clear_canvas();
@@ -211,7 +226,63 @@ export abstract class Viewer extends EventTarget {
 
     abstract on_hover(pos: Vec2): void;
 
-    abstract on_click(pos: Vec2): void;
+    abstract on_click(pos: Vec2, event?: MouseEvent): void;
 
     abstract on_dblclick(pos: Vec2): void;
+
+    // ============================================================
+    // COMMENT MODE API
+    // ============================================================
+
+    /**
+     * Dispatch a CommentClickEvent with world and screen coordinates.
+     * Called when commentModeEnabled is true and user clicks.
+     */
+    protected dispatchCommentClick(e: MouseEvent): void {
+        const rect = this.canvas.getBoundingClientRect();
+        const screenX = e.clientX;
+        const screenY = e.clientY;
+
+        // Convert screen coordinates to world (board) coordinates
+        const worldPos = this.viewport.camera.screen_to_world(
+            new Vec2(e.clientX - rect.left, e.clientY - rect.top),
+        );
+
+        const context: "PCB" | "SCH" =
+            this.type === ViewerType.PCB ? "PCB" : "SCH";
+
+        this.dispatchEvent(
+            new CommentClickEvent({
+                worldX: worldPos.x,
+                worldY: worldPos.y,
+                screenX: screenX,
+                screenY: screenY,
+                layer: this.activeLayerName,
+                context: context,
+            }),
+        );
+    }
+
+    /**
+     * Convert screen coordinates to world (board) coordinates.
+     * Useful for external overlay positioning.
+     */
+    public screenToWorld(screenX: number, screenY: number): Vec2 {
+        const rect = this.canvas.getBoundingClientRect();
+        return this.viewport.camera.screen_to_world(
+            new Vec2(screenX - rect.left, screenY - rect.top),
+        );
+    }
+
+    /**
+     * Convert world (board) coordinates to screen coordinates.
+     * Useful for positioning overlays at specific board locations.
+     */
+    public worldToScreen(worldX: number, worldY: number): Vec2 {
+        const rect = this.canvas.getBoundingClientRect();
+        const screenPos = this.viewport.camera.world_to_screen(
+            new Vec2(worldX, worldY),
+        );
+        return new Vec2(screenPos.x + rect.left, screenPos.y + rect.top);
+    }
 }

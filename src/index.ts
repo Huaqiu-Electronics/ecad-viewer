@@ -16,7 +16,7 @@ import "./ecad-viewer/tab_button";
 
 import "./ecad-viewer/tab_header";
 import "./ecad-viewer/ecad_viewer";
-import "./ecad-viewer/ecad_viewer_embedded ";
+import "./ecad-viewer/ecad_viewer_embedded";
 
 import { ECadViewer } from "./ecad-viewer/ecad_viewer";
 import {
@@ -27,7 +27,7 @@ import {
 } from "./utils";
 import { KCBoardAppElement } from "./kicanvas/elements/kc-board/app";
 import { KCSchematicAppElement } from "./kicanvas/elements/kc-schematic/app";
-import { ECadViewerEmbedded } from "./ecad-viewer/ecad_viewer_embedded ";
+import { ECadViewerEmbedded } from "./ecad-viewer/ecad_viewer_embedded";
 import { html } from "./base/web-components/html";
 import { load_ecad_viewer_conf } from "./ecad-viewer/ecad_viewer_global";
 
