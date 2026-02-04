@@ -180,7 +180,10 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             if (enabled) {
                 viewer.addEventListener(CommentClickEvent.type, forwardEvent);
             } else {
-                viewer.removeEventListener(CommentClickEvent.type, forwardEvent);
+                viewer.removeEventListener(
+                    CommentClickEvent.type,
+                    forwardEvent,
+                );
             }
         }
 
@@ -190,7 +193,10 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             if (enabled) {
                 viewer.addEventListener(CommentClickEvent.type, forwardEvent);
             } else {
-                viewer.removeEventListener(CommentClickEvent.type, forwardEvent);
+                viewer.removeEventListener(
+                    CommentClickEvent.type,
+                    forwardEvent,
+                );
             }
         }
     }
@@ -225,7 +231,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         // Ensure we are on the schematic tab
         if (this.#tab_header) {
             // We can't easily programmatically click the tab header without exposing it or duplicating logic,
-            // but we can simulate the tab switch if needed. 
+            // but we can simulate the tab switch if needed.
             // Ideally ecad-viewer should expose a method to set active tab.
             // For now, let's assume the caller handles tab switching or we just switch the internal view.
         }
@@ -245,7 +251,10 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     /**
      * Get screen coordinates from world coordinates
      */
-    public getScreenLocation(x: number, y: number): { x: number; y: number } | null {
+    public getScreenLocation(
+        x: number,
+        y: number,
+    ): { x: number; y: number } | null {
         const pos = new Vec2(x, y);
 
         let viewer: any = null;
@@ -255,7 +264,8 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             viewer = this.#schematic_app.viewer;
         } else {
             // Fallback
-            viewer = (this.#board_app?.viewer || this.#schematic_app?.viewer) as any;
+            viewer = (this.#board_app?.viewer ||
+                this.#schematic_app?.viewer) as any;
         }
 
         if (viewer?.viewport?.camera) {
@@ -286,7 +296,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         });
     }
 
-    async #setup_events() { }
+    async #setup_events() {}
 
     async load_zip(file: Blob) {
         const files = await ZipUtils.unzipFile(file);
@@ -466,6 +476,10 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             sch_count: this.sch_count,
             has_bom: this.has_bom,
         });
+
+        if (window.hide_header) {
+            this.#tab_header.hidden = true;
+        }
 
         this.#tab_header.input_container = this;
         this.#tab_header.addEventListener(TabActivateEvent.type, (event) => {
