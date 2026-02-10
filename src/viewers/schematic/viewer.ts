@@ -6,7 +6,7 @@
 
 import { BBox, Vec2 } from "../../base/math";
 import { is_showing_design_block } from "../../ecad-viewer/ecad_viewer_global";
-import { Circle, Color, Polygon, Polyline, Renderer } from "../../graphics";
+import { Color, Polygon, Polyline, Renderer } from "../../graphics";
 import { Canvas2DRenderer } from "../../graphics/canvas2d";
 import { NullRenderer } from "../../graphics/null-renderer";
 import { type SchematicTheme } from "../../kicad";
@@ -327,8 +327,28 @@ export class SchematicViewer extends DocumentViewer<
                     ? (this.theme.erc_error ?? new Color(1, 0, 0))
                     : (this.theme.erc_warning ?? new Color(1, 0.6, 0));
 
-            // Draw marker circle
-            this.renderer.circle(new Circle(pin_pos, 0.5, severity_color));
+            // Draw marker polygon (KiCad's distinctive arrow-like shape)
+            // Shape coordinates from KiCad's marker_base.cpp MarkerShapeCorners
+            // Scaled to fit schematic units
+            const markerScale = 0.2;
+            const markerShapeCorners = [
+                new Vec2(0, 0),
+                new Vec2(8, 1),
+                new Vec2(4, 3),
+                new Vec2(13, 8),
+                new Vec2(9, 9),
+                new Vec2(8, 13),
+                new Vec2(3, 4),
+                new Vec2(1, 8),
+                new Vec2(0, 0),
+            ];
+            
+            // Scale and translate the marker shape to pin position
+            const markerPoints = markerShapeCorners.map((corner) =>
+                pin_pos.add(corner.mul(markerScale))
+            );
+            
+            this.renderer.polygon(new Polygon(markerPoints, severity_color));
 
             if (pin_err.message) {
                 // Draw text
