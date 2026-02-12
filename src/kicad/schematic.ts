@@ -12,7 +12,6 @@ import type { IndexAble } from "../base/index_able";
 import * as log from "../base/log";
 import { BBox, Arc as MathArc, Matrix3, Vec2 } from "../base/math";
 import { html } from "../base/web-components";
-import type { Project } from "../kicanvas/project";
 import {
     get_symbol_body_and_pins_bbox,
     get_symbol_transform,
