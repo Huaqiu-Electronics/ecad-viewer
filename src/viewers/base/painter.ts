@@ -124,6 +124,9 @@ export class DocumentPainter {
     }
 
     painter_for(item: any): ItemPainter | undefined {
+        if (!item) {
+            return;
+        }
         return this.painters.get(item.constructor);
     }
 

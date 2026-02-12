@@ -618,8 +618,6 @@ export class Image {
     }
 }
 
-
-
 export class Text {
     private = false;
     text: string;
@@ -796,7 +794,7 @@ export class HierarchicalLabel extends Label {
     }
 }
 
-export class HierarchicalSheetPin extends HierarchicalLabel { }
+export class HierarchicalSheetPin extends HierarchicalLabel {}
 
 export class LibSymbols {
     *getChildren() {
@@ -841,9 +839,9 @@ export class LibSymbol {
         offset: number;
         hide: boolean;
     } = {
-            offset: DefaultValues.pin_name_offset,
-            hide: false,
-        };
+        offset: DefaultValues.pin_name_offset,
+        hide: false,
+    };
     in_bom = false;
     on_board = false;
     embedded_fonts = false;
@@ -1406,7 +1404,7 @@ export class SchematicSymbol {
     }
 
     get unit_suffix() {
-        if (!this.unit || this.lib_symbol.unit_count <= 1) {
+        if (!this.unit || this.lib_symbol?.unit_count <= 1) {
             return "";
         }
 
@@ -1482,7 +1480,7 @@ export class SchematicSymbolInstance {
     unit?: number;
     footprint?: string;
 
-    constructor() { }
+    constructor() {}
 }
 
 export class PinInstance implements HighlightAble, IndexAble {
@@ -1575,8 +1573,8 @@ export class LibSymbolPin implements CrossHightAble {
                 return new BBox(
                     this.definition.at.position.x - defaultLen / 2,
                     this.definition.at.position.y -
-                    this.definition.length +
-                    defaultLen,
+                        this.definition.length +
+                        defaultLen,
                     defaultLen,
                     this.definition.length,
                 );
