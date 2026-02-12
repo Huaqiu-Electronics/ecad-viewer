@@ -37,7 +37,6 @@ export type Drawing =
 
 export class KicadPCB implements BoardNode {
     typeId: BoardNodeType = "KicadPCB";
-    project?: Project;
     version: number;
     generator?: string;
     general?: { thickness: number; legacy_teardrops?: boolean };

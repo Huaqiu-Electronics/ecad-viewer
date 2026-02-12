@@ -89,8 +89,8 @@ export class Project extends EventTarget implements IDisposable {
             (this._pcb.length
                 ? this._pcb[0]?.filename
                 : this._sch.length
-                    ? this._root_schematic_page?.filename
-                    : "") ?? "";
+                  ? this._root_schematic_page?.filename
+                  : "") ?? "";
 
         const fns = fn.split(".");
 
@@ -269,7 +269,6 @@ export class Project extends EventTarget implements IDisposable {
         }
         const filename = blob.filename;
         const doc = new document_class(filename, file_content);
-        doc.project = this;
         this._files_by_name.set(filename, doc);
         if (doc instanceof KicadPCB) this._pcb.push(doc);
         else {
@@ -540,7 +539,7 @@ export class ProjectPage {
         public sheet_path: string,
         public name?: string,
         public page?: string,
-    ) { }
+    ) {}
 
     /**
      * A unique identifier for this page within the project,

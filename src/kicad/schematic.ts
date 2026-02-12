@@ -66,7 +66,6 @@ export const DefaultValues = {
 };
 
 export class KicadSch {
-    project?: Project;
     version: number;
     generator?: string;
     uuid: string;
