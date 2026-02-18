@@ -6,6 +6,44 @@ export interface I_TitleBlock {
     comment: Record<string, string>;
 }
 
+export type I_Vec2 = { x: number; y: number };
+export type I_Color = { r: number; g: number; b: number; a: number };
+
+export interface I_Stroke {
+    width: number;
+    type: "default" | "solid" | "dash" | "dot" | "dash_dot" | "dash_dot_dot";
+    color?: I_Color;
+}
+
+export interface I_Font {
+    face?: string;
+    size?: I_Vec2;
+    thickness?: number;
+    bold?: boolean;
+    italic?: boolean;
+    line_spacing?: number;
+    color?: I_Color;
+}
+
+export interface I_Justify {
+    horiz?: "left" | "center" | "right";
+    vert?: "top" | "center" | "bottom";
+    mirror?: boolean;
+}
+
+export interface I_Effects {
+    font: I_Font;
+    justify: I_Justify;
+    hide: boolean;
+    href?: string;
+}
+
+export interface I_At {
+    position?: I_Vec2;
+    rotation?: number;
+    unlocked?: boolean;
+}
+
 export const PaperSize = {
     User: [431.8, 279.4] as const,
     A0: [1189, 841] as const,
@@ -26,7 +64,7 @@ export const PaperSize = {
 
 export type PaperSizeName = keyof typeof PaperSize;
 
-export interface Paper {
+export interface I_Paper {
     size: PaperSizeName;
     width?: number;
     height?: number;

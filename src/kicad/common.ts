@@ -6,7 +6,15 @@
 
 import { Color } from "../base/color";
 import { Vec2 } from "../base/math";
-import { P, T, parse_expr, type Parseable } from "./parser";
+import type {
+    I_At,
+    I_Effects,
+    I_Font,
+    I_Justify,
+    I_Paper,
+    I_Stroke,
+    I_TitleBlock,
+} from "../parser/proto/common";
 
 export function unescape_string(str: string): string {
     const escape_vars = {
@@ -68,24 +76,13 @@ export class At {
     rotation = 0;
     unlocked = false;
 
-    constructor(expr?: Parseable) {
+    constructor(expr?: I_At) {
         if (expr) {
-            const parsed = parse_expr(
-                expr,
-                P.start("at"),
-                P.positional("x", T.number),
-                P.positional("y", T.number),
-                P.positional("rotation", T.number),
-                P.atom("unlocked"),
-            ) as {
-                x: number;
-                y: number;
-                rotation?: number;
-                unlocked?: boolean;
-            };
-            this.position.set(parsed.x, parsed.y);
-            this.rotation = parsed.rotation ?? this.rotation;
-            this.unlocked = parsed.unlocked ?? this.unlocked;
+            if (expr.position) {
+                this.position.set(expr.position.x ?? 0, expr.position.y ?? 0);
+            }
+            this.rotation = expr.rotation ?? this.rotation;
+            this.unlocked = expr.unlocked ?? this.unlocked;
         }
     }
 
@@ -124,18 +121,8 @@ export class Paper {
     height?: number;
     portrait = false;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("paper"),
-                P.atom("size", Object.keys(PaperSize)),
-                P.positional("width", T.number),
-                P.positional("height", T.number),
-                P.atom("portrait"),
-            ),
-        );
+    constructor(expr: I_Paper) {
+        Object.assign(this, expr);
 
         const paper_size = PaperSize[this.size];
 
@@ -160,36 +147,9 @@ export class TitleBlock {
     company = "";
     comment: Record<string, string> = {};
 
-    constructor(expr?: Parseable) {
-        /*
-        (title_block
-            (title "Starfish")
-            (date "2022-12-18")
-            (rev "v2")
-            (company "Winterbloom")
-            (comment 1 "Alethea Flowers")
-            (comment 2 "CERN-OHL-S V2")
-            (comment 3 "starfish.wntr.dev")
-        )
-        */
+    constructor(expr?: I_TitleBlock) {
         if (expr) {
-            Object.assign(
-                this,
-                parse_expr(
-                    expr,
-                    P.start("title_block"),
-                    P.pair("title", T.string),
-                    P.pair("date", T.string),
-                    P.pair("rev", T.string),
-                    P.pair("company", T.string),
-                    P.expr("comment", (obj, name, e) => {
-                        const ep = e as [string, string, string];
-                        const record: Record<string, any> = obj[name] ?? {};
-                        record[ep[1]] = ep[2];
-                        return record;
-                    }),
-                ),
-            );
+            Object.assign(this, expr);
         }
     }
 
@@ -217,19 +177,11 @@ export class Effects {
     justify = new Justify();
     hide = false;
 
-    constructor(expr?: Parseable) {
+    constructor(expr?: I_Effects) {
         if (expr) {
-            Object.assign(
-                this,
-                parse_expr(
-                    expr,
-                    P.start("effects"),
-                    P.item("font", Font),
-                    P.item("justify", Justify),
-                    P.atom("hide"),
-                    P.color(),
-                ),
-            );
+            if (expr.font) this.font = new Font(expr.font);
+            if (expr.justify) this.justify = new Justify(expr.justify);
+            this.hide = expr.hide ?? false;
         }
     }
 
@@ -250,26 +202,23 @@ export class Font {
     italic = false;
     color: Color = Color.transparent_black;
 
-    constructor(expr?: Parseable) {
+    constructor(expr?: I_Font) {
         if (expr) {
-            Object.assign(
-                this,
-                parse_expr(
-                    expr,
-                    P.start("font"),
-                    P.pair("face", T.string),
-                    P.vec2("size"),
-                    P.pair("thickness", T.number),
-                    P.atom("bold"),
-                    P.atom("italic"),
-                    P.pair("line_spacing", T.number),
-                    P.color(),
-                ),
-            );
-
-            // Note: KiCAD saves height as the first number and width as the
-            // second. I have no fucking idea why they did that.
-            [this.size.x, this.size.y] = [this.size.y, this.size.x];
+            this.face = expr.face;
+            if (expr.size) {
+                this.size.set(expr.size.x ?? 1.27, expr.size.y ?? 1.27);
+            }
+            this.thickness = expr.thickness ?? 0;
+            this.bold = expr.bold ?? false;
+            this.italic = expr.italic ?? false;
+            if (expr.color) {
+                this.color = new Color(
+                    expr.color.r,
+                    expr.color.g,
+                    expr.color.b,
+                    expr.color.a,
+                );
+            }
         }
     }
 
@@ -280,6 +229,7 @@ export class Font {
         f.thickness = this.thickness;
         f.bold = this.bold;
         f.italic = this.italic;
+        f.color = this.color.copy();
         return f;
     }
 }
@@ -289,18 +239,11 @@ export class Justify {
     vertical: "top" | "center" | "bottom" = "center";
     mirror = false;
 
-    constructor(expr?: Parseable) {
+    constructor(expr?: I_Justify) {
         if (expr) {
-            Object.assign(
-                this,
-                parse_expr(
-                    expr,
-                    P.start("justify"),
-                    P.atom("horizontal", ["left", "right"]),
-                    P.atom("vertical", ["top", "bottom"]),
-                    P.atom("mirror"),
-                ),
-            );
+            this.horizontal = expr.horiz ?? "center";
+            this.vertical = expr.vert ?? "center";
+            this.mirror = expr.mirror ?? false;
         }
     }
 
@@ -319,17 +262,18 @@ export class Stroke {
         "default";
     color?: Color;
 
-    constructor(expr: Parseable) {
-        /* (stroke (width 0.508) (type default) (color 0 0 0 0)) */
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("stroke"),
-                P.pair("width", T.number),
-                P.pair("type", T.string),
-                P.color(),
-            ),
-        );
+    constructor(expr: I_Stroke) {
+        if (expr) {
+            this.width = expr.width;
+            this.type = expr.type ?? "default";
+            if (expr.color) {
+                this.color = new Color(
+                    expr.color.r,
+                    expr.color.g,
+                    expr.color.b,
+                    expr.color.a,
+                );
+            }
+        }
     }
 }

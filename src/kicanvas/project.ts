@@ -9,8 +9,10 @@ import { Barrier } from "../base/async";
 import { type IDisposable } from "../base/disposable";
 import { first, length, map } from "../base/iterator";
 import { Logger } from "../base/log";
-import { type Constructor } from "../base/types";
+
 import { KicadPCB, KicadSch, ProjectSettings } from "../kicad";
+import { BoardParser } from "../parser/board_parser";
+import { SchematicParser } from "../parser/schematic_parser";
 import {
     BoardBomItemVisitor,
     type DesignatorRef,
@@ -129,9 +131,9 @@ export class Project extends EventTarget implements IDisposable {
         for (const blob of sources.blobs) {
             if (blob.filename.startsWith(".")) continue;
             if (blob.filename.endsWith(".kicad_pcb")) {
-                promises.push(this._load_blob(KicadPCB, blob));
+                promises.push(this._load_blob(blob));
             } else if (blob.filename.endsWith(".kicad_sch")) {
-                promises.push(this._load_blob(KicadSch, blob));
+                promises.push(this._load_blob(blob));
             } else if (blob.filename.endsWith(".kicad_pro")) {
                 this._project_name = blob.filename.slice(
                     0,
@@ -222,10 +224,10 @@ export class Project extends EventTarget implements IDisposable {
         log.info(`Loading file ${filename}`);
 
         if (filename.endsWith(".kicad_sch")) {
-            return await this._load_doc(KicadSch, filename);
+            return await this._load_doc(filename);
         }
         if (filename.endsWith(".kicad_pcb")) {
-            return await this._load_doc(KicadPCB, filename);
+            return await this._load_doc(filename);
         }
         if (filename.endsWith(".kicad_pro")) {
             return this._load_meta(filename);
@@ -234,25 +236,19 @@ export class Project extends EventTarget implements IDisposable {
         log.warn(`Couldn't load ${filename}: unknown file type`);
     }
 
-    async _load_doc(
-        document_class: Constructor<KicadPCB | KicadSch>,
-        filename: string,
-    ) {
+    async _load_doc(filename: string) {
         if (this._files_by_name.has(filename)) {
             return this._files_by_name.get(filename);
         }
 
         const text = await this.get_file_text(filename);
-        return this._load_blob(document_class, {
+        return this._load_blob({
             filename,
             content: text!,
         });
     }
 
-    async _load_blob(
-        document_class: Constructor<KicadPCB | KicadSch>,
-        blob: EcadBlob,
-    ) {
+    async _load_blob(blob: EcadBlob) {
         const file_content = blob.content;
         // Check if file content contains CJK characters
         if (
@@ -268,7 +264,15 @@ export class Project extends EventTarget implements IDisposable {
             return this._files_by_name.get(blob.filename);
         }
         const filename = blob.filename;
-        const doc = new document_class(filename, file_content);
+        let doc: KicadPCB | KicadSch;
+        if (filename.endsWith(".kicad_pcb")) {
+            const pod = new BoardParser().parse(file_content);
+            doc = new KicadPCB(filename, pod);
+        } else {
+            const pod = new SchematicParser().parse(file_content);
+            doc = new KicadSch(filename, pod);
+        }
+
         this._files_by_name.set(filename, doc);
         if (doc instanceof KicadPCB) this._pcb.push(doc);
         else {

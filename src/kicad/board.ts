@@ -7,7 +7,6 @@
 import type { CrossHightAble } from "../base/cross_highlight_able";
 import { Angle, BBox, Arc as MathArc, Matrix3, Vec2 } from "../base/math";
 import { Color } from "../graphics";
-import type { Project } from "../kicanvas/project";
 import { LayerNames } from "../viewers/board/layers";
 import {
     At,
@@ -17,8 +16,7 @@ import {
     TitleBlock,
     expand_text_vars,
 } from "./common";
-import { P, T, parse_expr, parse_expr_partial, type Parseable } from "./parser";
-import type { List } from "./tokenizer";
+import * as B from "../parser/proto/board";
 
 import type { BoardNodeType } from "./board_node_type";
 export interface BoardNode {
@@ -34,6 +32,18 @@ export type Drawing =
     | GrRect
     | GrText
     | Dimension;
+
+const DEFAULT_LAYERS: Partial<B.I_Layer>[] = [
+    { canonical_name: LayerNames.f_cu, type: "signal" },
+    { canonical_name: LayerNames.b_cu, type: "signal" },
+    { canonical_name: LayerNames.f_silks, type: "user" },
+    { canonical_name: LayerNames.b_silks, type: "user" },
+    { canonical_name: LayerNames.f_mask, type: "user" },
+    { canonical_name: LayerNames.b_mask, type: "user" },
+    { canonical_name: LayerNames.edge_cuts, type: "user" },
+    { canonical_name: LayerNames.f_fab, type: "user" },
+    { canonical_name: LayerNames.b_fab, type: "user" },
+];
 
 export class KicadPCB implements BoardNode {
     typeId: BoardNodeType = "KicadPCB";
@@ -71,51 +81,110 @@ export class KicadPCB implements BoardNode {
 
     constructor(
         public filename: string,
-        expr: Parseable,
+        data: B.I_KicadPCB,
     ) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("kicad_pcb"),
-                P.pair("version", T.number),
-                P.pair("generator", T.string),
-                P.object(
-                    "general",
-                    {},
-                    P.pair("thickness", T.number),
-                    P.pair("legacy_teardrops", T.boolean),
-                ),
-                P.item("paper", Paper),
-                P.item("title_block", TitleBlock),
-                P.list("layers", T.item(Layer)),
-                P.item("setup", Setup),
-                P.mapped_collection(
-                    "properties",
-                    "property",
-                    (p: Property) => p.name,
-                    T.item(Property, this),
-                ),
-                P.collection("nets", "net", T.item(Net)),
-                P.collection(
-                    "footprints",
-                    "footprint",
-                    T.item(Footprint, this),
-                ),
-                P.collection("zones", "zone", T.item(Zone)),
-                P.collection("segments", "segment", T.item(LineSegment)),
-                P.collection("segments", "arc", T.item(ArcSegment)),
-                P.collection("vias", "via", T.item(Via)),
-                P.collection("drawings", "dimension", T.item(Dimension, this)),
-                P.collection("drawings", "gr_line", T.item(GrLine)),
-                P.collection("drawings", "gr_circle", T.item(GrCircle)),
-                P.collection("drawings", "gr_arc", T.item(GrArc)),
-                P.collection("drawings", "gr_poly", T.item(GrPoly)),
-                P.collection("drawings", "gr_rect", T.item(GrRect)),
-                P.collection("drawings", "gr_text", T.item(GrText, this)),
-                P.collection("groups", "group", T.item(Group)),
-            ),
+        this.version = data.version;
+        this.generator = data.generator;
+        this.general = data.general;
+        this.paper = new Paper(data.paper!);
+        this.title_block = new TitleBlock(data.title_block);
+        this.setup = data.setup ? new Setup(data.setup) : undefined;
+
+        if (data.properties) {
+            for (const [k, v] of Object.entries(data.properties)) {
+                this.properties.set(k, new Property(v));
+            }
+        }
+
+        let layers_data = data.layers as any;
+        if (
+            Array.isArray(layers_data) &&
+            layers_data.length === 1 &&
+            Array.isArray(layers_data[0])
+        ) {
+            layers_data = layers_data[0];
+        }
+
+        this.layers = (layers_data || DEFAULT_LAYERS).map(
+            (l: any, i: number) => {
+                return new Layer({
+                    ordinal: l.ordinal ?? i,
+                    canonical_name: l.canonical_name!,
+                    type: l.type as any,
+                    ...l,
+                });
+            },
         );
+        this.nets = data.nets?.map((n) => new Net(n)) ?? [];
+        this.footprints =
+            data.footprints?.map((f) => new Footprint(f, this)) ?? [];
+        this.zones = data.zones?.map((z) => new Zone(z)) ?? [];
+
+        this.segments = [];
+        if (data.segments) {
+            for (const s of data.segments) {
+                if ("start" in s && "mid" in s) {
+                    this.segments.push(new ArcSegment(s as B.I_ArcSegment));
+                } else {
+                    this.segments.push(new LineSegment(s as B.I_LineSegment));
+                }
+            }
+        }
+
+        this.vias = data.vias?.map((v) => new Via(v)) ?? [];
+
+        this.drawings = [];
+        if (data.drawings) {
+            for (const d of data.drawings) {
+                // Check types based on properties usually, or if POD has type field (which checking proto, it often doesn't for shapes).
+                // However, the parser for drawings separates them into collections in KicadPCB POD logic?
+                // Wait, KicadPCB POD has "drawings: (I_Line | I_Circle | ... )[]".
+                // Unlike S-expr which has tags.
+                // I need to distinguish them.
+                // I_Line has start, end.
+                // I_Circle has center, end.
+                // I_Arc has start, mid, end.
+                // I_Poly has pts.
+                // I_Rect has start, end.
+                // I_GrText has text, at.
+                // I_Dimension has type, layer, ...
+                if ("format" in d) {
+                    this.drawings.push(new Dimension(d as B.I_Dimension, this));
+                } else if ("text" in d) {
+                    this.drawings.push(new GrText(d as B.I_GrText, this));
+                } else if ("center" in d) {
+                    this.drawings.push(new GrCircle(d as B.I_Circle));
+                } else if ("mid" in d) {
+                    this.drawings.push(new GrArc(d as B.I_Arc));
+                } else if ("pts" in d) {
+                    this.drawings.push(new GrPoly(d as B.I_Poly));
+                } else if ("start" in d && "end" in d) {
+                    // Line or Rect.
+                    // Rect usually has 'width' same as Line but semantically different.
+                    // Wait, parsers distinguish them.
+                    // How to distinguish I_Line from I_Rect in POD?
+                    // I_Rect and I_Line both have start, end, width, stroke, layer...
+                    // The current parser separates them into different lists?
+                    // No, B.I_KicadPCB has `drawings: (I_Line | ... )[]`.
+                    // The `BoardParser` pushes them all to `drawings`.
+                    // `BoardParser` keeps the type info? No, it just returns the object.
+                    // S-expr has keys like (gr_line ...).
+                    // The `BoardParser` should ideally preserve the type or I should check properties.
+                    // But I_Line and I_Rect are identical in structure in POD?
+                    // I_Rect: start, end, width, fill, stroke.
+                    // I_Line: start, end, width, stroke.
+                    // So I_Rect has 'fill'. I_Line does not.
+                    if ("fill" in d) {
+                        this.drawings.push(new GrRect(d as B.I_Rect));
+                    } else {
+                        this.drawings.push(new GrLine(d as B.I_Line));
+                    }
+                }
+            }
+        }
+
+        this.groups = data.groups?.map((g) => new Group(g)) ?? [];
+
         for (const net of this.nets) this.#net_names.set(net.number, net.name);
     }
 
@@ -140,7 +209,17 @@ export class KicadPCB implements BoardNode {
     }
 
     get bbox() {
-        return this.edge_cuts_bbox;
+        const bbox = this.edge_cuts_bbox;
+        if (bbox.valid) {
+            return bbox;
+        }
+
+        // Fallback: combine all item bboxes
+        const bboxes = [];
+        for (const item of this.items()) {
+            bboxes.push(item.bbox);
+        }
+        return BBox.combine(bboxes);
     }
 
     get edge_cuts_bbox(): BBox {
@@ -168,16 +247,9 @@ export class Property {
     name: string;
     value: string;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("property"),
-                P.positional("name", T.string),
-                P.positional("value", T.string),
-            ),
-        );
+    constructor(data: { name: string; value: string }) {
+        this.name = data.name;
+        this.value = data.value;
     }
 }
 
@@ -202,31 +274,15 @@ export class LineSegment implements BoardNode {
         );
     }
 
-    constructor(expr: Parseable) {
-        /*
-        (segment
-            (start 119.1 82.943)
-            (end 120.0075 82.943)
-            (width 0.5)
-            (layer "F.Cu")
-            (net 1)
-            (tstamp 0766ea9a-c430-4922-b68d-6ad9f33e6672))
-        */
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("segment"),
-                P.vec2("start"),
-                P.vec2("end"),
-                P.pair("width", T.number),
-                P.pair("layer", T.string),
-                P.pair("net", T.number),
-                P.atom("locked"),
-                P.pair("uuid", T.string),
-                P.pair("tstamp", T.string),
-            ),
-        );
+    constructor(data: B.I_LineSegment) {
+        this.start = new Vec2(data.start.x, data.start.y);
+        this.end = new Vec2(data.end.x, data.end.y);
+        this.width = data.width;
+        this.layer = data.layer;
+        this.net = data.net;
+        this.locked = data.locked;
+        this.tstamp = data.tstamp ?? "";
+        this.uuid = data.uuid;
     }
 }
 
@@ -241,33 +297,25 @@ export class ArcSegment implements BoardNode {
     locked = false;
     tstamp: string;
 
-    constructor(expr: Parseable) {
-        /*
-        (arc
-            (start 115.25 59.05)
-            (mid 115.301256 58.926256)
-            (end 115.425 58.875)
-            (width 0.3)
-            (layer "F.Cu")
-            (net 1)
-            (tstamp 1c993ada-29b1-41b2-8ac1-a7f99ad99281))
-        */
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("arc"),
-                P.vec2("start"),
-                P.vec2("mid"),
-                P.vec2("end"),
-                P.pair("width", T.number),
-                P.pair("layer", T.string),
-                P.pair("net", T.number),
-                P.pair("uuid", T.string),
-                P.atom("locked"),
-                P.pair("tstamp", T.string),
-            ),
+    constructor(data: B.I_ArcSegment) {
+        this.start = new Vec2(data.start.x, data.start.y);
+        this.mid = new Vec2(data.mid.x, data.mid.y);
+        this.end = new Vec2(data.end.x, data.end.y);
+        this.width = data.width;
+        this.layer = data.layer;
+        this.net = data.net;
+        this.locked = data.locked;
+        this.tstamp = data.tstamp ?? "";
+    }
+
+    get bbox() {
+        const arc = MathArc.from_three_points(
+            this.start,
+            this.mid,
+            this.end,
+            this.width,
         );
+        return arc.bbox;
     }
 }
 
@@ -295,26 +343,19 @@ export class Via implements BoardNode {
         ).move(-this.size / 2, -this.size / 2);
     }
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("via"),
-                P.atom("type", ["blind", "micro", "through-hole"]),
-                P.item("at", At),
-                P.pair("size", T.number),
-                P.pair("drill", T.number),
-                P.pair("uuid", T.string),
-                P.list("layers", T.string),
-                P.pair("net", T.number),
-                P.atom("locked"),
-                P.atom("free"),
-                P.atom("remove_unused_layers"),
-                P.atom("keep_end_layers"),
-                P.pair("tstamp", T.string),
-            ),
-        );
+    constructor(data: B.I_Via) {
+        this.type = data.type;
+        this.at = new At(data.at);
+        this.size = data.size;
+        this.drill = data.drill;
+        this.layers = data.layers;
+        this.remove_unused_layers = data.remove_unused_layers;
+        this.keep_end_layers = data.keep_end_layers;
+        this.locked = data.locked;
+        this.free = data.free;
+        this.net = data.net;
+        this.tstamp = data.tstamp ?? "";
+        this.uuid = data.uuid;
     }
 }
 
@@ -334,8 +375,8 @@ export class Zone implements BoardNode {
     };
     min_thickness: number;
     filled_areas_thickness: boolean;
-    keepout: ZoneKeepout;
-    fill: ZoneFill;
+    keepout?: ZoneKeepout;
+    fill?: ZoneFill;
     polygons: Poly[];
     filled_polygons?: FilledPolygon[];
     tstamp: string;
@@ -362,48 +403,27 @@ export class Zone implements BoardNode {
     }
 
     constructor(
-        expr: Parseable,
+        data: B.I_Zone,
         public parent?: KicadPCB | Footprint,
     ) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("zone"),
-                P.atom("locked"),
-                P.pair("net", T.number),
-                P.pair("net_name", T.string),
-                P.pair("net_name", T.string),
-                P.pair("name", T.string),
-                P.pair("layer", T.string),
-                P.pair("uuid", T.string),
-                P.list("layers", T.string),
-                P.object(
-                    "hatch",
-                    {},
-                    P.positional("style", T.string),
-                    P.positional("pitch", T.number),
-                ),
-                P.pair("priority", T.number),
-                P.object(
-                    "connect_pads",
-                    {},
-                    P.positional("type", T.string),
-                    P.pair("clearance", T.number),
-                ),
-                P.pair("min_thickness", T.number),
-                P.pair("filled_areas_thickness", T.boolean),
-                P.item("keepout", ZoneKeepout),
-                P.item("fill", ZoneFill),
-                P.collection("polygons", "polygon", T.item(Poly)),
-                P.collection(
-                    "filled_polygons",
-                    "filled_polygon",
-                    T.item(FilledPolygon),
-                ),
-                P.pair("tstamp", T.string),
-            ),
-        );
+        this.locked = data.locked;
+        this.net = data.net;
+        this.net_name = data.net_name;
+        this.name = data.name;
+        this.layer = data.layer;
+        this.layers = data.layers;
+        this.hatch = data.hatch;
+        this.priority = data.priority;
+        this.connect_pads = data.connect_pads;
+        this.min_thickness = data.min_thickness;
+        this.filled_areas_thickness = data.filled_areas_thickness;
+        this.keepout = data.keepout ? new ZoneKeepout(data.keepout) : undefined;
+        this.fill = data.fill ? new ZoneFill(data.fill) : undefined;
+        this.polygons = data.polygons?.map((p) => new Poly(p)) ?? [];
+        this.filled_polygons =
+            data.filled_polygons?.map((p) => new FilledPolygon(p)) ?? undefined;
+        this.tstamp = data.tstamp ?? "";
+        this.uuid = data.uuid;
     }
 }
 
@@ -416,20 +436,21 @@ export class ZoneKeepout implements BoardNode {
     footprints: "allowed" | "not_allowed";
     uuid?: string;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("keepout"),
-                P.pair("tracks", T.string),
-                P.pair("vias", T.string),
-                P.pair("pads", T.string),
-                P.pair("uuid", T.string),
-                P.pair("copperpour", T.string),
-                P.pair("footprints", T.string),
-            ),
-        );
+    constructor(data?: B.I_ZoneKeepout) {
+        if (data) {
+            this.tracks = data.tracks ?? "not_allowed";
+            this.vias = data.vias ?? "not_allowed";
+            this.pads = data.pads ?? "not_allowed";
+            this.copperpour = data.copperpour ?? "not_allowed";
+            this.footprints = data.footprints ?? "not_allowed";
+            this.uuid = data.uuid;
+        } else {
+            this.tracks = "not_allowed";
+            this.vias = "not_allowed";
+            this.pads = "not_allowed";
+            this.copperpour = "not_allowed";
+            this.footprints = "not_allowed";
+        }
     }
 }
 
@@ -437,55 +458,48 @@ export class ZoneFill implements BoardNode {
     typeId: BoardNodeType = "ZoneFill";
     fill = false;
     mode: "solid" | "hatch" = "solid";
-    thermal_gap: number;
-    thermal_bridge_width: number;
+    thermal_gap = 0.508;
+    thermal_bridge_width = 0.508;
     smoothing: {
         style: "none" | "chamfer" | "fillet";
         radius: number;
-    };
-    radius: number;
-    island_removal_mode: 0 | 1 | 2;
-    island_area_min: number;
-    hatch_thickness: number;
-    hatch_gap: number;
-    hatch_orientation: number;
-    hatch_smoothing_level: 0 | 1 | 2 | 3;
-    hatch_smoothing_value: number;
-    hatch_border_algorithm: "hatch_thickness" | "min_thickness";
-    hatch_min_hole_area: number;
+    } = { style: "none", radius: 0 };
+    radius = 0;
+    island_removal_mode: 0 | 1 | 2 = 0;
+    island_area_min = 0;
+    hatch_thickness = 0.1;
+    hatch_gap = 0.254;
+    hatch_orientation = 0;
+    hatch_smoothing_level: 0 | 1 | 2 | 3 = 0;
+    hatch_smoothing_value = 0;
+    hatch_border_algorithm: "hatch_thickness" | "min_thickness" =
+        "hatch_thickness";
+    hatch_min_hole_area = 0;
     uuid?: string;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("fill"),
-                P.positional("fill", T.boolean),
-                P.pair("mode", T.string),
-                P.pair("thermal_gap", T.number),
-                P.pair("thermal_bridge_width", T.number),
-                P.expr(
-                    "smoothing",
-                    T.object(
-                        {},
-                        P.positional("style", T.string),
-                        P.pair("radius", T.number),
-                    ),
-                ),
-                P.pair("radius", T.number),
-                P.pair("island_removal_mode", T.number),
-                P.pair("island_area_min", T.number),
-                P.pair("hatch_thickness", T.number),
-                P.pair("hatch_gap", T.number),
-                P.pair("hatch_orientation", T.number),
-                P.pair("hatch_smoothing_level", T.number),
-                P.pair("hatch_smoothing_value", T.number),
-                P.pair("hatch_border_algorithm", T.string),
-                P.pair("uuid", T.string),
-                P.pair("hatch_min_hole_area", T.number),
-            ),
-        );
+    constructor(data?: B.I_ZoneFill) {
+        if (data) {
+            this.fill = data.fill ?? false;
+            this.mode = data.mode ?? "solid";
+            this.thermal_gap = data.thermal_gap ?? 0.508;
+            this.thermal_bridge_width = data.thermal_bridge_width ?? 0.508;
+            this.smoothing = {
+                style: data.smoothing?.style ?? "none",
+                radius: data.smoothing?.radius ?? 0,
+            };
+            this.radius = data.radius ?? 0;
+            this.island_removal_mode = data.island_removal_mode ?? 0;
+            this.island_area_min = data.island_area_min ?? 0;
+            this.hatch_thickness = data.hatch_thickness ?? 0.1;
+            this.hatch_gap = data.hatch_gap ?? 0.254;
+            this.hatch_orientation = data.hatch_orientation ?? 0;
+            this.hatch_smoothing_level = data.hatch_smoothing_level ?? 0;
+            this.hatch_smoothing_value = data.hatch_smoothing_value ?? 0;
+            this.hatch_border_algorithm =
+                data.hatch_border_algorithm ?? "hatch_thickness";
+            this.hatch_min_hole_area = data.hatch_min_hole_area ?? 0;
+            this.uuid = data.uuid;
+        }
     }
 }
 
@@ -497,19 +511,12 @@ export class Layer implements BoardNode {
     user_name?: string;
     uuid?: string;
 
-    constructor(expr?: Parseable) {
-        if (expr)
-            Object.assign(
-                this,
-                parse_expr(
-                    expr,
-                    P.positional("ordinal", T.number),
-                    P.positional("canonical_name", T.string),
-                    P.positional("type", T.string),
-                    P.pair("uuid", T.string),
-                    P.positional("user_name", T.string),
-                ),
-            );
+    constructor(data: B.I_Layer) {
+        this.ordinal = data.ordinal;
+        this.canonical_name = data.canonical_name;
+        this.type = data.type;
+        this.user_name = data.user_name;
+        this.uuid = data.uuid;
     }
 }
 
@@ -527,24 +534,24 @@ export class Setup implements BoardNode {
     uuid?: string;
     allow_soldermask_bridges_in_footprints?: boolean;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("setup"),
-                P.pair("pad_to_mask_clearance", T.number),
-                P.pair("solder_mask_min_width", T.number),
-                P.pair("pad_to_paste_clearance", T.number),
-                P.pair("pad_to_paste_clearance_ratio", T.number),
-                P.vec2("aux_axis_origin"),
-                P.vec2("grid_origin"),
-                P.pair("uuid", T.string),
-                P.pair("allow_soldermask_bridges_in_footprints", T.boolean),
-                P.item("pcbplotparams", PCBPlotParams),
-                P.item("stackup", Stackup),
-            ),
+    constructor(data: B.I_Setup) {
+        this.pad_to_mask_clearance = data.pad_to_mask_clearance;
+        this.solder_mask_min_width = data.solder_mask_min_width;
+        this.pad_to_paste_clearance = data.pad_to_paste_clearance;
+        this.pad_to_paste_clearance_ratio = data.pad_to_paste_clearance_ratio;
+        this.aux_axis_origin = new Vec2(
+            data.aux_axis_origin?.x ?? 0,
+            data.aux_axis_origin?.y ?? 0,
         );
+        this.grid_origin = new Vec2(
+            data.grid_origin?.x ?? 0,
+            data.grid_origin?.y ?? 0,
+        );
+        this.uuid = data.uuid;
+        this.allow_soldermask_bridges_in_footprints =
+            data.allow_soldermask_bridges_in_footprints;
+        this.pcbplotparams = new PCBPlotParams(data.pcbplotparams);
+        this.stackup = new Stackup(data.stackup);
     }
 }
 
@@ -590,53 +597,8 @@ export class PCBPlotParams implements BoardNode {
     plotfptext = false;
     uuid?: string;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("pcbplotparams"),
-                P.pair("layerselection", T.number),
-                P.pair("disableapertmacros", T.boolean),
-                P.pair("usegerberextensions", T.boolean),
-                P.pair("usegerberattributes", T.boolean),
-                P.pair("usegerberadvancedattributes", T.boolean),
-                P.pair("creategerberjobfile", T.boolean),
-                P.pair("gerberprecision", T.number),
-                P.pair("svguseinch", T.boolean),
-                P.pair("pdf_front_fp_property_popups", T.boolean),
-                P.pair("pdf_back_fp_property_popups", T.boolean),
-                P.pair("plotfptext", T.boolean),
-                P.pair("svgprecision", T.number),
-                P.pair("excludeedgelayer", T.boolean),
-                P.pair("plotframeref", T.boolean),
-                P.pair("viasonmask", T.boolean),
-                P.pair("mode", T.number),
-                P.pair("useauxorigin", T.boolean),
-                P.pair("hpglpennumber", T.number),
-                P.pair("hpglpenspeed", T.number),
-                P.pair("hpglpendiameter", T.number),
-                P.pair("dxfpolygonmode", T.boolean),
-                P.pair("dxfimperialunits", T.boolean),
-                P.pair("dxfusepcbnewfont", T.boolean),
-                P.pair("psnegative", T.boolean),
-                P.pair("psa4output", T.boolean),
-                P.pair("plotreference", T.boolean),
-                P.pair("plotvalue", T.boolean),
-                P.pair("uuid", T.string),
-                P.pair("plotinvisibletext", T.boolean),
-                P.pair("sketchpadsonfab", T.boolean),
-                P.pair("subtractmaskfromsilk", T.boolean),
-                P.pair("outputformat", T.number),
-                P.pair("mirror", T.boolean),
-                P.pair("drillshape", T.number),
-                P.pair("scaleselection", T.number),
-                P.pair("outputdirectory", T.string),
-                P.pair("plot_on_all_layers_selection", T.number),
-                P.pair("dashed_line_dash_ratio", T.number),
-                P.pair("dashed_line_gap_ratio", T.number),
-            ),
-        );
+    constructor(data: B.I_PCBPlotParams) {
+        Object.assign(this, data);
     }
 }
 
@@ -649,20 +611,13 @@ export class Stackup implements BoardNode {
     castellated_pads = false;
     edge_plating = false;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("stackup"),
-                P.pair("copper_finish", T.string),
-                P.pair("dielectric_constraints", T.boolean),
-                P.pair("edge_connector", T.string),
-                P.pair("castellated_pads", T.boolean),
-                P.pair("edge_plating", T.boolean),
-                P.collection("layers", "layer", T.item(StackupLayer)),
-            ),
-        );
+    constructor(data: B.I_Stackup) {
+        this.layers = data.layers?.map((l) => new StackupLayer(l)) ?? [];
+        this.copper_finish = data.copper_finish;
+        this.dielectric_constraints = data.dielectric_constraints;
+        this.edge_connector = data.edge_connector;
+        this.castellated_pads = data.castellated_pads;
+        this.edge_plating = data.edge_plating;
     }
 }
 
@@ -677,22 +632,15 @@ export class StackupLayer implements BoardNode {
     loss_tangent: number;
     uuid?: string;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("layer"),
-                P.positional("name", T.string),
-                P.pair("type", T.string),
-                P.pair("color", T.string),
-                P.pair("thickness", T.number),
-                P.pair("material", T.string),
-                P.pair("epsilon_r", T.number),
-                P.pair("loss_tangent", T.number),
-                P.pair("uuid", T.string),
-            ),
-        );
+    constructor(data: B.I_StackupLayer) {
+        this.name = data.name;
+        this.type = data.type;
+        this.color = data.color;
+        this.thickness = data.thickness;
+        this.material = data.material;
+        this.epsilon_r = data.epsilon_r;
+        this.loss_tangent = data.loss_tangent;
+        this.uuid = data.uuid;
     }
 }
 
@@ -701,17 +649,14 @@ export class Net implements BoardNode {
     number: number;
     name: string;
 
-    constructor(expr: Parseable) {
-        // (net 2 "+3V3")
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("net"),
-                P.positional("number", T.number),
-                P.positional("name", T.string),
-            ),
-        );
+    constructor(data: B.I_Net) {
+        if (data) {
+            this.number = data.number ?? 0;
+            this.name = data.name ?? "";
+        } else {
+            this.number = 0;
+            this.name = "";
+        }
     }
 }
 
@@ -730,27 +675,20 @@ export class Dimension implements BoardNode {
     style: DimensionStyle;
 
     constructor(
-        expr: Parseable,
+        data: B.I_Dimension,
         public parent: KicadPCB,
     ) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("dimension"),
-                P.atom("locked"),
-                P.pair("type", T.string),
-                P.pair("layer", T.string),
-                P.pair("tstamp", T.string),
-                P.list("pts", T.vec2),
-                P.pair("height", T.number),
-                P.pair("orientation", T.number),
-                P.pair("leader_length", T.number),
-                P.item("gr_text", GrText, this),
-                P.item("format", DimensionFormat),
-                P.item("style", DimensionStyle),
-            ),
-        );
+        this.locked = data.locked;
+        this.type = data.type;
+        this.layer = data.layer;
+        this.tstamp = data.tstamp ?? "";
+        this.pts = data.pts?.map((p) => new Vec2(p.x, p.y)) ?? [];
+        this.height = data.height;
+        this.orientation = data.orientation;
+        this.leader_length = data.leader_length;
+        this.gr_text = new GrText(data.gr_text, this);
+        this.format = new DimensionFormat(data.format);
+        this.style = new DimensionStyle(data.style);
     }
 
     resolve_text_var(name: string): string | undefined {
@@ -763,6 +701,10 @@ export class Dimension implements BoardNode {
 
     get end(): Vec2 {
         return this.pts.at(-1) ?? new Vec2(0, 0);
+    }
+
+    get bbox() {
+        return BBox.from_points([this.start, this.end]);
     }
 }
 
@@ -789,21 +731,14 @@ export class DimensionFormat implements BoardNode {
     override_value: string;
     suppress_zeroes = false;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("format"),
-                P.pair("prefix", T.string),
-                P.pair("suffix", T.string),
-                P.pair("units", T.number),
-                P.pair("units_format", T.number),
-                P.pair("precision", T.number),
-                P.pair("override_value", T.string),
-                P.atom("suppress_zeroes"),
-            ),
-        );
+    constructor(data: B.I_DimensionFormat) {
+        this.prefix = data.prefix;
+        this.suffix = data.suffix;
+        this.units = data.units;
+        this.units_format = data.units_format;
+        this.precision = data.precision;
+        this.override_value = data.override_value;
+        this.suppress_zeroes = data.suppress_zeroes;
     }
 }
 
@@ -830,21 +765,14 @@ export class DimensionStyle implements BoardNode {
     extension_offset: number;
     keep_text_aligned: boolean;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("style"),
-                P.pair("thickness", T.number),
-                P.pair("arrow_length", T.number),
-                P.pair("text_position_mode", T.number),
-                P.pair("extension_height", T.number),
-                P.pair("text_frame", T.number),
-                P.pair("extension_offset", T.number),
-                P.atom("keep_text_aligned"),
-            ),
-        );
+    constructor(data: B.I_DimensionStyle) {
+        this.thickness = data.thickness;
+        this.arrow_length = data.arrow_length;
+        this.text_position_mode = data.text_position_mode;
+        this.extension_height = data.extension_height;
+        this.text_frame = data.text_frame;
+        this.extension_offset = data.extension_offset;
+        this.keep_text_aligned = data.keep_text_aligned;
     }
 }
 
@@ -853,8 +781,8 @@ type FootprintDrawings = FpLine | FpCircle | FpArc | FpPoly | FpRect;
 export class Footprint implements BoardNode {
     typeId: BoardNodeType = "Footprint";
     at: At;
-    reference: string;
-    value: string;
+    reference: string = "";
+    value: string = "";
     library_link: string;
     version: number;
     generator: string;
@@ -913,76 +841,61 @@ export class Footprint implements BoardNode {
     }
 
     constructor(
-        expr: Parseable,
+        data: B.I_Footprint,
         public parent: KicadPCB,
     ) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("footprint"),
-                P.positional("library_link", T.string),
-                P.pair("version", T.number),
-                P.pair("generator", T.string),
-                P.atom("locked"),
-                P.atom("placed"),
-                P.pair("layer", T.string),
-                P.pair("tedit", T.string),
-                P.pair("tstamp", T.string),
-                P.item("at", At),
-                P.pair("uuid", T.string),
-                P.pair("descr", T.string),
-                P.pair("tags", T.string),
-                P.pair("sheetname", T.string),
-                P.pair("sheetfile", T.string),
+        this.library_link = data.library_link;
+        this.version = data.version;
+        this.generator = data.generator;
+        this.locked = data.locked;
+        this.placed = data.placed;
+        this.layer = data.layer;
+        this.tedit = data.tedit;
+        this.tstamp = data.tstamp ?? "";
+        this.at = new At(data.at);
+        this.uuid = data.uuid;
+        this.descr = data.descr;
+        this.tags = data.tags;
+        this.sheetname = data.sheetname;
+        this.sheetfile = data.sheetfile;
+        this.path = data.path;
+        this.autoplace_cost90 = data.autoplace_cost90;
+        this.autoplace_cost180 = data.autoplace_cost180;
+        this.solder_mask_margin = data.solder_mask_margin;
+        this.solder_paste_margin = data.solder_paste_margin;
+        this.solder_paste_ratio = data.solder_paste_ratio;
+        this.clearance = data.clearance;
+        this.zone_connect = data.zone_connect;
+        this.thermal_width = data.thermal_width;
+        this.thermal_gap = data.thermal_gap;
+        this.attr = data.attr || this.attr;
+        this.properties = data.properties || {};
 
-                P.pair("path", T.string),
-                P.pair("autoplace_cost90", T.number),
-                P.pair("autoplace_cost180", T.number),
-                P.pair("solder_mask_margin", T.number),
-                P.pair("solder_paste_margin", T.number),
-                P.pair("solder_paste_ratio", T.number),
-                P.pair("clearance", T.number),
-                P.pair("zone_connect", T.number),
-                P.pair("thermal_width", T.number),
-                P.pair("thermal_gap", T.number),
-                P.object(
-                    "attr",
-                    this.attr,
-                    P.atom("through_hole"),
-                    P.atom("smd"),
-                    P.atom("virtual"),
-                    P.atom("board_only"),
-                    P.atom("exclude_from_pos_files"),
-                    P.atom("exclude_from_bom"),
-                    P.atom("allow_solder_mask_bridges"),
-                    P.atom("allow_missing_courtyard"),
-                ),
-                P.dict("properties", "property", T.string),
-                P.collection("drawings", "fp_line", T.item(FpLine, this)),
-                P.collection("drawings", "fp_circle", T.item(FpCircle, this)),
-                P.collection("drawings", "fp_arc", T.item(FpArc, this)),
-                P.collection("drawings", "fp_poly", T.item(FpPoly, this)),
-                P.collection("drawings", "fp_rect", T.item(FpRect, this)),
-                P.collection("fp_texts", "fp_text", T.item(FpText, this)),
-                P.collection("zones", "zone", T.item(Zone, this)),
-                P.collection("models", "model", T.item(Model)),
-                P.collection("pads", "pad", T.item(Pad, this)),
-            ),
-        );
+        this.drawings = [];
+        if (data.drawings) {
+            for (const d of data.drawings) {
+                if ("center" in d) {
+                    this.drawings.push(new FpCircle(d as B.I_Circle, this));
+                } else if ("mid" in d) {
+                    this.drawings.push(new FpArc(d as B.I_Arc, this));
+                } else if ("pts" in d) {
+                    this.drawings.push(new FpPoly(d as B.I_Poly, this));
+                } else if ("fill" in d) {
+                    this.drawings.push(new FpRect(d as B.I_Rect, this));
+                } else {
+                    this.drawings.push(new FpLine(d as B.I_Line, this));
+                }
+            }
+        }
 
-        Object.assign(
-            this,
-            parse_expr_partial(
-                expr,
-                P.start("footprint"),
-                P.collection(
-                    "properties_kicad_8",
-                    "property",
-                    T.item(Property_Kicad_8, this),
-                ),
-            ),
-        );
+        this.fp_texts = data.fp_texts?.map((t) => new FpText(t, this)) ?? [];
+        this.zones = data.zones?.map((z) => new Zone(z, this)) ?? [];
+        this.models = data.models?.map((m) => new Model(m)) ?? [];
+        this.pads = data.pads?.map((p) => new Pad(p, this)) ?? [];
+        this.properties_kicad_8 =
+            data.properties_kicad_8?.map(
+                (p) => new Property_Kicad_8(p, this),
+            ) ?? [];
 
         for (const pad of this.pads) {
             this.#pads_by_number.set(pad.number, pad);
@@ -999,7 +912,7 @@ export class Footprint implements BoardNode {
             }
         });
 
-        if (!this.reference?.length || !this.value?.length)
+        if (!this.reference?.length || !this.value?.length) {
             // Kicad 8.0 reference and value
             for (const pro of this.properties_kicad_8) {
                 if (pro.name === "Reference") {
@@ -1008,9 +921,10 @@ export class Footprint implements BoardNode {
                     this.value = pro.value;
                 }
             }
+        }
 
         // Kicad 7.0 reference and value
-        if (!this.reference?.length || !this.value?.length)
+        if (!this.reference?.length || !this.value?.length) {
             for (const d of this.fp_texts) {
                 if (d.type == "reference") {
                     this.reference = d.text;
@@ -1019,28 +933,14 @@ export class Footprint implements BoardNode {
                     this.value = d.text;
                 }
             }
-        // TODO: Paint user text
-        // this.fp_texts = this.fp_texts.filter((t) => {
-        //     if (t.type == "reference" || t.type == "value") {
-        //         return true;
-        //     }
-        //     return false;
-        // });
-
-        // TODO: Paint the other pros
-        // this.properties_kicad_8 = this.properties_kicad_8.filter((t) => {
-        //     if (t.name == "Reference" || t.name == "Value") {
-        //         return true;
-        //     }
-        //     return false;
-        // });
+        }
     }
 
     get uuid() {
         return this._uuid ?? this.tstamp;
     }
 
-    set uuid(id: string) {
+    set uuid(id: string | undefined) {
         this._uuid = id;
     }
 
@@ -1096,9 +996,9 @@ export class Footprint implements BoardNode {
             ];
             switch (expr_type) {
                 case "NET_NAME":
-                    return this.pad_by_number(pad_name)?.net.number.toString();
+                    return this.pad_by_number(pad_name)?.net?.number.toString();
                 case "NET_CLASS":
-                    return this.pad_by_number(pad_name)?.net.name;
+                    return this.pad_by_number(pad_name)?.net?.name;
                 case "PIN_NAME":
                     return this.pad_by_number(pad_name)?.pinfunction;
             }
@@ -1162,7 +1062,7 @@ export const should_fill = (T: { fill?: GraphicsFill }) =>
 
 export class GraphicItem implements BoardNode {
     typeId: BoardNodeType = "GraphicItem";
-    parent?: Footprint;
+    parent?: Footprint | Pad | Dimension | KicadPCB;
     layer: string;
     tstamp: string;
     locked = false;
@@ -1186,29 +1086,18 @@ export class Line extends GraphicItem {
     uuid?: string;
 
     constructor(
-        expr: Parseable,
-        public override parent?: Footprint,
+        data: B.I_Line,
+        public override parent?: Footprint | Pad | Dimension | KicadPCB,
     ) {
         super();
-
-        const static_this = this.constructor as typeof Line;
-
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start(static_this.expr_start),
-                P.atom("locked"),
-                P.pair("layer", T.string),
-                P.vec2("start"),
-                P.vec2("end"),
-                P.pair("uuid", T.string),
-                P.pair("width", T.number),
-                P.pair("tstamp", T.string),
-                P.item("stroke", Stroke),
-            ),
-        );
-
+        this.locked = data.locked;
+        this.layer = data.layer;
+        this.start = new Vec2(data.start.x, data.start.y);
+        this.end = new Vec2(data.end.x, data.end.y);
+        this.uuid = data.uuid;
+        this.width = data.width;
+        this.tstamp = data.tstamp ?? "";
+        this.stroke = new Stroke(data.stroke);
         this.width ??= this.stroke?.width || 0;
     }
 
@@ -1235,30 +1124,19 @@ export class Circle extends GraphicItem {
     uuid?: string;
 
     constructor(
-        expr: Parseable,
-        public override parent?: Footprint,
+        data: B.I_Circle,
+        public override parent?: Footprint | Pad | Dimension | KicadPCB,
     ) {
         super();
-
-        const static_this = this.constructor as typeof Circle;
-
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start(static_this.expr_start),
-                P.atom("locked"),
-                P.vec2("center"),
-                P.vec2("end"),
-                P.pair("uuid", T.string),
-                P.pair("width", T.number),
-                P.pair("fill", T.string),
-                P.pair("layer", T.string),
-                P.pair("tstamp", T.string),
-                P.item("stroke", Stroke),
-            ),
-        );
-
+        this.locked = data.locked;
+        this.center = new Vec2(data.center.x, data.center.y);
+        this.end = new Vec2(data.end.x, data.end.y);
+        this.uuid = data.uuid;
+        this.width = data.width;
+        this.fill = data.fill;
+        this.layer = data.layer;
+        this.tstamp = data.tstamp ?? "";
+        this.stroke = new Stroke(data.stroke);
         this.width ??= this.stroke?.width || 0;
     }
 
@@ -1291,34 +1169,26 @@ export class Arc extends GraphicItem {
     uuid?: string;
 
     constructor(
-        expr: Parseable,
-        public override parent?: Footprint,
+        data: B.I_Arc,
+        public override parent?: Footprint | Pad | Dimension | KicadPCB,
     ) {
         super();
 
-        const static_this = this.constructor as typeof Arc;
-
-        const parsed = parse_expr(
-            expr,
-            P.start(static_this.expr_start),
-            P.atom("locked"),
-            P.pair("layer", T.string),
-            P.vec2("start"),
-            P.vec2("mid"),
-            P.vec2("end"),
-            P.pair("angle", T.number),
-            P.pair("width", T.number),
-            P.pair("tstamp", T.string),
-            P.item("stroke", Stroke),
-            P.pair("uuid", T.string),
-        );
+        this.locked = data.locked;
+        this.layer = data.layer;
+        this.uuid = data.uuid;
+        this.width = data.width;
+        this.tstamp = data.tstamp ?? "";
+        this.stroke = new Stroke(data.stroke);
 
         // Handle old format.
         // See LEGACY_ARC_FORMATTING and EDA_SHAPE::SetArcAngleAndEnd
-        if (parsed["angle"] !== undefined) {
-            const angle = Angle.from_degrees(parsed["angle"]).normalize720();
-            const center = parsed["start"];
-            let start = parsed["end"];
+        if ((data as any).angle !== undefined) {
+            const angle = Angle.from_degrees(
+                (data as any).angle,
+            ).normalize720();
+            const center = new Vec2(data.start.x, data.start.y);
+            let start = new Vec2(data.end.x, data.end.y);
 
             let end = angle.negative().rotate_point(start, center);
 
@@ -1330,24 +1200,24 @@ export class Arc extends GraphicItem {
                 center,
                 start,
                 end,
-                parsed["width"],
+                data.width,
             );
 
-            parsed["start"] = this.#arc.start_point;
-            parsed["mid"] = this.#arc.mid_point;
-            parsed["end"] = this.#arc.end_point;
-
-            delete parsed["angle"];
+            this.start = this.#arc.start_point;
+            this.mid = this.#arc.mid_point;
+            this.end = this.#arc.end_point;
         } else {
+            this.start = new Vec2(data.start.x, data.start.y);
+            this.mid = new Vec2(data.mid.x, data.mid.y);
+            this.end = new Vec2(data.end.x, data.end.y);
+
             this.#arc = MathArc.from_three_points(
-                parsed["start"],
-                parsed["mid"],
-                parsed["end"],
-                parsed["width"],
+                this.start,
+                this.mid,
+                this.end,
+                data.width,
             );
         }
-
-        Object.assign(this, parsed);
 
         this.width ??= this.stroke?.width ?? this.#arc.width;
         this.#arc.width = this.width;
@@ -1385,37 +1255,32 @@ export class Poly extends GraphicItem {
     uuid?: string;
 
     constructor(
-        expr: Parseable,
-        public override parent?: Footprint,
+        data: B.I_Poly,
+        public override parent?: Footprint | Pad | Dimension | KicadPCB,
     ) {
         super();
+        this.locked = data.locked;
+        this.layer = data.layer;
+        this.island = data.island;
+        this.uuid = data.uuid;
+        this.width = data.width;
+        this.fill = data.fill;
+        this.tstamp = data.tstamp ?? "";
+        this.stroke = new Stroke(data.stroke);
 
-        const static_this = this.constructor as typeof Poly;
-
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start(static_this.expr_start),
-                P.atom("locked"),
-                P.pair("layer", T.string),
-                P.atom("island"),
-                P.pair("uuid", T.string),
-                P.expr("pts", (obj, name, expr) => {
-                    const parsed = parse_expr(
-                        expr as List,
-                        P.start("pts"),
-                        P.collection("items", "xy", T.vec2),
-                        P.collection("items", "arc", T.item(PolyArc, this)),
-                    );
-                    return (parsed as { items: any[] })?.["items"];
-                }),
-                P.pair("width", T.number),
-                P.pair("fill", T.string),
-                P.pair("tstamp", T.string),
-                P.item("stroke", Stroke),
-            ),
-        );
+        // Convert pts array - can contain both Vec2 points and Arc objects
+        this.pts = [];
+        if (data.pts) {
+            for (const pt of data.pts) {
+                if ("mid" in pt) {
+                    // It's an arc
+                    this.pts.push(new Arc(pt, this.parent));
+                } else {
+                    // It's a Vec2
+                    this.pts.push(new Vec2(pt.x, pt.y));
+                }
+            }
+        }
 
         this.width ??= this.stroke?.width || 0;
     }
@@ -1462,30 +1327,19 @@ export class Rect extends GraphicItem {
     uuid?: string;
 
     constructor(
-        expr: Parseable,
-        public override parent?: Footprint,
+        data: B.I_Rect,
+        public override parent?: Footprint | Pad | Dimension | KicadPCB,
     ) {
         super();
-
-        const static_this = this.constructor as typeof Rect;
-
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start(static_this.expr_start),
-                P.atom("locked"),
-                P.vec2("start"),
-                P.vec2("end"),
-                P.pair("uuid", T.string),
-                P.pair("layer", T.string),
-                P.pair("width", T.number),
-                P.pair("fill", T.string),
-                P.pair("tstamp", T.string),
-                P.item("stroke", Stroke),
-            ),
-        );
-
+        this.locked = data.locked;
+        this.start = new Vec2(data.start.x, data.start.y);
+        this.end = new Vec2(data.end.x, data.end.y);
+        this.uuid = data.uuid;
+        this.layer = data.layer;
+        this.width = data.width;
+        this.fill = data.fill;
+        this.tstamp = data.tstamp ?? "";
+        this.stroke = new Stroke(data.stroke);
         this.width ??= this.stroke?.width || 0;
     }
 
@@ -1505,26 +1359,22 @@ export class FpRect extends Rect {
 export class TextRenderCache implements BoardNode {
     typeId: BoardNodeType = "TextRenderCache";
     text: string;
-    angle: 0;
+    angle: number;
     polygons: Poly[];
     uuid?: string;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("render_cache"),
-                P.positional("text", T.string),
-                P.positional("angle", T.number),
-                P.pair("uuid", T.string),
-                P.collection("polygons", "polygon", T.item(Poly)),
-            ),
-        );
-
-        if (!this.polygons) {
+    constructor(data?: B.I_TextRenderCache) {
+        if (data) {
+            this.text = data.text ?? "";
+            this.angle = data.angle ?? 0;
+            this.polygons = data.polygons?.map((p) => new Poly(p)) ?? [];
+            this.uuid = data.uuid;
+        } else {
+            this.text = "";
+            this.angle = 0;
             this.polygons = [];
         }
+
         for (const poly of this.polygons) {
             poly.fill = "solid";
         }
@@ -1541,29 +1391,17 @@ export class Text implements BoardNode {
     hide = false;
     effects = new Effects();
     tstamp: string;
-    render_cache: TextRenderCache;
+    render_cache?: TextRenderCache;
     uuid?: string;
-
-    static common_expr_defs = [
-        P.item("at", At),
-        P.atom("hide"),
-        P.atom("unlocked"),
-        P.pair("uuid", T.string),
-        P.object(
-            "layer",
-            {},
-            P.positional("name", T.string),
-            P.atom("knockout"),
-        ),
-        P.pair("tstamp", T.string),
-        P.item("effects", Effects),
-        P.item("render_cache", TextRenderCache),
-    ];
 
     get shown_text() {
         // FIXME : AD HOC , for kicad 5.x design file
         if (!this.text) return "";
         return expand_text_vars(this.text, this.parent);
+    }
+
+    get bbox() {
+        return new BBox(this.at.position.x, this.at.position.y, 0, 0);
     }
 }
 
@@ -1572,22 +1410,23 @@ export class FpText extends Text {
     locked: boolean = false;
 
     constructor(
-        expr: Parseable,
+        data: B.I_FpText,
         public override parent?: Footprint,
     ) {
         super();
-
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("fp_text"),
-                P.atom("locked"),
-                P.positional("type", T.string),
-                P.positional("text", T.string),
-                ...Text.common_expr_defs,
-            ),
-        );
+        this.type = data.type;
+        this.locked = data.locked;
+        this.text = data.text;
+        this.at = new At(data.at);
+        this.hide = data.hide;
+        this.unlocked = data.unlocked;
+        this.uuid = data.uuid;
+        this.layer = data.layer;
+        this.tstamp = data.tstamp ?? "";
+        this.effects = new Effects(data.effects);
+        this.render_cache = data.render_cache
+            ? new TextRenderCache(data.render_cache)
+            : undefined;
     }
 }
 
@@ -1600,33 +1439,26 @@ export class Property_Kicad_8 {
     hide = false;
     effects = new Effects();
     tstamp: string;
-    render_cache: TextRenderCache;
+    render_cache?: TextRenderCache;
     uuid?: string;
     locked: boolean = false;
 
     constructor(
-        expr: Parseable,
+        data: B.I_Property_Kicad_8,
         public parent?: Footprint,
     ) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("property"),
-                P.positional("name", T.string),
-                P.positional("value", T.string),
-                P.pair("layer", T.string),
-                P.atom("locked"),
-                P.positional("text", T.string),
-                P.item("at", At),
-                P.atom("hide"),
-                P.atom("unlocked"),
-                P.pair("uuid", T.string),
-                P.pair("tstamp", T.string),
-                P.item("effects", Effects),
-                P.item("render_cache", TextRenderCache),
-            ),
-        );
+        this.name = data.name;
+        this.value = data.value;
+        this.layer = data.layer;
+        this.at = new At(data.at);
+        this.hide = data.hide;
+        this.unlocked = data.unlocked;
+        this.uuid = data.uuid;
+        this.tstamp = data.tstamp ?? "";
+        this.effects = new Effects(data.effects);
+        this.render_cache = data.render_cache
+            ? new TextRenderCache(data.render_cache)
+            : undefined;
     }
 
     get shown_text() {
@@ -1652,21 +1484,22 @@ export class GrText extends Text {
     locked: boolean = false;
 
     constructor(
-        expr: Parseable,
+        data: B.I_GrText,
         public override parent: Footprint | Dimension | KicadPCB,
     ) {
         super();
-
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("gr_text"),
-                P.atom("locked"),
-                P.positional("text", T.string),
-                ...Text.common_expr_defs,
-            ),
-        );
+        this.locked = data.locked;
+        this.text = data.text;
+        this.at = new At(data.at);
+        this.hide = data.hide;
+        this.unlocked = data.unlocked;
+        this.uuid = data.uuid;
+        this.layer = data.layer;
+        this.tstamp = data.tstamp ?? "";
+        this.effects = new Effects(data.effects);
+        this.render_cache = data.render_cache
+            ? new TextRenderCache(data.render_cache)
+            : undefined;
     }
 }
 
@@ -1765,9 +1598,10 @@ export class Pad implements CrossHightAble, BoardNode {
     thermal_gap: number;
     thermal_bridge_angle: number;
     zone_connect: number;
-    drill: PadDrill;
-    net: Net;
-    options: PadOptions;
+    tstamp: string;
+    drill?: PadDrill;
+    net?: Net;
+    options?: PadOptions;
     primitives: (GrLine | GrCircle | GrArc | GrRect | GrPoly)[];
 
     public get highlightColor() {
@@ -1785,61 +1619,54 @@ export class Pad implements CrossHightAble, BoardNode {
     }
 
     constructor(
-        expr: Parseable,
+        data: B.I_Pad,
         public parent: Footprint,
     ) {
-        const parsed = parse_expr(
-            expr,
-            P.start("pad"),
-            P.positional("number", T.string),
-            P.positional("type", T.string),
-            P.positional("shape", T.string),
-            P.item("at", At),
-            P.atom("locked"),
-            P.vec2("size"),
-            P.vec2("rect_delta"),
-            P.list("layers", T.string),
-            P.pair("roundrect_rratio", T.number),
-            P.pair("chamfer_ratio", T.number),
-            P.expr(
-                "chamfer",
-                T.object(
-                    {},
-                    P.atom("top_right"),
-                    P.atom("top_left"),
-                    P.atom("bottom_right"),
-                    P.atom("bottom_left"),
-                ),
-            ),
-            P.pair("pinfunction", T.string),
-            P.pair("pintype", T.string),
-            P.pair("solder_mask_margin", T.number),
-            P.pair("solder_paste_margin", T.number),
-            P.pair("solder_paste_margin_ratio", T.number),
-            P.pair("clearance", T.number),
-            P.pair("thermal_width", T.number),
-            P.pair("thermal_gap", T.number),
-            P.pair("thermal_bridge_angle", T.number),
-            P.pair("zone_connect", T.number),
-            P.pair("tstamp", T.string),
-            P.item("drill", PadDrill),
-            P.item("net", Net),
-            P.item("options", PadOptions),
-            P.expr("primitives", (obj, name, expr) => {
-                const parsed = parse_expr(
-                    expr as List,
-                    P.start("primitives"),
-                    P.collection("items", "gr_line", T.item(GrLine, this)),
-                    P.collection("items", "gr_circle", T.item(GrCircle, this)),
-                    P.collection("items", "gr_arc", T.item(GrArc, this)),
-                    P.collection("items", "gr_rect", T.item(GrRect, this)),
-                    P.collection("items", "gr_poly", T.item(GrPoly, this)),
-                );
-                return (parsed as { items: any[] })?.["items"];
-            }),
-        );
+        this.number = data.number;
+        this.type = data.type;
+        this.shape = data.shape;
+        this.at = new At(data.at);
+        this.locked = data.locked;
+        this.size = new Vec2(data.size?.x ?? 0, data.size?.y ?? 0);
+        this.rect_delta = data.rect_delta
+            ? new Vec2(data.rect_delta.x, data.rect_delta.y)
+            : new Vec2(0, 0);
+        this.layers = data.layers;
+        this.roundrect_rratio = data.roundrect_rratio;
+        this.chamfer_ratio = data.chamfer_ratio;
+        this.chamfer = data.chamfer;
+        this.pinfunction = data.pinfunction;
+        this.pintype = data.pintype;
+        this.solder_mask_margin = data.solder_mask_margin;
+        this.solder_paste_margin = data.solder_paste_margin;
+        this.solder_paste_margin_ratio = data.solder_paste_margin_ratio;
+        this.clearance = data.clearance;
+        this.thermal_width = data.thermal_width;
+        this.thermal_gap = data.thermal_gap;
+        this.thermal_bridge_angle = data.thermal_bridge_angle;
+        this.zone_connect = data.zone_connect;
+        this.tstamp = data.tstamp ?? "";
+        this.drill = data.drill ? new PadDrill(data.drill) : undefined;
+        this.net = data.net ? new Net(data.net) : undefined;
+        this.options = data.options ? new PadOptions(data.options) : undefined;
 
-        Object.assign(this, parsed);
+        // Convert primitives array - can contain GrLine, GrCircle, GrArc, GrRect, GrPoly
+        this.primitives = [];
+        if (data.primitives) {
+            for (const prim of data.primitives) {
+                if ("center" in prim) {
+                    this.primitives.push(new GrCircle(prim, this));
+                } else if ("mid" in prim) {
+                    this.primitives.push(new GrArc(prim, this));
+                } else if ("pts" in prim) {
+                    this.primitives.push(new GrPoly(prim, this));
+                } else if ("fill" in prim) {
+                    this.primitives.push(new GrRect(prim, this));
+                } else {
+                    this.primitives.push(new GrLine(prim, this));
+                }
+            }
+        }
     }
 }
 
@@ -1850,18 +1677,13 @@ export class PadDrill implements BoardNode {
     width = 0;
     offset: Vec2 = new Vec2(0, 0);
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("drill"),
-                P.atom("oval"),
-                P.positional("diameter", T.number),
-                P.positional("width", T.number),
-                P.vec2("offset"),
-            ),
-        );
+    constructor(data?: B.I_PadDrill) {
+        if (data) {
+            this.oval = data.oval ?? false;
+            this.diameter = data.diameter ?? 0;
+            this.width = data.width ?? 0;
+            this.offset = new Vec2(data.offset?.x ?? 0, data.offset?.y ?? 0);
+        }
     }
 }
 
@@ -1869,16 +1691,14 @@ export class PadOptions {
     clearance: "outline" | "convexhull";
     anchor: "rect" | "circle";
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("options"),
-                P.pair("clearance", T.string),
-                P.pair("anchor", T.string),
-            ),
-        );
+    constructor(data?: B.I_PadOptions) {
+        if (data) {
+            this.clearance = data.clearance ?? "outline";
+            this.anchor = data.anchor ?? "rect";
+        } else {
+            this.clearance = "outline";
+            this.anchor = "rect";
+        }
     }
 }
 
@@ -1890,20 +1710,13 @@ export class Model {
     hide = false;
     opacity = 1;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("model"),
-                P.positional("filename", T.string),
-                P.atom("hide"),
-                P.pair("opacity", T.number),
-                P.object("offset", {}, P.list("xyz", T.number)),
-                P.object("scale", {}, P.list("xyz", T.number)),
-                P.object("rotate", {}, P.list("xyz", T.number)),
-            ),
-        );
+    constructor(data: B.I_Model) {
+        this.filename = data.filename;
+        this.offset = data.offset;
+        this.scale = data.scale;
+        this.rotate = data.rotate;
+        this.hide = data.hide;
+        this.opacity = data.opacity;
     }
 }
 
@@ -1913,17 +1726,10 @@ export class Group {
     locked = false;
     members: string[];
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("group"),
-                P.positional("name", T.string),
-                P.atom("locked"),
-                P.pair("id", T.string),
-                P.list("members", T.string),
-            ),
-        );
+    constructor(data: B.I_Group) {
+        this.name = data.name;
+        this.id = data.id;
+        this.locked = data.locked;
+        this.members = data.members;
     }
 }

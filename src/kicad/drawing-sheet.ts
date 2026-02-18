@@ -8,7 +8,8 @@ import { Color } from "../base/color";
 import { BBox, Vec2 } from "../base/math";
 import { Paper, expand_text_vars } from "./common";
 import default_sheet from "./default_drawing_sheet.kicad_wks";
-import { P, T, parse_expr, type Parseable } from "./parser";
+import * as DS from "../parser/proto/drawing-sheet";
+import { parse_drawing_sheet } from "../parser/drawing_sheet_parser";
 
 export type DrawingSheetDocument = {
     paper?: Paper;
@@ -22,35 +23,57 @@ export class DrawingSheet {
     drawings: DrawingSheetItem[] = [];
     document?: DrawingSheetDocument;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("kicad_wks"),
-                P.pair("version", T.number),
-                P.pair("generator", T.string),
-                P.item("setup", Setup),
-                P.collection("drawings", "line", T.item(Line, this)),
-                P.collection("drawings", "rect", T.item(Rect, this)),
-                P.collection("drawings", "polygon", T.item(Polygon, this)),
-                P.collection("drawings", "bitmap", T.item(Bitmap, this)),
-                P.collection("drawings", "tbtext", T.item(TbText, this)),
-            ),
-        );
+    constructor(data: DS.I_DrawingSheet) {
+        this.version = data.version;
+        this.generator = data.generator;
+        this.setup = new Setup(data.setup);
+        this.drawings = [];
+        if (data.drawings) {
+            for (const d of data.drawings) {
+                if ("text" in d) {
+                    this.drawings.push(new TbText(d as DS.I_TbText, this));
+                } else if ("pngdata" in d) {
+                    this.drawings.push(new Bitmap(d as DS.I_Bitmap, this));
+                } else if ("pts" in d) {
+                    this.drawings.push(new Polygon(d as DS.I_Polygon, this));
+                } else if ("start" in d) {
+                    // Line or Rect
+                    if ("name" in d) {
+                        this.drawings.push(new Rect(d as DS.I_Rect, this));
+                    } else {
+                        this.drawings.push(new Line(d as DS.I_Line, this));
+                    }
+                }
+            }
+        }
     }
 
     static default() {
-        return new DrawingSheet(default_sheet);
+        return new DrawingSheet(parse_drawing_sheet(default_sheet));
     }
 
     *items() {
         // Yield a rect to draw the page outline
         yield new Rect(
-            `(rect (name "") (start ${-this.setup.left_margin} ${-this.setup
-                .right_margin} ltcorner) (end ${-this.setup
-                .right_margin} ${-this.setup
-                .bottom_margin} rbcorner) (comment "page outline"))`,
+            {
+                name: "",
+                comment: "page outline",
+                option: null,
+                repeat: 1,
+                incrx: 0,
+                incry: 0,
+                linewidth: this.setup.linewidth,
+                start: {
+                    x: -this.setup.left_margin,
+                    y: -this.setup.top_margin,
+                    anchor: "ltcorner",
+                },
+                end: {
+                    x: -this.setup.right_margin,
+                    y: -this.setup.bottom_margin,
+                    anchor: "rbcorner",
+                },
+            },
             this,
         );
         yield* this.drawings;
@@ -137,22 +160,18 @@ export class Setup {
     bottom_margin = 0;
     right_margin = 0;
 
-    constructor(expr?: Parseable) {
-        if (expr) {
-            Object.assign(
-                this,
-                parse_expr(
-                    expr,
-                    P.start("setup"),
-                    P.pair("linewidth", T.number),
-                    P.vec2("textsize"),
-                    P.pair("textlinewidth", T.number),
-                    P.pair("top_margin", T.number),
-                    P.pair("left_margin", T.number),
-                    P.pair("bottom_margin", T.number),
-                    P.pair("right_margin", T.number),
-                ),
+    constructor(data?: DS.I_Setup) {
+        if (data) {
+            this.linewidth = data.linewidth ?? 0.15;
+            this.textsize = new Vec2(
+                data.textsize?.x ?? 1.5,
+                data.textsize?.y ?? 1.5,
             );
+            this.textlinewidth = data.textlinewidth ?? 0.15;
+            this.top_margin = data.top_margin ?? 0;
+            this.left_margin = data.left_margin ?? 0;
+            this.bottom_margin = data.bottom_margin ?? 0;
+            this.right_margin = data.right_margin ?? 0;
         }
     }
 }
@@ -161,18 +180,12 @@ export class Coordinate {
     position: Vec2 = new Vec2(0, 0);
     anchor: "ltcorner" | "lbcorner" | "rbcorner" | "rtcorner" = "rbcorner";
 
-    constructor(expr: Parseable) {
-        const parsed = parse_expr(
-            expr,
-            P.positional("start_token"),
-            P.positional("x", T.number),
-            P.positional("y", T.number),
-            P.positional("anchor", T.string),
-        );
-
-        this.position.x = parsed["x"];
-        this.position.y = parsed["y"];
-        this.anchor = parsed["anchor"] ?? this.anchor;
+    constructor(data?: DS.I_Coordinate) {
+        if (data) {
+            this.position.x = data.x ?? 0;
+            this.position.y = data.y ?? 0;
+            this.anchor = data.anchor ?? this.anchor;
+        }
     }
 }
 
@@ -186,37 +199,26 @@ export class DrawingSheetItem {
     incrx = 0;
     linewidth: number;
 
-    constructor(parent: DrawingSheet) {
+    constructor(parent: DrawingSheet, data: DS.I_DrawingSheetItem) {
         this.parent = parent;
+        this.name = data.name ?? "";
+        this.comment = data.comment ?? "";
+        this.option = data.option ?? null;
+        this.repeat = data.repeat ?? 1;
+        this.incrx = data.incrx ?? 0;
+        this.incry = data.incry ?? 0;
+        this.linewidth = data.linewidth ?? 0.15;
     }
-
-    static common_expr_defs = [
-        P.pair("name", T.string),
-        P.pair("comment", T.string),
-        P.pair("option", T.string),
-        P.pair("repeat", T.number),
-        P.pair("incrx", T.number),
-        P.pair("incry", T.number),
-        P.pair("linewidth", T.number),
-    ];
 }
 
 export class Line extends DrawingSheetItem {
     start: Coordinate;
     end: Coordinate;
 
-    constructor(expr: Parseable, parent: DrawingSheet) {
-        super(parent);
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("line"),
-                P.item("start", Coordinate),
-                P.item("end", Coordinate),
-                ...DrawingSheetItem.common_expr_defs,
-            ),
-        );
+    constructor(data: DS.I_Line, parent: DrawingSheet) {
+        super(parent, data);
+        this.start = new Coordinate(data.start);
+        this.end = new Coordinate(data.end);
     }
 }
 
@@ -224,19 +226,10 @@ export class Rect extends DrawingSheetItem {
     start: Coordinate;
     end: Coordinate;
 
-    constructor(expr: Parseable, parent: DrawingSheet) {
-        super(parent);
-
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("rect"),
-                P.item("start", Coordinate),
-                P.item("end", Coordinate),
-                ...DrawingSheetItem.common_expr_defs,
-            ),
-        );
+    constructor(data: DS.I_Rect, parent: DrawingSheet) {
+        super(parent, data);
+        this.start = new Coordinate(data.start);
+        this.end = new Coordinate(data.end);
     }
 }
 
@@ -245,19 +238,11 @@ export class Polygon extends DrawingSheetItem {
     pos: Coordinate;
     pts: Vec2[];
 
-    constructor(expr: Parseable, parent: DrawingSheet) {
-        super(parent);
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("polygon"),
-                P.item("pos", Coordinate),
-                P.pair("rotate", T.number),
-                P.list("pts", T.vec2),
-                ...DrawingSheetItem.common_expr_defs,
-            ),
-        );
+    constructor(data: DS.I_Polygon, parent: DrawingSheet) {
+        super(parent, data);
+        this.rotate = data.rotate ?? 0;
+        this.pos = new Coordinate(data.pos);
+        this.pts = data.pts?.map((p) => new Vec2(p.x, p.y)) ?? [];
     }
 }
 
@@ -266,19 +251,11 @@ export class Bitmap extends DrawingSheetItem {
     pos: Coordinate;
     pngdata: string;
 
-    constructor(expr: Parseable, parent: DrawingSheet) {
-        super(parent);
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("bitmap"),
-                P.item("pos", Coordinate),
-                P.pair("scale", T.number),
-                P.pair("pngdata", T.string),
-                ...DrawingSheetItem.common_expr_defs,
-            ),
-        );
+    constructor(data: DS.I_Bitmap, parent: DrawingSheet) {
+        super(parent, data);
+        this.scale = data.scale ?? 1;
+        this.pos = new Coordinate(data.pos);
+        this.pngdata = data.pngdata ?? "";
     }
 }
 
@@ -292,24 +269,16 @@ export class TbText extends DrawingSheetItem {
     justify: "center" | "left" | "right" | "top" | "bottom";
     rotate = 0;
 
-    constructor(expr: Parseable, parent: DrawingSheet) {
-        super(parent);
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("tbtext"),
-                P.positional("text"),
-                P.item("pos", Coordinate),
-                P.pair("incrlabel", T.number),
-                P.pair("maxlen", T.number),
-                P.pair("maxheight", T.number),
-                P.item("font", Font),
-                P.pair("rotate", T.number),
-                P.pair("justify", T.string),
-                ...DrawingSheetItem.common_expr_defs,
-            ),
-        );
+    constructor(data: DS.I_TbText, parent: DrawingSheet) {
+        super(parent, data);
+        this.text = data.text;
+        this.incrlabel = data.incrlabel ?? 1;
+        this.pos = new Coordinate(data.pos);
+        this.maxlen = data.maxlen ?? 0;
+        this.maxheight = data.maxheight ?? 0;
+        this.font = new Font(data.font);
+        this.rotate = data.rotate ?? 0;
+        this.justify = data.justify ?? "left";
     }
 
     get shown_text() {
@@ -325,18 +294,26 @@ export class Font {
     size: Vec2 = new Vec2(1.27, 1.27);
     linewidth: number;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("font"),
-                P.pair("face", T.string),
-                P.atom("bold"),
-                P.atom("italic"),
-                P.vec2("size"),
-                P.pair("linewidth", T.number),
-            ),
-        );
+    constructor(data?: DS.I_Font) {
+        if (data) {
+            this.face = data.face ?? "";
+            this.bold = data.bold ?? false;
+            this.italic = data.italic ?? false;
+            this.size = new Vec2(data.size?.x ?? 1.27, data.size?.y ?? 1.27);
+            this.linewidth = data.linewidth ?? 0.15;
+            if (data.color) {
+                this.color = new Color(
+                    data.color.r,
+                    data.color.g,
+                    data.color.b,
+                    data.color.a,
+                );
+            }
+        } else {
+            this.face = "";
+            this.bold = false;
+            this.italic = false;
+            this.linewidth = 0.15;
+        }
     }
 }

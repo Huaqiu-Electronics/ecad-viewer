@@ -4,18 +4,13 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { DrawingSheet, type SchematicTheme } from ".";
+import { DrawingSheet } from ".";
 import { Color } from "../base/color";
 import type { CrossHightAble } from "../base/cross_highlight_able";
 import type { HighlightAble } from "../base/highlightable";
 import type { IndexAble } from "../base/index_able";
-import * as log from "../base/log";
-import { BBox, Arc as MathArc, Matrix3, Vec2 } from "../base/math";
+import { BBox, Matrix3, Vec2 } from "../base/math";
 import { html } from "../base/web-components";
-import {
-    get_symbol_body_and_pins_bbox,
-    get_symbol_transform,
-} from "../viewers/schematic/painters/symbol";
 import {
     At,
     Effects,
@@ -26,7 +21,7 @@ import {
     unescape_string,
 } from "./common";
 import { get_image_ppi } from "./get_image_ppi";
-import { P, T, parse_expr, type Parseable } from "./parser";
+import * as S from "../parser/proto/schematic";
 
 /* Default values for various things found in schematics
  * From EESchema's default_values.h, converted from mils to mm. */
@@ -82,7 +77,7 @@ export class KicadSch {
     hierarchical_labels: HierarchicalLabel[] = [];
     symbols = new Map<string, SchematicSymbol>();
     no_connects: NoConnect[] = [];
-    drawings: (Polyline | Text)[] = [];
+    drawings: Drawing[] = [];
     images: Image[] = [];
     sheet_instances?: SheetInstances;
     symbol_instances?: SymbolInstances;
@@ -95,69 +90,69 @@ export class KicadSch {
 
     constructor(
         public filename: string,
-        expr: Parseable,
+        data: S.I_KicadSch,
     ) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("kicad_sch"),
-                P.pair("version", T.number),
-                P.pair("generator", T.string),
-                P.pair("generator_version", T.string),
-                P.pair("uuid", T.string),
-                P.item("paper", Paper),
-                P.item("title_block", TitleBlock),
-                P.item("lib_symbols", LibSymbols, this),
-                P.collection("wires", "wire", T.item(Wire)),
-                P.collection("buses", "bus", T.item(Bus)),
-                P.collection("bus_entries", "bus_entry", T.item(BusEntry)),
-                P.collection("bus_aliases", "bus_alias", T.item(BusAlias)),
-                P.collection("junctions", "junction", T.item(Junction)),
-                P.collection("no_connects", "no_connect", T.item(NoConnect)),
-                P.collection("net_labels", "label", T.item(NetLabel)),
-                P.collection(
-                    "global_labels",
-                    "global_label",
-                    T.item(GlobalLabel, this),
-                ),
-                P.collection(
-                    "hierarchical_labels",
-                    "hierarchical_label",
-                    T.item(HierarchicalLabel, this),
-                ),
-                // images
-                P.mapped_collection(
-                    "symbols",
-                    "symbol",
-                    (p: SchematicSymbol) => p.uuid,
-                    T.item(SchematicSymbol, this),
-                ),
-                P.collection("drawings", "polyline", T.item(Polyline, this)),
-                P.collection("drawings", "rectangle", T.item(Rectangle, this)),
-                P.collection("drawings", "arc", T.item(Arc, this)),
-                P.collection(
-                    "drawings",
-                    "text",
-                    T.item(Text, this, (text_val: string) => {
-                        for (const it of [
-                            "${REVISION}",
-                            "${CURRENT_DATE}",
-                            "${##}",
-                            "${#}",
-                        ])
-                            if (text_val.includes(it)) {
-                                this.is_converted_from_ad = true;
-                                break;
-                            }
-                    }),
-                ),
-                P.collection("images", "image", T.item(Image)),
-                P.item("sheet_instances", SheetInstances),
-                P.item("symbol_instances", SymbolInstances),
-                P.collection("sheets", "sheet", T.item(SchematicSheet, this)),
-            ),
-        );
+        this.version = data.version;
+        this.generator = data.generator;
+        this.generator_version = data.generator_version;
+        this.uuid = data.uuid;
+        this.paper = data.paper ? new Paper(data.paper) : undefined;
+        this.title_block = new TitleBlock(data.title_block);
+        this.lib_symbols = data.lib_symbols
+            ? new LibSymbols(data.lib_symbols, this)
+            : undefined;
+        this.wires = data.wires?.map((w) => new Wire(w)) ?? [];
+        this.buses = data.buses?.map((b) => new Bus(b)) ?? [];
+        this.bus_entries = data.bus_entries?.map((e) => new BusEntry(e)) ?? [];
+        this.bus_aliases = data.bus_aliases?.map((a) => new BusAlias(a)) ?? [];
+        this.junctions = data.junctions?.map((j) => new Junction(j)) ?? [];
+        this.no_connects = data.no_connects?.map((n) => new NoConnect(n)) ?? [];
+        this.net_labels =
+            data.net_labels?.map((l) => new NetLabel(l, this)) ?? [];
+        this.global_labels =
+            data.global_labels?.map((l) => new GlobalLabel(l, this)) ?? [];
+        this.hierarchical_labels =
+            data.hierarchical_labels?.map(
+                (l) => new HierarchicalLabel(l, this),
+            ) ?? [];
+
+        this.symbols = new Map();
+        if (data.symbols) {
+            for (const sym of data.symbols) {
+                this.symbols.set(sym.uuid, new SchematicSymbol(sym, this));
+            }
+        }
+
+        this.drawings = [];
+        if (data.drawings) {
+            for (const d of data.drawings) {
+                if ("pts" in d && "start" in (d as any)) {
+                    this.drawings.push(new Bezier(d as any, this));
+                } else if ("pts" in d) {
+                    this.drawings.push(new Polyline(d as any, this));
+                } else if ("start" in d) {
+                    this.drawings.push(new Rectangle(d as any, this));
+                } else if ("mid" in d) {
+                    this.drawings.push(new Arc(d as any, this));
+                } else if ("text" in d) {
+                    this.drawings.push(new Text(d as any, this));
+                } else if ("center" in d) {
+                    this.drawings.push(new Circle(d as any, this));
+                } else if ("size" in d) {
+                    this.drawings.push(new TextBox(d as any, this));
+                }
+            }
+        }
+
+        this.images = data.images?.map((i) => new Image(i)) ?? [];
+        this.sheet_instances = data.sheet_instances
+            ? new SheetInstances(data.sheet_instances)
+            : undefined;
+        this.symbol_instances = data.symbol_instances
+            ? new SymbolInstances(data.symbol_instances)
+            : undefined;
+        this.sheets =
+            data.sheets?.map((s) => new SchematicSheet(s, this)) ?? [];
     }
 
     *getChildren() {
@@ -248,37 +243,42 @@ export class Fill {
     type: "none" | "outline" | "background" | "color";
     color: Color;
 
-    constructor(expr: Parseable) {
-        /* (fill (type none)) */
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("fill"),
-                P.pair("type", T.string),
-                P.color(),
-            ),
-        );
+    constructor(data: S.I_Fill) {
+        this.type = data.type;
+        if (data.color) {
+            this.color = new Color(
+                data.color.r,
+                data.color.g,
+                data.color.b,
+                data.color.a,
+            );
+        } else {
+            this.color = Color.transparent_black;
+        }
     }
 }
 
 export class GraphicItem {
-    parent?: LibSymbol | SchematicSymbol;
+    parent?: LibSymbol | SchematicSymbol | KicadSch;
     private = false;
     stroke?: Stroke;
     fill?: Fill;
     uuid?: string;
 
-    constructor(parent?: LibSymbol | SchematicSymbol) {
+    constructor(
+        parent?: LibSymbol | SchematicSymbol | KicadSch,
+        data?: S.I_GraphicItem,
+    ) {
         this.parent = parent;
+        if (data) {
+            this.private = data.private ?? false;
+            this.stroke = data.stroke ? new Stroke(data.stroke) : undefined;
+            this.fill = data.fill ? new Fill(data.fill) : undefined;
+            this.uuid = data.uuid;
+        }
     }
 
-    static common_expr_defs = [
-        P.atom("private"),
-        P.item("stroke", Stroke),
-        P.item("fill", Fill),
-        P.pair("uuid", T.string),
-    ];
+    static common_expr_defs = [];
 }
 
 export class Wire {
@@ -286,20 +286,10 @@ export class Wire {
     uuid: string;
     stroke: Stroke;
 
-    constructor(expr: Parseable) {
-        /* (wire (pts (xy 43.18 195.58) (xy 31.75 195.58))
-            (stroke (width 0) (type default) (color 0 0 0 0))
-            (uuid 038156ee-7718-4322-b7b7-38f0697322c2)) */
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("wire"),
-                P.list("pts", T.vec2),
-                P.item("stroke", Stroke),
-                P.pair("uuid", T.string),
-            ),
-        );
+    constructor(data: S.I_Wire) {
+        this.pts = data.pts?.map((p) => new Vec2(p.x, p.y)) ?? [];
+        this.stroke = new Stroke(data.stroke);
+        this.uuid = data.uuid;
     }
 }
 
@@ -308,20 +298,10 @@ export class Bus {
     uuid: string;
     stroke: Stroke;
 
-    constructor(expr: Parseable) {
-        /* (bus (pts (xy 43.18 195.58) (xy 31.75 195.58))
-            (stroke (width 0) (type default) (color 0 0 0 0))
-            (uuid 038156ee-7718-4322-b7b7-38f0697322c2)) */
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("bus"),
-                P.list("pts", T.vec2),
-                P.item("stroke", Stroke),
-                P.pair("uuid", T.string),
-            ),
-        );
+    constructor(data: S.I_Bus) {
+        this.pts = data.pts?.map((p) => new Vec2(p.x, p.y)) ?? [];
+        this.stroke = new Stroke(data.stroke);
+        this.uuid = data.uuid;
     }
 }
 
@@ -331,21 +311,11 @@ export class BusEntry {
     uuid: string;
     stroke: Stroke;
 
-    constructor(expr: Parseable) {
-        /* (bus_entry (at 10 0) (size 2.54 2.54)
-            (stroke (width 0) (type default) (color 0 0 0 0))
-            (uuid 3b641c0a-296a-4bcf-b805-e697e8b794d1))*/
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("bus_entry"),
-                P.item("at", At),
-                P.vec2("size"),
-                P.item("stroke", Stroke),
-                P.pair("uuid", T.string),
-            ),
-        );
+    constructor(data: S.I_BusEntry) {
+        this.at = new At(data.at);
+        this.size = new Vec2(data.size.x, data.size.y);
+        this.stroke = new Stroke(data.stroke);
+        this.uuid = data.uuid;
     }
 }
 
@@ -353,12 +323,9 @@ export class BusAlias {
     name: string;
     members: string[] = [];
 
-    constructor(expr: Parseable) {
-        /* (bus_alias "abusalias" (members "member1" "member2")) */
-        Object.assign(
-            this,
-            parse_expr(expr, P.start("bus_alias"), P.list("members", T.string)),
-        );
+    constructor(data: S.I_BusAlias) {
+        this.name = data.name;
+        this.members = data.members;
     }
 }
 
@@ -368,20 +335,18 @@ export class Junction {
     color?: Color;
     uuid: string;
 
-    constructor(expr: Parseable) {
-        /* (junction (at 179.07 95.885) (diameter 0) (color 0 0 0 0)
-            (uuid 0650c6c5-fcca-459c-82ef-4388c8242b9d)) */
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("junction"),
-                P.item("at", At),
-                P.pair("diameter", T.number),
-                P.color(),
-                P.pair("uuid", T.string),
-            ),
-        );
+    constructor(data: S.I_Junction) {
+        this.at = new At(data.at);
+        this.diameter = data.diameter;
+        if (data.color) {
+            this.color = new Color(
+                data.color.r,
+                data.color.g,
+                data.color.b,
+                data.color.a,
+            );
+        }
+        this.uuid = data.uuid;
     }
 }
 
@@ -389,17 +354,9 @@ export class NoConnect {
     at: At;
     uuid: string;
 
-    constructor(expr: Parseable) {
-        /* (no_connect (at 236.22 92.71) (uuid f51df0a0-a355-457d-a756-de88302995ad)) */
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("no_connect"),
-                P.item("at", At),
-                P.pair("uuid", T.string),
-            ),
-        );
+    constructor(data: S.I_NoConnect) {
+        this.at = new At(data.at);
+        this.uuid = data.uuid;
     }
 }
 
@@ -410,78 +367,27 @@ export class Arc extends GraphicItem {
     mid: Vec2;
     end: Vec2;
 
-    constructor(expr: Parseable, parent?: LibSymbol | SchematicSymbol) {
-        /*
-        Current form:
-        (arc (start 2.032 -1.27) (mid 0 -0.5572) (end -2.032 -1.27)
-          (stroke (width 0.508) (type default) (color 0 0 0 0))
-          (fill (type none)))
-
-        Previous form:
-        (arc (start -0.254 1.016) (end -0.254 -1.016)
-          (radius (at -0.254 0) (length 1.016) (angles 90.1 -90.1))
-          (stroke (width 0)) (fill(type none)))
-        */
-        super(parent);
-
-        const parsed = parse_expr(
-            expr,
-            P.start("arc"),
-            P.vec2("start"),
-            P.vec2("mid"),
-            P.vec2("end"),
-            P.object(
-                "radius",
-                {},
-                P.start("radius"),
-                P.vec2("at"),
-                P.pair("length"),
-                P.vec2("angles"),
-            ),
-            ...GraphicItem.common_expr_defs,
-        );
-
-        // Deal with old format
-        if (parsed["radius"]?.["length"]) {
-            const arc = MathArc.from_center_start_end(
-                parsed["radius"]["at"],
-                parsed["end"],
-                parsed["start"],
-                1,
-            );
-
-            if (arc.arc_angle.degrees > 180) {
-                [arc.start_angle, arc.end_angle] = [
-                    arc.end_angle,
-                    arc.start_angle,
-                ];
-            }
-
-            parsed["start"] = arc.start_point;
-            parsed["mid"] = arc.mid_point;
-            parsed["end"] = arc.end_point;
-        }
-        delete parsed["radius"];
-
-        Object.assign(this, parsed);
+    constructor(
+        data: S.I_Arc,
+        parent?: LibSymbol | SchematicSymbol | KicadSch,
+    ) {
+        super(parent, data);
+        this.start = new Vec2(data.start.x, data.start.y);
+        this.mid = new Vec2(data.mid.x, data.mid.y);
+        this.end = new Vec2(data.end.x, data.end.y);
     }
 }
 
 export class Bezier extends GraphicItem {
     pts: Vec2[];
 
-    constructor(expr: Parseable, parent?: LibSymbol | SchematicSymbol) {
+    constructor(
+        data: S.I_Bezier,
+        parent?: LibSymbol | SchematicSymbol | KicadSch,
+    ) {
         /* TODO: this was added in KiCAD 7 */
-        super(parent);
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("bezier"),
-                P.list("pts", T.vec2),
-                ...GraphicItem.common_expr_defs,
-            ),
-        );
+        super(parent, data);
+        this.pts = data.pts?.map((p) => new Vec2(p.x, p.y)) ?? [];
     }
 
     get start() {
@@ -505,48 +411,25 @@ export class Circle extends GraphicItem {
     center: Vec2;
     radius: number;
 
-    constructor(expr: Parseable, parent?: LibSymbol | SchematicSymbol) {
-        /*
-        (circle (center 0 0) (radius 0.508)
-          (stroke (width 0) (type default) (color 0 0 0 0))
-          (fill (type none)))
-        */
-        super(parent);
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("circle"),
-                P.vec2("center"),
-                P.pair("radius", T.number),
-                ...GraphicItem.common_expr_defs,
-            ),
-        );
+    constructor(
+        data: S.I_Circle,
+        parent?: LibSymbol | SchematicSymbol | KicadSch,
+    ) {
+        super(parent, data);
+        this.center = new Vec2(data.center.x, data.center.y);
+        this.radius = data.radius;
     }
 }
 
 export class Polyline extends GraphicItem {
     pts: Vec2[];
 
-    constructor(expr: Parseable, parent?: LibSymbol | SchematicSymbol) {
-        /*
-        (polyline
-          (pts
-            (xy -1.524 -0.508)
-            (xy 1.524 -0.508))
-          (stroke (width 0.3302) (type default) (color 0 0 0 0))
-          (fill (type none)))
-        */
-        super(parent);
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("polyline"),
-                P.list("pts", T.vec2),
-                ...GraphicItem.common_expr_defs,
-            ),
-        );
+    constructor(
+        data: S.I_Polyline,
+        parent?: LibSymbol | SchematicSymbol | KicadSch,
+    ) {
+        super(parent, data);
+        this.pts = data.pts?.map((p) => new Vec2(p.x, p.y)) ?? [];
     }
 }
 
@@ -554,23 +437,17 @@ export class Rectangle extends GraphicItem {
     start: Vec2;
     end: Vec2;
 
-    constructor(expr: Parseable, parent?: LibSymbol | SchematicSymbol) {
-        /*
-        (rectangle (start -10.16 7.62) (end 10.16 -7.62)
-          (stroke (width 0.254) (type default) (color 0 0 0 0))
-          (fill (type background)))
-        */
-        super(parent);
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("rectangle"),
-                P.vec2("start"),
-                P.vec2("end"),
-                ...GraphicItem.common_expr_defs,
-            ),
-        );
+    constructor(
+        data: S.I_Rectangle,
+        parent?: LibSymbol | SchematicSymbol | KicadSch,
+    ) {
+        super(parent, data);
+        this.start = new Vec2(data.start.x, data.start.y);
+        this.end = new Vec2(data.end.x, data.end.y);
+    }
+
+    get bbox() {
+        return BBox.from_points([this.start, this.end]);
     }
 }
 
@@ -586,25 +463,14 @@ export class Image {
         return this.#img;
     }
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("image"),
-                P.item("at", At),
-                P.pair("data", T.string),
-                P.pair("scale", T.number),
-                P.pair("uuid", T.string),
-            ),
-        );
-
-        for (const it of expr) {
-            if (Array.isArray(it) && it.length && it[0] === "data") {
-                this.data = it.splice(1).join("");
-                break;
-            }
-        }
+    constructor(
+        data: S.I_Image,
+        parent?: LibSymbol | SchematicSymbol | KicadSch,
+    ) {
+        this.at = new At(data.at);
+        this.data = data.data;
+        this.scale = data.scale;
+        this.uuid = data.uuid;
 
         if (this.data) {
             this.ppi = get_image_ppi(this.data);
@@ -625,26 +491,15 @@ export class Text {
     exclude_from_sim?: boolean;
 
     constructor(
-        expr: Parseable,
+        data: S.I_Text,
         public parent: KicadSch | LibSymbol | SchematicSymbol,
         post_validation?: (i: string) => void,
     ) {
-        /*
-        (text "SWD" (at -5.08 0 900)
-          (effects (font (size 2.54 2.54))))
-        */
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("text"),
-                P.positional("text"),
-                P.item("at", At),
-                P.item("effects", Effects),
-                P.pair("exclude_from_sim", T.boolean),
-                P.pair("uuid", T.string),
-            ),
-        );
+        this.text = data.text;
+        this.at = new At(data.at);
+        this.effects = new Effects(data.effects);
+        this.exclude_from_sim = data.exclude_from_sim;
+        this.uuid = data.uuid;
 
         // Remove trailing \n on text
         if (this.text.endsWith("\n")) {
@@ -661,17 +516,15 @@ export class Text {
 
 export class LibText extends Text {
     constructor(
-        expr: Parseable,
+        data: S.I_Text,
         public override parent: LibSymbol | SchematicSymbol,
     ) {
-        super(expr, parent);
+        super(data, parent);
 
-        if (parent instanceof LibSymbol || parent instanceof SchematicSymbol) {
-            // From sch_sexpr_parser.cpp:LIB_TEXT* SCH_SEXPR_PARSER::parseText()
-            // "Yes, LIB_TEXT is really decidegrees even though all the others are degrees. :("
-            // motherfuck.
-            this.at.rotation /= 10;
-        }
+        // From sch_sexpr_parser.cpp:LIB_TEXT* SCH_SEXPR_PARSER::parseText()
+        // "Yes, LIB_TEXT is really decidegrees even though all the others are degrees. :("
+        // motherfuck.
+        this.at.rotation /= 10;
     }
 }
 
@@ -681,20 +534,24 @@ export class TextBox extends GraphicItem {
     size: Vec2;
     effects = new Effects();
 
-    constructor(expr: Parseable, parent?: LibSymbol | SchematicSymbol) {
+    constructor(
+        data: S.I_TextBox,
+        parent?: LibSymbol | SchematicSymbol | KicadSch,
+    ) {
         /* TODO: This was added in KiCAD 7 */
-        super(parent);
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("text"),
-                P.positional("text"),
-                P.item("at", At),
-                P.vec2("size"),
-                P.item("effects", Effects),
-                ...GraphicItem.common_expr_defs,
-            ),
+        super(parent, data);
+        this.text = data.text;
+        this.at = new At(data.at);
+        this.size = new Vec2(data.size.x, data.size.y);
+        this.effects = new Effects(data.effects);
+    }
+
+    get bbox() {
+        return new BBox(
+            this.at.position.x,
+            this.at.position.y,
+            this.size.x,
+            this.size.y,
         );
     }
 }
@@ -707,13 +564,13 @@ export class Label {
     fields_autoplaced = false;
     uuid?: string;
 
-    static common_expr_defs = [
-        P.positional("text"),
-        P.item("at", At),
-        P.item("effects", Effects),
-        P.atom("fields_autoplaced"),
-        P.pair("uuid", T.string),
-    ];
+    constructor(public parent?: KicadSch) {}
+
+    resolve_text_var(name: string): string | undefined {
+        return this.parent?.resolve_text_var(name);
+    }
+
+    static common_expr_defs = [];
 
     get shown_text() {
         return unescape_string(this.text);
@@ -721,15 +578,13 @@ export class Label {
 }
 
 export class NetLabel extends Label {
-    constructor(expr: Parseable) {
-        /* (label "net label 2.54" (at 10 12 0)
-            (effects (font (size 2.54 2.54)) (justify left bottom))
-            (uuid 7c29627e-5d2a-4966-8e8b-eadd9d1e6530)) */
-        super();
-        Object.assign(
-            this,
-            parse_expr(expr, P.start("label"), ...Label.common_expr_defs),
-        );
+    constructor(data: S.I_Label, parent?: KicadSch) {
+        super(parent);
+        this.text = data.text;
+        this.at = new At(data.at);
+        this.effects = new Effects(data.effects);
+        this.fields_autoplaced = data.fields_autoplaced ?? false;
+        this.uuid = data.uuid;
     }
 }
 
@@ -748,46 +603,31 @@ export class GlobalLabel extends Label {
     shape: LabelShapes = "input";
     properties: Property[] = [];
 
-    constructor(expr: Parseable) {
-        /* (global_label "global label tri state" (shape tri_state)
-            (at 10 25 0) (fields_autoplaced)
-            (effects (font (size 1.27 1.27)) (justify left))
-            (uuid 1e3e64a3-cedc-4434-ab25-d00014c1e69d)
-            (property "Intersheet References" "${INTERSHEET_REFS}" (id 0) (at 32.7936 24.9206 0)
-            (effects (font (size 1.27 1.27)) (justify left) hide))) */
-        super();
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("global_label"),
-                ...Label.common_expr_defs,
-                P.pair("shape", T.string),
-                P.collection("properties", "property", T.item(Property)),
-            ),
-        );
+    constructor(data: S.I_GlobalLabel, parent?: KicadSch) {
+        super(parent);
+        this.text = data.text;
+        this.at = new At(data.at);
+        this.effects = new Effects(data.effects);
+        this.fields_autoplaced = data.fields_autoplaced ?? false;
+        this.uuid = data.uuid;
+        this.shape = data.shape as LabelShapes;
+        this.properties =
+            data.properties?.map((p) => new Property(p, this)) ?? [];
     }
 }
 
 export class HierarchicalLabel extends Label {
     shape: LabelShapes = "input";
 
-    constructor(expr?: Parseable) {
-        /* (hierarchical_label "h label passive" (shape passive) (at 18 30 270)
-            (effects (font (size 1.27 1.27) (thickness 0.254) bold) (justify right))
-            (uuid 484b38aa-713f-4f24-9fa1-63547d78e1da)) */
-        super();
-
-        if (expr) {
-            Object.assign(
-                this,
-                parse_expr(
-                    expr,
-                    P.start("hierarchical_label"),
-                    ...Label.common_expr_defs,
-                    P.pair("shape", T.string),
-                ),
-            );
+    constructor(data?: S.I_HierarchicalLabel, parent?: KicadSch) {
+        super(parent);
+        if (data) {
+            this.text = data.text;
+            this.at = new At(data.at);
+            this.effects = new Effects(data.effects);
+            this.fields_autoplaced = data.fields_autoplaced ?? false;
+            this.uuid = data.uuid;
+            this.shape = data.shape as LabelShapes;
         }
     }
 }
@@ -802,17 +642,10 @@ export class LibSymbols {
     #symbols_by_name: Map<string, LibSymbol> = new Map();
 
     constructor(
-        expr: Parseable,
+        data: S.I_LibSymbol[],
         public parent?: KicadSch,
     ) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("lib_symbols"),
-                P.collection("symbols", "symbol", T.item(LibSymbol, parent)),
-            ),
-        );
+        this.symbols = data.map((s) => new LibSymbol(s, this));
 
         for (const symbol of this.symbols) {
             this.#symbols_by_name.set(symbol.name, symbol);
@@ -852,49 +685,58 @@ export class LibSymbol {
     libPins: LibSymbolPin[] = [];
     exclude_from_sim: boolean = false;
 
+    get bbox() {
+        return BBox.combine(
+            [...this.drawings, ...this.pins].map((d) => (d as any).bbox),
+        );
+    }
+
     #pins_by_number: Map<string, PinDefinition> = new Map();
     #properties_by_id: Map<number, Property> = new Map();
 
     constructor(
-        expr: Parseable,
-        public parent: LibSymbol | KicadSch,
+        data: S.I_LibSymbol,
+        public parent: LibSymbols | LibSymbol,
     ) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("symbol"),
-                P.positional("name"),
-                P.atom("power"),
-                P.object("pin_numbers", this.pin_numbers, P.atom("hide")),
-                P.object(
-                    "pin_names",
-                    this.pin_names,
-                    P.pair("offset", T.number),
-                    P.atom("hide"),
-                ),
-                P.pair("exclude_from_sim", T.boolean),
-                P.pair("in_bom", T.boolean),
-                P.pair("embedded_fonts", T.boolean),
-                P.pair("embedded_files", T.any),
-                P.pair("on_board", T.boolean),
-                P.mapped_collection(
-                    "properties",
-                    "property",
-                    (p: Property) => p.name,
-                    T.item(Property, this),
-                ),
-                P.collection("pins", "pin", T.item(PinDefinition, this)),
-                P.collection("children", "symbol", T.item(LibSymbol, this)),
-                P.collection("drawings", "arc", T.item(Arc, this)),
-                P.collection("drawings", "bezier", T.item(Bezier, this)),
-                P.collection("drawings", "circle", T.item(Circle, this)),
-                P.collection("drawings", "polyline", T.item(Polyline, this)),
-                P.collection("drawings", "rectangle", T.item(Rectangle, this)),
-                P.collection("drawings", "text", T.item(LibText, this)),
-                P.collection("drawings", "textbox", T.item(TextBox, this)),
-            ),
+        this.name = data.name;
+        this.power = data.power ?? false;
+        this.pin_numbers = data.pin_numbers ?? { hide: false };
+        this.pin_names = data.pin_names ?? {
+            offset: DefaultValues.pin_name_offset,
+            hide: false,
+        };
+        this.in_bom = data.in_bom ?? false;
+        this.on_board = data.on_board ?? false;
+        this.embedded_fonts = data.embedded_fonts ?? false;
+        this.embedded_files = data.embedded_files;
+        this.exclude_from_sim = data.exclude_from_sim ?? false;
+
+        this.properties = new Map(
+            data.properties?.map((p) => [p.name, new Property(p, this)]),
         );
+        this.children = data.children?.map((c) => new LibSymbol(c, this)) ?? [];
+        this.pins = data.pins?.map((p) => new PinDefinition(p, this)) ?? [];
+
+        this.drawings = [];
+        if (data.drawings) {
+            for (const d of data.drawings) {
+                if ("pts" in d && (d as S.I_Polyline).pts) {
+                    this.drawings.push(new Polyline(d as S.I_Polyline, this));
+                } else if ("start" in d && (d as S.I_Rectangle).start) {
+                    this.drawings.push(new Rectangle(d as S.I_Rectangle, this));
+                } else if ("center" in d && (d as S.I_Circle).center) {
+                    this.drawings.push(new Circle(d as S.I_Circle, this));
+                } else if ("mid" in d && (d as S.I_Arc).mid) {
+                    this.drawings.push(new Arc(d as S.I_Arc, this));
+                } else if ("text" in d && (d as S.I_Text).text) {
+                    this.drawings.push(new LibText(d as S.I_Text, this));
+                } else if ("size" in d && (d as S.I_TextBox).size) {
+                    this.drawings.push(new TextBox(d as S.I_TextBox, this));
+                } else if ("pts" in d && (d as S.I_Bezier).pts) {
+                    this.drawings.push(new Bezier(d as S.I_Bezier, this));
+                }
+            }
+        }
 
         for (const pin of this.pins) {
             this.#pins_by_number.set(pin.number.text, pin);
@@ -1045,6 +887,9 @@ export class LibSymbol {
     }
 
     resolve_text_var(name: string): string | undefined {
+        if (this.parent instanceof LibSymbols) {
+            return this.parent.parent?.resolve_text_var(name);
+        }
         return this.parent?.resolve_text_var(name);
     }
 }
@@ -1056,28 +901,21 @@ export class Property {
     at: At;
     show_name = false;
     do_not_autoplace = false;
+    hide = false;
     #effects?: Effects;
 
     constructor(
-        expr: Parseable,
-        public parent: LibSymbol | SchematicSymbol | SchematicSheet,
+        data: S.I_Property,
+        public parent: LibSymbol | SchematicSymbol | SchematicSheet | Label,
     ) {
-        const parsed = parse_expr(
-            expr,
-            P.start("property"),
-            P.positional("name", T.string),
-            P.positional("text", T.string),
-            P.pair("id", T.number),
-            P.item("at", At),
-            P.item("effects", Effects),
-            P.atom("show_name"),
-            P.atom("do_not_autoplace"),
-        );
-
-        this.#effects = parsed["effects"];
-        delete parsed["effects"];
-
-        Object.assign(this, parsed);
+        this.name = data.name;
+        this.text = data.text;
+        this.id = data.id;
+        this.at = new At(data.at);
+        this.show_name = data.show_name ?? false;
+        this.do_not_autoplace = data.do_not_autoplace ?? false;
+        this.hide = data.hide ?? false;
+        this.#effects = data.effects ? new Effects(data.effects) : undefined;
     }
 
     get effects(): Effects {
@@ -1086,7 +924,7 @@ export class Property {
         } else if (this.parent instanceof SchematicSymbol) {
             this.#effects = new Effects();
         } else {
-            log.warn(`Couldn't determine Effects for Property ${this.name}`);
+            // log.warn(`Couldn't determine Effects for Property ${this.name}`); // Removed log import
         }
         return this.#effects!;
     }
@@ -1097,6 +935,10 @@ export class Property {
 
     get shown_text() {
         return expand_text_vars(this.text, this.parent);
+    }
+
+    get bbox() {
+        return new BBox(this.at.position.x, this.at.position.y, 1, 1);
     }
 }
 
@@ -1126,57 +968,38 @@ export type PinShape =
     | "edge_clock_high"
     | "non_logic";
 
+export class PinInfo {
+    text: string;
+    effects: Effects;
+
+    constructor(data: S.I_PinInfo) {
+        this.text = data.text;
+        this.effects = new Effects(data.effects);
+    }
+}
+
 export class PinDefinition {
     type: PinElectricalType;
     shape: PinShape;
     hide = false;
     at: At;
     length: number;
-    name = {
-        text: "",
-        effects: new Effects(),
-    };
-    number = {
-        text: "",
-        effects: new Effects(),
-    };
+    name: PinInfo;
+    number: PinInfo;
     alternates?: PinAlternate[];
 
     constructor(
-        expr: Parseable,
+        data: S.I_Pin,
         public parent: LibSymbol,
     ) {
-        /*
-        (pin power_in line (at -15.24 50.8 270) (length 2.54) hide
-          (name "IOVDD" (effects (font (size 1.27 1.27))))
-          (number "1" (effects (font (size 1.27 1.27))))
-          (alternate "alt" input inverted_clock))
-        */
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("pin"),
-                P.positional("type", T.string),
-                P.positional("shape", T.string),
-                P.atom("hide"),
-                P.item("at", At),
-                P.pair("length", T.number),
-                P.object(
-                    "name",
-                    this.name,
-                    P.positional("text", T.string),
-                    P.item("effects", Effects),
-                ),
-                P.object(
-                    "number",
-                    this.number,
-                    P.positional("text", T.string),
-                    P.item("effects", Effects),
-                ),
-                P.collection("alternates", "alternate", T.item(PinAlternate)),
-            ),
-        );
+        this.type = data.type as PinElectricalType;
+        this.shape = data.shape as PinShape;
+        this.hide = data.hide ?? false;
+        this.at = new At(data.at);
+        this.length = data.length;
+        this.name = new PinInfo(data.name);
+        this.number = new PinInfo(data.number);
+        this.alternates = data.alternates?.map((a) => new PinAlternate(a));
     }
 
     get unit() {
@@ -1189,17 +1012,10 @@ export class PinAlternate {
     type: PinElectricalType;
     shape: PinShape;
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("alternate"),
-                P.positional("name"),
-                P.positional("type", T.string),
-                P.positional("shaped", T.string),
-            ),
-        );
+    constructor(data: S.I_PinAlternate) {
+        this.name = data.name;
+        this.type = data.type as PinElectricalType;
+        this.shape = data.shape as PinShape;
     }
 }
 
@@ -1225,127 +1041,77 @@ export class SchematicSymbol {
         footprint: string;
     };
 
-    bbox(theme: SchematicTheme) {
-        const transform = get_symbol_transform(this);
-        const bboxes = get_symbol_body_and_pins_bbox(theme, this);
-        const p = Matrix3.translation(this.at.position.x, this.at.position.y);
-        transform.matrix.multiply(p);
-        const bbox = bboxes.transform(p);
-        console.log(bbox);
-        return bbox;
-    }
-
     instances: Map<string, SchematicSymbolInstance> = new Map();
 
     constructor(
-        expr: Parseable,
+        data: S.I_SchematicSymbol,
         public parent: KicadSch,
     ) {
-        /*
-        (symbol (lib_id "Device:C_Small") (at 134.62 185.42 0) (unit 1)
-          (in_bom yes) (on_board yes) (fields_autoplaced)
-          (uuid 42d20c56-7e92-459e-8ba3-25545a76a4e9)
-          (property "Reference" "C311" (id 0) (at 137.16 182.8862 0)
-            (effects (font (size 1.27 1.27)) (justify left)))
-          (property "Value" "100n" (id 1) (at 137.16 185.4262 0)
-            (effects (font (size 1.27 1.27)) (justify left)))
-          (property "Footprint" "winterbloom:C_0402_HandSolder" (id 2) (at 134.62 185.42 0)
-            (effects (font (size 1.27 1.27)) hide))
-          (pin "1" (uuid ab9b91d4-020f-476d-acd8-920c7892e89a))
-          (pin "2" (uuid ec1eed11-c9f6-4ab0-ad9c-a96c0cb10d03)))
-        */
-        const parsed = parse_expr(
-            expr,
-            P.start("symbol"),
-            P.pair("lib_name", T.string),
-            P.pair("lib_id", T.string),
-            P.item("at", At),
-            P.pair("mirror", T.string),
-            P.pair("exclude_from_sim", T.boolean),
-
-            P.pair("unit", T.number),
-            P.pair("convert", T.number),
-            P.pair("in_bom", T.boolean),
-            P.pair("on_board", T.boolean),
-            P.pair("dnp", T.boolean),
-            P.atom("fields_autoplaced"),
-            P.pair("uuid", T.string),
-            P.mapped_collection(
-                "properties",
-                "property",
-                (p: Property) => p.name,
-                T.item(Property, this),
-            ),
-            P.collection("pins", "pin", T.item(PinInstance, this)),
-            P.object(
-                "default_instance",
-                this.default_instance,
-                P.pair("reference", T.string),
-                P.pair("unit", T.string),
-                P.pair("value", T.string),
-                P.pair("footprint", T.string),
-            ),
-            // (instances
-            //    (project "kit-dev-coldfire-xilinx_5213"
-            //      (path "/f5d7a48d-4587-4550-a504-c505ca11d375" (reference "R111") (unit 1))))
-            P.object(
-                "instances",
-                {},
-                P.collection(
-                    "projects",
-                    "project",
-                    T.object(
-                        null,
-                        P.start("project"),
-                        P.positional("name", T.string),
-                        P.collection(
-                            "paths",
-                            "path",
-                            T.object(
-                                null,
-                                P.start("path"),
-                                P.positional("path"),
-                                P.pair("reference", T.string),
-                                P.pair("value", T.string),
-                                P.pair("unit", T.number),
-                                P.pair("footprint", T.string),
-                            ),
-                        ),
-                    ),
-                ),
-            ),
+        this.lib_name = data.lib_name;
+        this.lib_id = data.lib_id;
+        this.at = new At(data.at);
+        this.mirror = data.mirror;
+        this.exclude_from_sim = data.exclude_from_sim ?? false;
+        this.unit = data.unit;
+        this.convert = data.convert ?? 1;
+        this.in_bom = data.in_bom ?? false;
+        this.on_board = data.on_board ?? false;
+        this.dnp = data.dnp ?? false;
+        this.fields_autoplaced = data.fields_autoplaced ?? false;
+        this.uuid = data.uuid;
+        this.properties = new Map(
+            data.properties?.map((p) => [p.name, new Property(p, this)]),
         );
-
-        const parsed_instances = parsed["instances"];
-        delete parsed["instances"];
-
-        Object.assign(this, parsed);
+        this.pins = data.pins?.map((p) => new PinInstance(p, this)) ?? [];
+        this.default_instance = data.default_instance;
 
         // Walk through all instances and flatten them.
-        for (const project of parsed_instances?.["projects"] ?? []) {
-            for (const path of project?.["paths"] ?? []) {
+        for (const project of data.instances?.projects ?? []) {
+            for (const path of project?.paths ?? []) {
                 const inst = new SchematicSymbolInstance();
-                inst.path = path["path"];
-                inst.reference = path["reference"];
-                inst.value = path["value"];
-                inst.unit = path["unit"];
-                inst.footprint = path["footprint"];
+                inst.path = path.path;
+                inst.reference = path.reference;
+                inst.value = path.value;
+                inst.unit = path.unit;
+                inst.footprint = path.footprint;
                 this.instances.set(inst.path, inst);
             }
         }
 
         // Default instance is used only to set the value and footprint, the
         // other items seem to be ignored.
-        if (this.get_property_text("Value") == undefined) {
+        if (
+            this.get_property_text("Value") == undefined &&
+            this.default_instance
+        ) {
             this.set_property_text("Value", this.default_instance.value);
         }
 
-        if (!this.get_property_text("Footprint") == undefined) {
+        if (
+            this.get_property_text("Footprint") == undefined &&
+            this.default_instance
+        ) {
             this.set_property_text(
                 "Footprint",
                 this.default_instance.footprint,
             );
         }
+    }
+
+    get_symbol_transform() {
+        const mat = Matrix3.translation(this.at.position.x, this.at.position.y);
+        mat.rotate_self(this.at.rotation);
+        if (this.mirror == "x") {
+            mat.scale_self(-1, 1);
+        } else if (this.mirror == "y") {
+            mat.scale_self(1, -1);
+        }
+        return mat;
+    }
+
+    get_symbol_body_and_pins_bbox() {
+        const bbox = this.lib_symbol.bbox;
+        return bbox.transform(this.get_symbol_transform());
     }
 
     get lib_symbol(): LibSymbol {
@@ -1368,9 +1134,6 @@ export class SchematicSymbol {
 
     get reference() {
         return this.get_property_text("Reference") ?? "?";
-    }
-    get description() {
-        return this.get_property_text("Description") ?? "?";
     }
 
     set reference(val: string) {
@@ -1443,7 +1206,7 @@ export class SchematicSymbol {
             case "ALTIUM_VALUE":
                 return this.value;
             case "DATASHEET":
-                return this.properties.get("Datasheet")?.name;
+                return this.get_property_text("Datasheet");
             case "FOOTPRINT_LIBRARY":
                 return this.footprint.split(":").at(0);
             case "FOOTPRINT_NAME":
@@ -1468,6 +1231,21 @@ export class SchematicSymbol {
 
         return this.parent.resolve_text_var(name);
     }
+
+    get bbox() {
+        const trans = this.get_symbol_transform();
+        const boxes = [this.lib_symbol.bbox.transform(trans)];
+        for (const it of this.properties.values()) {
+            if (!it.hide) {
+                boxes.push(it.bbox);
+            }
+        }
+        return BBox.combine(boxes);
+    }
+
+    *items() {
+        yield* this.unit_pins;
+    }
 }
 
 export class SchematicSymbolInstance {
@@ -1487,20 +1265,12 @@ export class PinInstance implements HighlightAble, IndexAble {
     alternate: string;
 
     constructor(
-        expr: Parseable,
+        data: S.I_PinInstance,
         public parent: SchematicSymbol,
     ) {
-        /* (pin "1" (uuid ab9b91d4-020f-476d-acd8-920c7892e89a) (alternate abc)) */
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("pin"),
-                P.positional("number", T.string),
-                P.pair("uuid", T.string),
-                P.pair("alternate", T.string),
-            ),
-        );
+        this.number = data.number;
+        this.uuid = data.uuid;
+        this.alternate = data.alternate;
     }
     bbox: BBox;
 
@@ -1614,19 +1384,9 @@ export class SheetInstances {
     }
     sheet_instances: Map<string, SheetInstance> = new Map();
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("sheet_instances"),
-                P.mapped_collection(
-                    "sheet_instances",
-                    "path",
-                    (obj: SheetInstance) => obj.path,
-                    T.item(SheetInstance),
-                ),
-            ),
+    constructor(data: S.I_SheetInstance[]) {
+        this.sheet_instances = new Map(
+            data.map((s) => [s.path, new SheetInstance(s)]),
         );
     }
 
@@ -1639,18 +1399,9 @@ export class SheetInstance {
     page: string;
     path: string;
 
-    constructor(expr: Parseable) {
-        /* (path "/" (page "1")) */
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                // note: start is "path"
-                P.start("path"),
-                P.positional("path", T.string),
-                P.pair("page", T.string),
-            ),
-        );
+    constructor(data: S.I_SheetInstance) {
+        this.page = data.page;
+        this.path = data.path;
     }
 }
 
@@ -1660,19 +1411,9 @@ export class SymbolInstances {
     }
     symbol_instances: Map<string, SymbolInstance> = new Map();
 
-    constructor(expr: Parseable) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("symbol_instances"),
-                P.mapped_collection(
-                    "symbol_instances",
-                    "path",
-                    (obj: SymbolInstance) => obj.path,
-                    T.item(SymbolInstance),
-                ),
-            ),
+    constructor(data: S.I_SymbolInstance[]) {
+        this.symbol_instances = new Map(
+            data.map((s) => [s.path, new SymbolInstance(s)]),
         );
     }
 
@@ -1688,22 +1429,12 @@ export class SymbolInstance {
     value: string;
     footprint: string;
 
-    constructor(expr: Parseable) {
-        /* (path "/dfac8bd5-de3e-410c-a76e-956b6a012495"
-            (reference "C?") (unit 1) (value "C_Polarized_US") (footprint "")) */
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                // note: start is "path"
-                P.start("path"),
-                P.positional("path", T.string),
-                P.pair("reference", T.string),
-                P.pair("unit", T.number),
-                P.pair("value", T.string),
-                P.pair("footprint", T.string),
-            ),
-        );
+    constructor(data: S.I_SymbolInstance) {
+        this.path = data.path;
+        this.reference = data.reference;
+        this.unit = data.unit;
+        this.value = data.value;
+        this.footprint = data.footprint;
     }
 }
 
@@ -1770,64 +1501,26 @@ export class SchematicSheet {
     }
 
     constructor(
-        expr: Parseable,
+        data: S.I_SchematicSheet,
         public parent: KicadSch,
     ) {
-        const parsed = parse_expr(
-            expr,
-            P.start("sheet"),
-            P.item("at", At),
-            P.vec2("size"),
-            P.item("stroke", Stroke),
-            P.item("fill", Fill),
-            P.pair("fields_autoplaced", T.boolean),
-            P.pair("uuid", T.string),
-            P.mapped_collection(
-                "properties",
-                "property",
-                (prop: Property) => prop.name,
-                T.item(Property, this),
-            ),
-            P.collection("pins", "pin", T.item(SchematicSheetPin, this)),
-            // (instances
-            //   (project "kit-dev-coldfire-xilinx_5213"
-            //     (path "/f5d7a48d-4587-4550-a504-c505ca11d375" (page "3"))))
-            P.object(
-                "instances",
-                {},
-                P.collection(
-                    "projects",
-                    "project",
-                    T.object(
-                        null,
-                        P.start("project"),
-                        P.positional("name", T.string),
-                        P.collection(
-                            "paths",
-                            "path",
-                            T.object(
-                                null,
-                                P.start("path"),
-                                P.positional("path"),
-                                P.pair("page", T.string),
-                            ),
-                        ),
-                    ),
-                ),
-            ),
+        this.at = new At(data.at);
+        this.size = new Vec2(data.size.x, data.size.y);
+        this.stroke = new Stroke(data.stroke);
+        this.fill = data.fill ? new Fill(data.fill) : (undefined as any);
+        this.fields_autoplaced = data.fields_autoplaced ?? false;
+        this.uuid = data.uuid;
+        this.properties = new Map(
+            data.properties?.map((p) => [p.name, new Property(p, this)]),
         );
-
-        const parsed_instances = parsed["instances"];
-        delete parsed["instances"];
-
-        Object.assign(this, parsed);
+        this.pins = data.pins?.map((p) => new SchematicSheetPin(p, this)) ?? [];
 
         // Walk through all instances and flatten them.
-        for (const project of parsed_instances?.["projects"] ?? []) {
-            for (const path of project?.["paths"] ?? []) {
+        for (const project of data.instances?.projects ?? []) {
+            for (const path of project?.paths ?? []) {
                 const inst = new SchematicSheetInstance();
-                inst.path = path["path"];
-                inst.page = path["page"];
+                inst.path = path.path;
+                inst.page = path.page;
                 this.instances.set(inst.path, inst);
             }
         }
@@ -1864,21 +1557,14 @@ export class SchematicSheetPin {
     uuid: string;
 
     constructor(
-        expr: Parseable,
+        data: S.I_SchematicSheetPin,
         public parent: SchematicSheet,
     ) {
-        Object.assign(
-            this,
-            parse_expr(
-                expr,
-                P.start("pin"),
-                P.positional("name", T.string),
-                P.positional("shape", T.string),
-                P.item("at", At),
-                P.item("effects", Effects),
-                P.pair("uuid", T.string),
-            ),
-        );
+        this.at = new At(data.at);
+        this.name = data.name;
+        this.shape = data.shape as LabelShapes;
+        this.effects = new Effects(data.effects);
+        this.uuid = data.uuid;
     }
 }
 
