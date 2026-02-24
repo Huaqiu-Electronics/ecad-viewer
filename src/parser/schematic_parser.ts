@@ -210,15 +210,11 @@ function parseImage(expr: Parseable): S.I_Image {
         P.pair("uuid", T.string),
     );
 
-    // Extract data from positional or list if not found by pair?
-    // schematic.ts does a manual loop for data.
-    let data = parsed["data"];
-    if (!data) {
-        for (const it of expr as List) {
-            if (Array.isArray(it) && it.length && it[0] === "data") {
-                data = it.slice(1).join("");
-                break;
-            }
+    let data = "";
+    for (const it of expr as List) {
+        if (Array.isArray(it) && it.length && it[0] === "data") {
+            data = it.slice(1).join("");
+            break;
         }
     }
 
