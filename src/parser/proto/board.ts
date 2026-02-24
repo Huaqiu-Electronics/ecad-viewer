@@ -453,6 +453,7 @@ export interface I_KicadPCB {
     nets: I_Net[];
     footprints: I_Footprint[];
     zones: I_Zone[];
+    embedded_fonts?: boolean;
     segments: (I_LineSegment | I_ArcSegment)[];
     vias: I_Via[];
     drawings: (

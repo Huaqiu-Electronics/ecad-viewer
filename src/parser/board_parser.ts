@@ -546,6 +546,7 @@ function parseFootprint(expr: Parseable): B.I_Footprint {
         P.start("footprint"),
         P.positional("library_link", T.string),
         P.pair("version", T.number),
+        P.pair("embedded_fonts", T.boolean),
         P.pair("generator", T.string),
         P.atom("locked"),
         P.atom("placed"),
@@ -668,6 +669,7 @@ export class BoardParser {
             P.start("kicad_pcb"),
             P.positional("version", T.number),
             P.pair("generator", T.string),
+            P.pair("embedded_fonts", T.boolean),
             P.pair("generator_version", T.string),
             P.object(
                 "general",
