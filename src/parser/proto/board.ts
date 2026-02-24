@@ -26,12 +26,12 @@ export interface I_StackupLayer {
 }
 
 export interface I_Stackup {
-    layers: I_StackupLayer[];
-    copper_finish: string;
-    dielectric_constraints: boolean;
-    edge_connector: string;
-    castellated_pads: boolean;
-    edge_plating: boolean;
+    layers?: I_StackupLayer[];
+    copper_finish?: string;
+    dielectric_constraints?: boolean;
+    edge_connector?: string;
+    castellated_pads?: boolean;
+    edge_plating?: boolean;
 }
 
 export interface I_PCBPlotParams {

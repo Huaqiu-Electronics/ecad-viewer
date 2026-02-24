@@ -612,12 +612,12 @@ export class Stackup implements BoardNode {
     edge_plating = false;
 
     constructor(data: B.I_Stackup) {
-        this.layers = data.layers?.map((l) => new StackupLayer(l)) ?? [];
-        this.copper_finish = data.copper_finish;
-        this.dielectric_constraints = data.dielectric_constraints;
-        this.edge_connector = data.edge_connector;
-        this.castellated_pads = data.castellated_pads;
-        this.edge_plating = data.edge_plating;
+        this.layers = data?.layers?.map((l) => new StackupLayer(l)) ?? [];
+        this.copper_finish = data?.copper_finish ?? "";
+        this.dielectric_constraints = data?.dielectric_constraints ?? false;
+        this.edge_connector = data?.edge_connector ?? "";
+        this.castellated_pads = data?.castellated_pads ?? false;
+        this.edge_plating = data?.edge_plating ?? false;
     }
 }
 
