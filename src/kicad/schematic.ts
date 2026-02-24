@@ -463,10 +463,7 @@ export class Image {
         return this.#img;
     }
 
-    constructor(
-        data: S.I_Image,
-        parent?: LibSymbol | SchematicSymbol | KicadSch,
-    ) {
+    constructor(data: S.I_Image) {
         this.at = new At(data.at);
         this.data = data.data;
         this.scale = data.scale;

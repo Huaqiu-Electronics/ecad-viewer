@@ -656,6 +656,7 @@ export class SchematicPainter extends BaseSchematicPainter {
 
     constructor(gfx: Renderer, layers: LayerSet, theme: SchematicTheme) {
         super(gfx, layers, theme);
+        this.theme = theme;
         this.painter_list = [
             new RectanglePainter(this, gfx),
             new PolylinePainter(this, gfx),

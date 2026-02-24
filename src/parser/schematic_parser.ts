@@ -225,7 +225,8 @@ function parseImage(expr: Parseable): S.I_Image {
     return {
         ...parsed,
         data: data,
-        ppi: null, // Calculated in hydration
+        ppi: null,
+        scale: typeof parsed["scale"] === "number" ? parsed["scale"] : 1,
     } as unknown as S.I_Image;
 }
 
@@ -537,6 +538,7 @@ export class SchematicParser {
             P.pair("generator_version", T.string),
             P.pair("uuid", T.string),
             P.item("paper", parsePaper),
+            P.pair("embedded_fonts", T.boolean),
             P.item("title_block", parseTitleBlock),
             // lib_symbols parsed as collection of symbols inside lib_symbols item
             P.item("lib_symbols", (e) => {

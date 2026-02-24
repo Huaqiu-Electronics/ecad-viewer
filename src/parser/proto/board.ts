@@ -122,6 +122,7 @@ export interface I_Arc extends I_GraphicItem {
     end: { x: number; y: number };
     width: number;
     stroke: I_Stroke;
+    angle?: number;
 }
 
 export interface I_Poly extends I_GraphicItem {

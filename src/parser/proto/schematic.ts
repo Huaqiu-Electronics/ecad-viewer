@@ -326,4 +326,5 @@ export interface I_KicadSch {
     sheet_instances?: I_SheetInstance[];
     symbol_instances?: I_SymbolInstance[];
     sheets: I_SchematicSheet[];
+    embedded_fonts?: boolean;
 }

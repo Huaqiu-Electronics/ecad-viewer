@@ -6,6 +6,9 @@
 
 import { listify, type List } from "./tokenizer";
 import type { I_Color } from "./proto/common";
+import { Logger } from "../base/log";
+
+const log = new Logger("kicanvas:parser");
 
 const is_string = (e: any): e is string => typeof e === "string";
 const is_number = (e: any): e is number => typeof e === "number";
@@ -277,10 +280,9 @@ export function parse_expr(expr: string | List, ...defs: PropertyDefinition[]) {
         const first = (expr as any).at(0) as string;
 
         if (!acceptable_start_strings.includes(first)) {
-            // throw new Error(
-            //     `Expression must start with ${start_def.name} found ${first} in ${expr}`,
-            // );
-            // Allow loose parsing for now as we might be parsing fragments
+            throw new Error(
+                `Expression must start with ${start_def.name} found ${first} in ${expr}`,
+            );
         }
 
         expr = expr.slice(1);
@@ -299,6 +301,9 @@ export function parse_expr(expr: string | List, ...defs: PropertyDefinition[]) {
         if (!def && (is_string(element) || is_number(element))) {
             def = defs_map.get(n);
             if (!def) {
+                log.warn(
+                    `no def for bare element ${element} at position ${n} in expression ${expr}`,
+                );
                 continue;
             }
             n++;
@@ -309,6 +314,9 @@ export function parse_expr(expr: string | List, ...defs: PropertyDefinition[]) {
         }
 
         if (!def) {
+            log.warn(
+                `No def found for element ${element} in expression ${expr}`,
+            );
             continue;
         }
 

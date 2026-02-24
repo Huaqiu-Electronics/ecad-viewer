@@ -132,10 +132,10 @@ function parseNetReference(expr: Parseable): B.I_Net {
     ) as unknown as B.I_Net;
 }
 
-function parseLine(expr: Parseable): B.I_Line {
+function parseLine(expr: Parseable, start: string): B.I_Line {
     return parse_expr(
         expr,
-        P.start("gr_line"), // Also fp_line
+        P.start(start),
         P.pair("layer", T.string),
         P.pair("tstamp", T.string),
         P.atom("locked"),
@@ -146,10 +146,18 @@ function parseLine(expr: Parseable): B.I_Line {
     ) as unknown as B.I_Line;
 }
 
-function parseCircle(expr: Parseable): B.I_Circle {
+function parse_gr_Line(expr: Parseable) {
+    return parseLine(expr, "gr_line");
+}
+
+function parse_fp_Line(expr: Parseable) {
+    return parseLine(expr, "fp_line");
+}
+
+function parseCircle(expr: Parseable, start: string): B.I_Circle {
     return parse_expr(
         expr,
-        P.start("gr_circle"), // Also fp_circle
+        P.start(start),
         P.pair("layer", T.string),
         P.pair("tstamp", T.string),
         P.atom("locked"),
@@ -161,29 +169,49 @@ function parseCircle(expr: Parseable): B.I_Circle {
     ) as unknown as B.I_Circle;
 }
 
-function parseArc(expr: Parseable): B.I_Arc {
+function parse_gr_Circle(expr: Parseable) {
+    return parseCircle(expr, "gr_circle");
+}
+function parse_fp_Circle(expr: Parseable): B.I_Circle {
+    return parseCircle(expr, "fp_circle");
+}
+
+function parseArc(expr: Parseable, start: string): B.I_Arc {
     // Logic for arc vs gr_arc vs fp_arc
     // And handling legacy angle format if needed - for POD we might just store what we get
     // But conversion to start/mid/end might be better done here or in hydrator.
     // Let's assume standard modern format for now or just parse fields.
     return parse_expr(
         expr,
-        P.start("gr_arc"), // Also fp_arc
+        P.start(start), // Also fp_arc
         P.pair("layer", T.string),
         P.pair("tstamp", T.string),
         P.atom("locked"),
         P.vec2("start"),
         P.vec2("mid"),
         P.vec2("end"),
+        P.pair("angle", T.number),
         P.pair("width", T.number),
         P.item("stroke", parseStroke),
     ) as unknown as B.I_Arc;
 }
 
-function parsePoly(expr: Parseable): B.I_Poly {
+function parse_gr_Arc(expr: Parseable) {
+    return parseArc(expr, "gr_arc");
+}
+
+function parse_fp_Arc(expr: Parseable) {
+    return parseArc(expr, "fp_arc");
+}
+
+function parse_poly_Arc(expr: Parseable) {
+    return parseArc(expr, "arc");
+}
+
+function parsePoly(expr: Parseable, start: string): B.I_Poly {
     return parse_expr(
         expr,
-        P.start("gr_poly"), // Also fp_poly
+        P.start(start),
         P.pair("layer", T.string),
         P.pair("tstamp", T.string),
         P.atom("locked"),
@@ -192,6 +220,7 @@ function parsePoly(expr: Parseable): B.I_Poly {
                 expr as List,
                 P.start("pts"),
                 P.collection("items", "xy", T.vec2),
+                P.collection("items", "arc", T.item(parse_poly_Arc)),
             );
             return (parsed as { items: any[] })?.["items"];
         }),
@@ -200,6 +229,22 @@ function parsePoly(expr: Parseable): B.I_Poly {
         P.atom("island"),
         P.item("stroke", parseStroke),
     ) as unknown as B.I_Poly;
+}
+
+function parse_gr_poly(expr: Parseable) {
+    return parsePoly(expr, "gr_poly");
+}
+
+function parse_fp_poly(expr: Parseable) {
+    return parsePoly(expr, "fp_poly");
+}
+
+function parse_polygon(expr: Parseable) {
+    return parsePoly(expr, "polygon");
+}
+
+function parse_filled_polygon(expr: Parseable) {
+    return parsePoly(expr, "filled_polygon");
 }
 
 function parseRect(expr: Parseable): B.I_Rect {
@@ -365,15 +410,15 @@ function parsePad(expr: Parseable): B.I_Pad {
                             : "";
                     switch (type) {
                         case "gr_line":
-                            return parseLine(item as Parseable);
+                            return parse_gr_Line(item as Parseable);
                         case "gr_circle":
-                            return parseCircle(item as Parseable);
+                            return parse_fp_Circle(item as Parseable);
                         case "gr_arc":
-                            return parseArc(item as Parseable);
+                            return parse_gr_Arc(item as Parseable);
                         case "gr_rect":
                             return parseRect(item as Parseable);
                         case "gr_poly":
-                            return parsePoly(item as Parseable);
+                            return parse_gr_poly(item as Parseable);
                         default:
                             return null;
                     }
@@ -484,8 +529,12 @@ function parseZone(expr: Parseable): B.I_Zone {
         P.pair("filled_areas_thickness", T.boolean),
         P.item("keepout", parseZoneKeepout),
         P.item("fill", parseZoneFill),
-        P.collection("polygons", "polygon", T.item(parsePoly)),
-        P.collection("filled_polygons", "filled_polygon", T.item(parsePoly)),
+        P.collection("polygons", "polygon", T.item(parse_polygon)),
+        P.collection(
+            "filled_polygons",
+            "filled_polygon",
+            T.item(parse_filled_polygon),
+        ),
         P.pair("tstamp", T.string),
         P.pair("uuid", T.string),
     ) as unknown as B.I_Zone;
@@ -533,10 +582,10 @@ function parseFootprint(expr: Parseable): B.I_Footprint {
             P.atom("allow_missing_courtyard"),
         ),
         P.dict("properties", "property", T.string),
-        P.collection("drawings", "fp_line", T.item(parseLine)),
-        P.collection("drawings", "fp_circle", T.item(parseCircle)),
-        P.collection("drawings", "fp_arc", T.item(parseArc)),
-        P.collection("drawings", "fp_poly", T.item(parsePoly)),
+        P.collection("drawings", "fp_line", T.item(parse_fp_Line)),
+        P.collection("drawings", "fp_circle", T.item(parse_fp_Circle)),
+        P.collection("drawings", "fp_arc", T.item(parse_fp_Arc)),
+        P.collection("drawings", "fp_poly", T.item(parse_fp_poly)),
         P.collection("drawings", "fp_rect", T.item(parseRect)),
         P.collection("fp_texts", "fp_text", T.item(parseFpText)),
         P.collection("zones", "zone", T.item(parseZone)),
@@ -642,10 +691,10 @@ export class BoardParser {
             P.collection("segments", "segment", T.item(parseLineSegment)),
             P.collection("segments", "arc", T.item(parseArcSegment)),
             P.collection("vias", "via", T.item(parseVia)),
-            P.collection("drawings", "gr_line", T.item(parseLine)),
-            P.collection("drawings", "gr_circle", T.item(parseCircle)),
-            P.collection("drawings", "gr_arc", T.item(parseArc)),
-            P.collection("drawings", "gr_poly", T.item(parsePoly)),
+            P.collection("drawings", "gr_line", T.item(parse_gr_Line)),
+            P.collection("drawings", "gr_circle", T.item(parse_gr_Circle)),
+            P.collection("drawings", "gr_arc", T.item(parse_gr_Arc)),
+            P.collection("drawings", "gr_poly", T.item(parse_gr_poly)),
             P.collection("drawings", "gr_rect", T.item(parseRect)),
             P.collection("drawings", "gr_text", T.item(parseGrText)),
             P.collection("drawings", "dimension", T.item(parseDimension)),

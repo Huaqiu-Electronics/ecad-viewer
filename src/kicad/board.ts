@@ -1183,10 +1183,8 @@ export class Arc extends GraphicItem {
 
         // Handle old format.
         // See LEGACY_ARC_FORMATTING and EDA_SHAPE::SetArcAngleAndEnd
-        if ((data as any).angle !== undefined) {
-            const angle = Angle.from_degrees(
-                (data as any).angle,
-            ).normalize720();
+        if (data?.angle !== undefined) {
+            const angle = Angle.from_degrees(data.angle).normalize720();
             const center = new Vec2(data.start.x, data.start.y);
             let start = new Vec2(data.end.x, data.end.y);
 
