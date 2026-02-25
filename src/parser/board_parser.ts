@@ -138,6 +138,7 @@ function parseLine(expr: Parseable, start: string): B.I_Line {
         P.start(start),
         P.pair("layer", T.string),
         P.pair("tstamp", T.string),
+        P.pair("uuid", T.string),
         P.atom("locked"),
         P.vec2("start"),
         P.vec2("end"),
@@ -160,11 +161,12 @@ function parseCircle(expr: Parseable, start: string): B.I_Circle {
         P.start(start),
         P.pair("layer", T.string),
         P.pair("tstamp", T.string),
+        P.pair("uuid", T.string),
         P.atom("locked"),
         P.vec2("center"),
         P.vec2("end"),
         P.pair("width", T.number),
-        P.atom("fill", ["none", "solid", "hatch", "yes", "no"]),
+        P.pair("fill", T.string),
         P.item("stroke", parseStroke),
     ) as unknown as B.I_Circle;
 }
@@ -177,15 +179,12 @@ function parse_fp_Circle(expr: Parseable): B.I_Circle {
 }
 
 function parseArc(expr: Parseable, start: string): B.I_Arc {
-    // Logic for arc vs gr_arc vs fp_arc
-    // And handling legacy angle format if needed - for POD we might just store what we get
-    // But conversion to start/mid/end might be better done here or in hydrator.
-    // Let's assume standard modern format for now or just parse fields.
     return parse_expr(
         expr,
         P.start(start), // Also fp_arc
         P.pair("layer", T.string),
         P.pair("tstamp", T.string),
+        P.pair("uuid", T.string),
         P.atom("locked"),
         P.vec2("start"),
         P.vec2("mid"),
@@ -214,6 +213,7 @@ function parsePoly(expr: Parseable, start: string): B.I_Poly {
         P.start(start),
         P.pair("layer", T.string),
         P.pair("tstamp", T.string),
+        P.pair("uuid", T.string),
         P.atom("locked"),
         P.expr("pts", (obj, name, expr) => {
             const parsed = parse_expr(
@@ -225,7 +225,7 @@ function parsePoly(expr: Parseable, start: string): B.I_Poly {
             return (parsed as { items: any[] })?.["items"];
         }),
         P.pair("width", T.number),
-        P.atom("fill", ["none", "solid", "hatch", "yes", "no"]),
+        P.pair("fill", T.string),
         P.atom("island"),
         P.item("stroke", parseStroke),
     ) as unknown as B.I_Poly;
@@ -247,19 +247,39 @@ function parse_filled_polygon(expr: Parseable) {
     return parsePoly(expr, "filled_polygon");
 }
 
-function parseRect(expr: Parseable): B.I_Rect {
+function parseRect(expr: Parseable, start: string): B.I_Rect {
     return parse_expr(
         expr,
-        P.start("gr_rect"), // Also fp_rect
+        P.start(start),
         P.pair("layer", T.string),
         P.pair("tstamp", T.string),
+        P.pair("uuid", T.string),
         P.atom("locked"),
         P.vec2("start"),
         P.vec2("end"),
         P.pair("width", T.number),
-        P.atom("fill", ["none", "solid", "hatch", "yes", "no"]),
+        P.pair("fill", T.string),
         P.item("stroke", parseStroke),
     ) as unknown as B.I_Rect;
+}
+
+function parse_gr_Rect(expr: Parseable) {
+    return parseRect(expr, "gr_rect");
+}
+
+function parse_fp_Rect(expr: Parseable) {
+    return parseRect(expr, "fp_rect");
+}
+
+function parseTextRenderCache(expr: Parseable): B.I_TextRenderCache {
+    return parse_expr(
+        expr,
+        P.start("render_cache"),
+        P.positional("text", T.string),
+        P.positional("angle", T.number),
+        P.pair("uuid", T.string),
+        P.collection("polygons", "polygon", T.item(parse_polygon)),
+    ) as unknown as B.I_TextRenderCache;
 }
 
 function parseFpText(expr: Parseable): B.I_FpText {
@@ -282,6 +302,7 @@ function parseFpText(expr: Parseable): B.I_FpText {
         ),
         P.pair("tstamp", T.string),
         P.item("effects", parseEffects),
+        P.item("render_cache", parseTextRenderCache),
     ) as unknown as B.I_FpText;
 }
 
@@ -304,6 +325,7 @@ function parseGrText(expr: Parseable): B.I_GrText {
         P.item("effects", parseEffects),
         P.pair("tstamp", T.string),
         P.pair("uuid", T.string),
+        P.item("render_cache", parseTextRenderCache),
     ) as unknown as B.I_GrText;
 }
 
@@ -315,9 +337,11 @@ function parseDimension(expr: Parseable): B.I_Dimension {
         P.positional("type", T.string), // aligned, leader, etc
         P.pair("layer", T.string),
         P.pair("tstamp", T.string),
+        P.pair("uuid", T.string),
         P.collection("pts", "pts", (obj, name, e) => {
-            return parse_expr(e as any, P.collection("points", "xy", T.vec2))
-                .points;
+            return parse_expr(e as any, P.collection("points", "xy", T.vec2))[
+                "points"
+            ];
         }),
         P.pair("height", T.number),
         P.pair("orientation", T.number),
@@ -362,6 +386,8 @@ function parsePad(expr: Parseable): B.I_Pad {
         P.vec2("size"),
         P.vec2("rect_delta"),
         P.list("layers", T.string),
+        P.pair("remove_unused_layers", T.boolean),
+        P.pair("keep_end_layers", T.boolean),
         P.pair("roundrect_rratio", T.number),
         P.pair("chamfer_ratio", T.number),
         P.object(
@@ -375,6 +401,7 @@ function parsePad(expr: Parseable): B.I_Pad {
         ),
         P.pair("pinfunction", T.string),
         P.pair("pintype", T.string),
+        P.pair("die_length", T.number),
         P.pair("solder_mask_margin", T.number),
         P.pair("solder_paste_margin", T.number),
         P.pair("solder_paste_margin_ratio", T.number),
@@ -389,7 +416,7 @@ function parsePad(expr: Parseable): B.I_Pad {
             P.start("drill"),
             P.atom("oval"),
             P.positional("diameter", T.number),
-            P.pair("width", T.number),
+            P.positional("width", T.number),
             P.vec2("offset"),
         ),
         P.item("net", parseNetReference),
@@ -416,7 +443,7 @@ function parsePad(expr: Parseable): B.I_Pad {
                         case "gr_arc":
                             return parse_gr_Arc(item as Parseable);
                         case "gr_rect":
-                            return parseRect(item as Parseable);
+                            return parse_gr_Rect(item as Parseable);
                         case "gr_poly":
                             return parse_gr_poly(item as Parseable);
                         default:
@@ -458,11 +485,33 @@ function parseModel(expr: Parseable): B.I_Model {
     ) as unknown as B.I_Model;
 }
 
+function parsePropertyKicad8(expr: Parseable): B.I_Property_Kicad_8 {
+    return parse_expr(
+        expr,
+        P.start("property"),
+        P.positional("name", T.string),
+        P.positional("value", T.string),
+        P.item("at", parseAt),
+        P.atom("unlocked"),
+        P.object(
+            "layer",
+            {},
+            P.start("layer"),
+            P.positional("name", T.string),
+            P.atom("knockout"),
+        ),
+        P.atom("hide"),
+        P.pair("uuid", T.string),
+        P.item("effects", parseEffects),
+        P.item("render_cache", parseTextRenderCache),
+    ) as unknown as B.I_Property_Kicad_8;
+}
+
 function parseZoneFill(expr: Parseable): B.I_ZoneFill {
     return parse_expr(
         expr,
         P.start("fill"),
-        P.atom("yes", ["yes", "true"], T.boolean),
+        P.positional("fill", T.boolean),
         P.pair("mode", T.string),
         P.pair("thermal_gap", T.number),
         P.pair("thermal_bridge_width", T.number),
@@ -470,7 +519,7 @@ function parseZoneFill(expr: Parseable): B.I_ZoneFill {
             "smoothing",
             {},
             P.start("smoothing"),
-            P.atom("style", ["none", "chamfer", "fillet"]),
+            P.positional("style", T.string),
             P.pair("radius", T.number),
         ),
         P.pair("radius", T.number),
@@ -491,11 +540,11 @@ function parseZoneKeepout(expr: Parseable): B.I_ZoneKeepout {
     return parse_expr(
         expr,
         P.start("keepout"),
-        P.atom("tracks", ["allowed", "not_allowed"]),
-        P.atom("vias", ["allowed", "not_allowed"]),
-        P.atom("pads", ["allowed", "not_allowed"]),
-        P.atom("copperpour", ["allowed", "not_allowed"]),
-        P.atom("footprints", ["allowed", "not_allowed"]),
+        P.pair("tracks", T.string),
+        P.pair("vias", T.string),
+        P.pair("pads", T.string),
+        P.pair("copperpour", T.string),
+        P.pair("footprints", T.string),
         P.pair("uuid", T.string),
     ) as unknown as B.I_ZoneKeepout;
 }
@@ -505,8 +554,8 @@ function parseZone(expr: Parseable): B.I_Zone {
         expr,
         P.start("zone"),
         P.atom("locked"),
-        P.positional("net", T.number),
-        P.positional("net_name", T.string),
+        P.pair("net", T.number),
+        P.pair("net_name", T.string),
         P.pair("name", T.string),
         P.pair("layer", T.string),
         P.list("layers", T.string),
@@ -522,7 +571,7 @@ function parseZone(expr: Parseable): B.I_Zone {
             "connect_pads",
             {},
             P.start("connect_pads"),
-            P.pair("type", T.string),
+            P.positional("type", T.string),
             P.pair("clearance", T.number),
         ),
         P.pair("min_thickness", T.number),
@@ -583,11 +632,12 @@ function parseFootprint(expr: Parseable): B.I_Footprint {
             P.atom("allow_missing_courtyard"),
         ),
         P.dict("properties", "property", T.string),
+        P.collection("properties_kicad_8", "property", T.item(parsePropertyKicad8)),
         P.collection("drawings", "fp_line", T.item(parse_fp_Line)),
         P.collection("drawings", "fp_circle", T.item(parse_fp_Circle)),
         P.collection("drawings", "fp_arc", T.item(parse_fp_Arc)),
         P.collection("drawings", "fp_poly", T.item(parse_fp_poly)),
-        P.collection("drawings", "fp_rect", T.item(parseRect)),
+        P.collection("drawings", "fp_rect", T.item(parse_fp_Rect)),
         P.collection("fp_texts", "fp_text", T.item(parseFpText)),
         P.collection("zones", "zone", T.item(parseZone)),
         P.collection("models", "model", T.item(parseModel)),
@@ -667,7 +717,7 @@ export class BoardParser {
         return parse_expr(
             root,
             P.start("kicad_pcb"),
-            P.positional("version", T.number),
+            P.pair("version", T.number),
             P.pair("generator", T.string),
             P.pair("embedded_fonts", T.boolean),
             P.pair("generator_version", T.string),
@@ -697,7 +747,7 @@ export class BoardParser {
             P.collection("drawings", "gr_circle", T.item(parse_gr_Circle)),
             P.collection("drawings", "gr_arc", T.item(parse_gr_Arc)),
             P.collection("drawings", "gr_poly", T.item(parse_gr_poly)),
-            P.collection("drawings", "gr_rect", T.item(parseRect)),
+            P.collection("drawings", "gr_rect", T.item(parse_gr_Rect)),
             P.collection("drawings", "gr_text", T.item(parseGrText)),
             P.collection("drawings", "dimension", T.item(parseDimension)),
             P.collection("groups", "group", T.item(parseGroup)),
