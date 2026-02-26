@@ -165,22 +165,6 @@ export class SheetLoadEvent extends CustomEvent<string> {
     }
 }
 
-export class RootSchLoadedEvent extends CustomEvent<void> {
-    static readonly type = "sch:root:loaded";
-
-    constructor() {
-        super(RootSchLoadedEvent.type);
-    }
-}
-
-export class AllSchLoadedEvent extends CustomEvent<void> {
-    static readonly type = "sch:all:loaded";
-
-    constructor() {
-        super(AllSchLoadedEvent.type);
-    }
-}
-
 export class Online3dViewerUrlReady extends CustomEvent<string> {
     static readonly type = "3d:url:ready";
 
@@ -372,8 +356,6 @@ export interface KiCanvasEventMap {
     [ComponentERCResultEvent.type]: ComponentERCResultEvent;
     [ProjectERCResultEvent.type]: ProjectERCResultEvent;
     [CommentClickEvent.type]: CommentClickEvent;
-    [RootSchLoadedEvent.type]: RootSchLoadedEvent;
-    [AllSchLoadedEvent.type]: AllSchLoadedEvent;
 }
 
 declare global {
@@ -394,8 +376,6 @@ declare global {
         [ComponentERCResultEvent.type]: ComponentERCResultEvent;
         [ProjectERCResultEvent.type]: ProjectERCResultEvent;
         [CommentClickEvent.type]: CommentClickEvent;
-        [RootSchLoadedEvent.type]: RootSchLoadedEvent;
-        [AllSchLoadedEvent.type]: AllSchLoadedEvent;
     }
 
     interface HTMLElementEventMap {
@@ -415,7 +395,5 @@ declare global {
         [ComponentERCResultEvent.type]: ComponentERCResultEvent;
         [ProjectERCResultEvent.type]: ProjectERCResultEvent;
         [CommentClickEvent.type]: CommentClickEvent;
-        [RootSchLoadedEvent.type]: RootSchLoadedEvent;
-        [AllSchLoadedEvent.type]: AllSchLoadedEvent;
     }
 }

@@ -12,8 +12,6 @@ import { Logger } from "../base/log";
 
 import { KicadPCB, KicadSch, ProjectSettings } from "../kicad";
 import * as Comlink from "comlink";
-import type { ParserWorker } from "./parser.worker";
-import { AllSchLoadedEvent, RootSchLoadedEvent } from "../viewers/base/events";
 import {
     BoardBomItemVisitor,
     type DesignatorRef,
@@ -35,6 +33,7 @@ import {
 } from "./services/vfs";
 import "../ecad-viewer/ecad_viewer_global";
 import { KICAD_PCB_EXT, KICAD_PRO_EXT, KICAD_SCH_EXT } from "./file_ext";
+import { WorkerPool } from "./worker_pool";
 
 const log = new Logger("kicanvas:project");
 
@@ -47,11 +46,7 @@ export class Project extends EventTarget implements IDisposable {
     _fs = new FetchFileSystem();
     _files_by_name: Map<string, KicadPCB | KicadSch> = new Map();
     _file_content: Map<string, string> = new Map();
-    _parserWorker = Comlink.wrap<InstanceType<typeof ParserWorker>>(
-        new Worker(new URL("./parser.worker.js", import.meta.url), {
-            type: "module",
-        }),
-    );
+    _pool = new WorkerPool(Math.min(navigator.hardwareConcurrency ?? 4, 6));
     _pcb: KicadPCB[] = [];
     _sch: KicadSch[] = [];
     _ov_3d_url?: string;
@@ -161,7 +156,6 @@ export class Project extends EventTarget implements IDisposable {
         );
         if (root_sch_blob) {
             await this._load_blob(root_sch_blob);
-            this.dispatchEvent(new RootSchLoadedEvent());
         }
 
         for (const blob of sources.blobs) {
@@ -227,7 +221,6 @@ export class Project extends EventTarget implements IDisposable {
                 detail: this,
             }),
         );
-        this.dispatchEvent(new AllSchLoadedEvent());
     }
 
     _sort_bom(bom_list: BomItem[]) {
@@ -304,11 +297,24 @@ export class Project extends EventTarget implements IDisposable {
         }
         const filename = blob.filename;
         let doc: KicadPCB | KicadSch;
-        if (filename.endsWith(".kicad_pcb")) {
-            const pod = await this._parserWorker.parse_board(file_content);
+
+        const buffer = new TextEncoder().encode(blob.content).buffer;
+
+        let pod;
+
+        if (blob.filename.endsWith(KICAD_PCB_EXT)) {
+            pod = await this._pool.run((worker) =>
+                worker.parse_board(Comlink.transfer(buffer, [buffer])),
+            );
+        } else {
+            pod = await this._pool.run((worker) =>
+                worker.parse_schematic(Comlink.transfer(buffer, [buffer])),
+            );
+        }
+
+        if (filename.endsWith(KICAD_PCB_EXT)) {
             doc = new KicadPCB(filename, pod as any);
         } else {
-            const pod = await this._parserWorker.parse_schematic(file_content);
             doc = new KicadSch(filename, pod as any);
         }
 

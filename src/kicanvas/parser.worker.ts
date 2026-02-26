@@ -3,11 +3,13 @@ import { BoardParser } from "../parser/board_parser";
 import { SchematicParser } from "../parser/schematic_parser";
 
 export class ParserWorker {
-    parse_board(content: string) {
+    parse_board(buf: ArrayBuffer) {
+        const content = new TextDecoder().decode(buf);
         return new BoardParser().parse(content);
     }
 
-    parse_schematic(content: string) {
+    parse_schematic(buf: ArrayBuffer) {
+        const content = new TextDecoder().decode(buf);
         return new SchematicParser().parse(content);
     }
 }
