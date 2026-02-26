@@ -427,30 +427,17 @@ function parsePad(expr: Parseable): B.I_Pad {
             P.pair("clearance", T.string),
             P.pair("anchor", T.string),
         ),
-        P.collection("primitives", "primitives", (obj, name, e) => {
-            const list = (e as List).slice(1);
-            return list
-                .map((item) => {
-                    const type =
-                        Array.isArray(item) && is_string(item[0])
-                            ? item[0]
-                            : "";
-                    switch (type) {
-                        case "gr_line":
-                            return parse_gr_Line(item as Parseable);
-                        case "gr_circle":
-                            return parse_fp_Circle(item as Parseable);
-                        case "gr_arc":
-                            return parse_gr_Arc(item as Parseable);
-                        case "gr_rect":
-                            return parse_gr_Rect(item as Parseable);
-                        case "gr_poly":
-                            return parse_gr_poly(item as Parseable);
-                        default:
-                            return null;
-                    }
-                })
-                .filter((x) => x !== null);
+        P.expr("primitives", (obj, name, expr) => {
+            const parsed = parse_expr(
+                expr as List,
+                P.start("primitives"),
+                P.collection("items", "gr_line", T.item(parse_gr_Line)),
+                P.collection("items", "gr_circle", T.item(parse_gr_Circle)),
+                P.collection("items", "gr_arc", T.item(parse_gr_Arc)),
+                P.collection("items", "gr_rect", T.item(parse_gr_Rect)),
+                P.collection("items", "gr_poly", T.item(parse_gr_poly)),
+            );
+            return (parsed as { items: any[] })?.["items"];
         }),
         P.pair("tstamp", T.string),
         P.pair("uuid", T.string),
@@ -632,7 +619,11 @@ function parseFootprint(expr: Parseable): B.I_Footprint {
             P.atom("allow_missing_courtyard"),
         ),
         P.dict("properties", "property", T.string),
-        P.collection("properties_kicad_8", "property", T.item(parsePropertyKicad8)),
+        P.collection(
+            "properties_kicad_8",
+            "property",
+            T.item(parsePropertyKicad8),
+        ),
         P.collection("drawings", "fp_line", T.item(parse_fp_Line)),
         P.collection("drawings", "fp_circle", T.item(parse_fp_Circle)),
         P.collection("drawings", "fp_arc", T.item(parse_fp_Arc)),
