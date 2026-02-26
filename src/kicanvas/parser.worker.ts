@@ -12,4 +12,4 @@ export class ParserWorker {
     }
 }
 
-expose(ParserWorker);
+expose(new ParserWorker());
