@@ -10,8 +10,11 @@ import { resolve } from "node:path";
 export const ENTRY = resolve("src/index.ts");
 
 let { context } = await bundle({
-    entryPoints: [ENTRY],
-    outfile: "debug/ecad_viewer/ecad-viewer.js",
+    entryPoints: {
+        "ecad-viewer": ENTRY,
+        "parser.worker": resolve("src/kicanvas/parser.worker.ts"),
+    },
+    outdir: "debug/ecad_viewer",
     sourcemap: true,
     define: {
         DEBUG: "true",

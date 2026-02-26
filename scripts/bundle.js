@@ -12,7 +12,10 @@ export const ENTRY = resolve("src/index.ts");
 
 export async function bundle(options = {}) {
     options = {
-        entryPoints: [ENTRY],
+        entryPoints: {
+            "ecad-viewer": ENTRY,
+            "parser.worker": resolve("src/kicanvas/parser.worker.ts"),
+        },
         bundle: true,
         format: "esm",
         target: "es2022",

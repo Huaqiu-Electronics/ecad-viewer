@@ -11,8 +11,9 @@ import { first, length, map } from "../base/iterator";
 import { Logger } from "../base/log";
 
 import { KicadPCB, KicadSch, ProjectSettings } from "../kicad";
-import { BoardParser } from "../parser/board_parser";
-import { SchematicParser } from "../parser/schematic_parser";
+import * as Comlink from "comlink";
+import type { ParserWorker } from "./parser.worker";
+import { AllSchLoadedEvent, RootSchLoadedEvent } from "../viewers/base/events";
 import {
     BoardBomItemVisitor,
     type DesignatorRef,
@@ -46,15 +47,19 @@ export class Project extends EventTarget implements IDisposable {
     _fs = new FetchFileSystem();
     _files_by_name: Map<string, KicadPCB | KicadSch> = new Map();
     _file_content: Map<string, string> = new Map();
+    _parserWorker = Comlink.wrap<InstanceType<typeof ParserWorker>>(
+        new Worker(new URL("./parser.worker.js", import.meta.url), {
+            type: "module",
+        }),
+    );
     _pcb: KicadPCB[] = [];
     _sch: KicadSch[] = [];
     _ov_3d_url?: string;
-    // jwfjewfj
     _bom_items: BomItem[] = [];
     _label_name_refs = new Map<string, NetRef[]>();
     _net_item_refs = new Map<string, NetRef>();
     _designator_refs = new Map<string, DesignatorRef>();
-    _project_name: string;
+    _project_name?: string;
     active_sch_file_name?: string;
     _found_cjk = false;
 
@@ -74,7 +79,7 @@ export class Project extends EventTarget implements IDisposable {
         return this._bom_items;
     }
 
-    public active_sch_name: string;
+    public active_sch_name?: string;
 
     public loaded: Barrier = new Barrier();
     public settings: ProjectSettings = new ProjectSettings();
@@ -138,18 +143,31 @@ export class Project extends EventTarget implements IDisposable {
                     sch_file_names.add(blob.filename);
                 if (blob.filename.endsWith(KICAD_PRO_EXT))
                     expected_root_sch = blob.filename.replace(
-                        KICAD_SCH_EXT,
                         KICAD_PRO_EXT,
+                        KICAD_SCH_EXT,
                     );
             }
 
             if (sch_file_names.size === 1)
                 return sch_file_names.values().next().value;
-            if (expected_root_sch in sch_file_names) return expected_root_sch;
+            if (sch_file_names.has(expected_root_sch)) return expected_root_sch;
+            return sch_file_names.values().next().value;
         };
+
+        const root_sch_file_name = find_root_sch_file_name();
+
+        const root_sch_blob = sources.blobs.find(
+            (b) => b.filename === root_sch_file_name,
+        );
+        if (root_sch_blob) {
+            await this._load_blob(root_sch_blob);
+            this.dispatchEvent(new RootSchLoadedEvent());
+        }
 
         for (const blob of sources.blobs) {
             if (blob.filename.startsWith(".")) continue;
+            if (blob.filename === root_sch_file_name) continue;
+
             if (blob.filename.endsWith(KICAD_PCB_EXT)) {
                 promises.push(this._load_blob(blob));
             } else if (blob.filename.endsWith(KICAD_SCH_EXT)) {
@@ -209,6 +227,7 @@ export class Project extends EventTarget implements IDisposable {
                 detail: this,
             }),
         );
+        this.dispatchEvent(new AllSchLoadedEvent());
     }
 
     _sort_bom(bom_list: BomItem[]) {
@@ -286,11 +305,11 @@ export class Project extends EventTarget implements IDisposable {
         const filename = blob.filename;
         let doc: KicadPCB | KicadSch;
         if (filename.endsWith(".kicad_pcb")) {
-            const pod = new BoardParser().parse(file_content);
-            doc = new KicadPCB(filename, pod);
+            const pod = await this._parserWorker.parse_board(file_content);
+            doc = new KicadPCB(filename, pod as any);
         } else {
-            const pod = new SchematicParser().parse(file_content);
-            doc = new KicadSch(filename, pod);
+            const pod = await this._parserWorker.parse_schematic(file_content);
+            doc = new KicadSch(filename, pod as any);
         }
 
         this._files_by_name.set(filename, doc);

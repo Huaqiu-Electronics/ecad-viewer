@@ -11,13 +11,16 @@ import { resolve } from "node:path";
 export const ENTRY = resolve("src/index.ts");
 
 let { options, context } = await bundle({
-    entryPoints: [ENTRY],
-    outfile: "build/ecad-viewer.js",
+    entryPoints: {
+        "ecad-viewer": ENTRY,
+        "parser.worker": resolve("src/kicanvas/parser.worker.ts"),
+    },
+    outdir: "build",
     minify: true,
     metafile: true,
 });
 
-console.log(`Building to ${options.outfile}`);
+console.log(`Building to ${options.outdir}`);
 let result = await context.rebuild();
 
 console.log(`Build complete!`);
