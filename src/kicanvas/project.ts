@@ -33,6 +33,7 @@ import {
     type EcadSources,
 } from "./services/vfs";
 import "../ecad-viewer/ecad_viewer_global";
+import { KICAD_PCB_EXT, KICAD_PRO_EXT, KICAD_SCH_EXT } from "./file_ext";
 
 const log = new Logger("kicanvas:project");
 
@@ -128,16 +129,35 @@ export class Project extends EventTarget implements IDisposable {
             promises.push(this._load_file(filename));
         }
 
+        const find_root_sch_file_name = () => {
+            const sch_file_names = new Set<string>();
+
+            let expected_root_sch = "";
+            for (const blob of sources.blobs) {
+                if (blob.filename.endsWith(KICAD_SCH_EXT))
+                    sch_file_names.add(blob.filename);
+                if (blob.filename.endsWith(KICAD_PRO_EXT))
+                    expected_root_sch = blob.filename.replace(
+                        KICAD_SCH_EXT,
+                        KICAD_PRO_EXT,
+                    );
+            }
+
+            if (sch_file_names.size === 1)
+                return sch_file_names.values().next().value;
+            if (expected_root_sch in sch_file_names) return expected_root_sch;
+        };
+
         for (const blob of sources.blobs) {
             if (blob.filename.startsWith(".")) continue;
-            if (blob.filename.endsWith(".kicad_pcb")) {
+            if (blob.filename.endsWith(KICAD_PCB_EXT)) {
                 promises.push(this._load_blob(blob));
-            } else if (blob.filename.endsWith(".kicad_sch")) {
+            } else if (blob.filename.endsWith(KICAD_SCH_EXT)) {
                 promises.push(this._load_blob(blob));
-            } else if (blob.filename.endsWith(".kicad_pro")) {
+            } else if (blob.filename.endsWith(KICAD_PRO_EXT)) {
                 this._project_name = blob.filename.slice(
                     0,
-                    blob.filename.length - ".kicad_pro".length,
+                    blob.filename.length - `.${KICAD_PRO_EXT}`.length,
                 );
                 const data = JSON.parse(blob.content);
                 this.settings = ProjectSettings.load(data);

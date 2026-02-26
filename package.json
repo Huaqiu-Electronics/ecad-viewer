@@ -4,6 +4,7 @@
     "description": "",
     "type": "module",
     "dependencies": {
+        "comlink": "^4.4.2",
         "immutable": "^5.0.0-beta.5",
         "jszip": "^3.10.1"
     },
