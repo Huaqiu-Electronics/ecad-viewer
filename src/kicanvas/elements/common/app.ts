@@ -61,16 +61,56 @@ export abstract class KCViewerAppElement<
                 height: 100%;
                 width: 100%;
             }
+            .toggle-button {
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 16px;
+                height: 36px;
+                background-color: #0b1222ff;
+                border: none;
+                border-top-right-radius: 8px;
+                border-bottom-right-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                z-index: 10;
+                left: calc(max(15%, 240px));
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            .toggle-button.menu-hidden {
+                left: 0px;
+                border-top-right-radius: 8px;
+                border-bottom-right-radius: 8px;
+            }
+            .toggle-button::before {
+                content: "«";
+                font-size: 16px;
+                color: white;
+                font-weight: bold;
+            }
+            .toggle-button.menu-hidden::before {
+                content: "»";
+            }
         `,
     ];
     #viewer_elm: ViewerElementT;
     #property_viewer: ElementOrFragment;
     #fitter_menu: HTMLElement;
+    #toggle_button?: HTMLElement;
     #placeholder = html`<ecad-spinner></ecad-spinner>` as HTMLElement;
     #content?: HTMLElement;
 
     public set tabMenuHidden(v: boolean) {
         this.#fitter_menu.hidden = v;
+        if (this.#toggle_button) {
+            if (v) {
+                this.#toggle_button.classList.add("menu-hidden");
+            } else {
+                this.#toggle_button.classList.remove("menu-hidden");
+            }
+        }
         this.dispatchEvent(
             new TabMenuVisibleChangeEvent(!this.#fitter_menu.hidden),
         );
@@ -172,9 +212,23 @@ export abstract class KCViewerAppElement<
         );
         this.#viewer_elm = this.make_viewer_element();
         this.#property_viewer = this.make_property_element();
-        return html`
-            ${this.#fitter_menu} ${this.#viewer_elm} ${this.#property_viewer}
-        `;
+
+        let elements = [
+            this.#fitter_menu,
+            this.#viewer_elm,
+            this.#property_viewer,
+        ];
+
+        if (window.hide_header) {
+            this.#toggle_button = html`<div
+                class="toggle-button menu-hidden"></div>` as HTMLElement;
+            this.#toggle_button.addEventListener("click", () => {
+                this.tabMenuHidden = !this.tabMenuHidden;
+            });
+            elements.unshift(this.#toggle_button);
+        }
+
+        return html` ${elements} `;
     }
 
     protected abstract do_render(): ElementOrFragment;
