@@ -57,8 +57,13 @@ export interface I_NoConnect {
 
 export interface I_Arc extends I_GraphicItem {
     start: { x: number; y: number };
-    mid: { x: number; y: number };
+    mid?: { x: number; y: number };
     end: { x: number; y: number };
+    radius?: {
+        at: { x: number; y: number };
+        length: number;
+        angles: { x: number; y: number };
+    };
 }
 
 export interface I_Bezier extends I_GraphicItem {

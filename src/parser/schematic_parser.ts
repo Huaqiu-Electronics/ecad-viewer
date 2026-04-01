@@ -122,8 +122,7 @@ function parseCircle(expr: Parseable): S.I_Circle {
 }
 
 function parseArc(expr: Parseable): S.I_Arc {
-    // Handle old format with radius/angles if needed, but for now stick to standard
-    const parsed = parse_expr(
+    const res = parse_expr(
         expr,
         P.start("arc"),
         P.vec2("start"),
@@ -140,16 +139,9 @@ function parseArc(expr: Parseable): S.I_Arc {
         P.item("stroke", parseStroke),
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
-    );
-
-    // If legacy radius format, we might need conversion logic here or in hydration.
-    // For POD, we can keep it as is or try to normalize if easy.
-    // Given we can't use MathArc easily (class dependency), let's store what we can.
-    // However, I_Arc definitions enforces start/mid/end.
-    // If the parser returns them, great. If not, we might be missing data if input is legacy.
-    // But let's assume valid start/mid/end for modern files.
-
-    return parsed as unknown as S.I_Arc;
+    ) as unknown as S.I_Arc;
+    console.log("parseArc result:", JSON.stringify(res));
+    return res;
 }
 
 function parseBezier(expr: Parseable): S.I_Bezier {

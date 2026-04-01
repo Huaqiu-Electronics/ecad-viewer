@@ -9,7 +9,7 @@ import { Color } from "../base/color";
 import type { CrossHightAble } from "../base/cross_highlight_able";
 import type { HighlightAble } from "../base/highlightable";
 import type { IndexAble } from "../base/index_able";
-import { BBox, Matrix3, Vec2 } from "../base/math";
+import { Arc as MathArc, BBox, Matrix3, Vec2 } from "../base/math";
 import { html } from "../base/web-components";
 import {
     At,
@@ -130,10 +130,10 @@ export class KicadSch {
                     this.drawings.push(new Bezier(d as any, this));
                 } else if ("pts" in d) {
                     this.drawings.push(new Polyline(d as any, this));
+                } else if ("mid" in d || "radius" in d) {
+                    this.drawings.push(new Arc(d as any, this));
                 } else if ("start" in d) {
                     this.drawings.push(new Rectangle(d as any, this));
-                } else if ("mid" in d) {
-                    this.drawings.push(new Arc(d as any, this));
                 } else if ("text" in d) {
                     this.drawings.push(new Text(d as any, this));
                 } else if ("center" in d) {
@@ -372,9 +372,33 @@ export class Arc extends GraphicItem {
         parent?: LibSymbol | SchematicSymbol | KicadSch,
     ) {
         super(parent, data);
-        this.start = new Vec2(data.start.x, data.start.y);
-        this.mid = new Vec2(data.mid.x, data.mid.y);
-        this.end = new Vec2(data.end.x, data.end.y);
+        if (data.mid) {
+            this.start = new Vec2(data.start.x, data.start.y);
+            this.mid = new Vec2(data.mid.x, data.mid.y);
+            this.end = new Vec2(data.end.x, data.end.y);
+        } else if (data.radius?.at) {
+            const arc = MathArc.from_center_start_end(
+                new Vec2(data.radius.at.x, data.radius.at.y),
+                new Vec2(data.end.x, data.end.y),
+                new Vec2(data.start.x, data.start.y),
+                1,
+            );
+
+            if (arc.arc_angle.degrees > 180) {
+                [arc.start_angle, arc.end_angle] = [
+                    arc.end_angle,
+                    arc.start_angle,
+                ];
+            }
+
+            this.start = arc.start_point;
+            this.mid = arc.mid_point;
+            this.end = arc.end_point;
+        } else {
+            this.start = new Vec2(data.start?.x ?? 0, data.start?.y ?? 0);
+            this.mid = this.start;
+            this.end = new Vec2(data.end?.x ?? 0, data.end?.y ?? 0);
+        }
     }
 }
 
@@ -719,12 +743,12 @@ export class LibSymbol {
             for (const d of data.drawings) {
                 if ("pts" in d && (d as S.I_Polyline).pts) {
                     this.drawings.push(new Polyline(d as S.I_Polyline, this));
+                } else if (("mid" in d && (d as S.I_Arc).mid) || ("radius" in d && (d as S.I_Arc).radius)) {
+                    this.drawings.push(new Arc(d as S.I_Arc, this));
                 } else if ("start" in d && (d as S.I_Rectangle).start) {
                     this.drawings.push(new Rectangle(d as S.I_Rectangle, this));
                 } else if ("center" in d && (d as S.I_Circle).center) {
                     this.drawings.push(new Circle(d as S.I_Circle, this));
-                } else if ("mid" in d && (d as S.I_Arc).mid) {
-                    this.drawings.push(new Arc(d as S.I_Arc, this));
                 } else if ("text" in d && (d as S.I_Text).text) {
                     this.drawings.push(new LibText(d as S.I_Text, this));
                 } else if ("size" in d && (d as S.I_TextBox).size) {
