@@ -140,7 +140,6 @@ function parseArc(expr: Parseable): S.I_Arc {
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
     ) as unknown as S.I_Arc;
-    console.log("parseArc result:", JSON.stringify(res));
     return res;
 }
 
