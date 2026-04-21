@@ -18,7 +18,7 @@ let { context } = await bundle({
         "ecad-viewer": ENTRY,
         "parser.worker": resolve(APP_DIR, "src/kicanvas/parser.worker.ts"),
     },
-    outdir: resolve(APP_DIR, "debug/ecad_viewer"),
+    outdir: resolve(APP_DIR, "static/ecad_viewer"),
     sourcemap: true,
     define: {
         DEBUG: "true",
@@ -32,7 +32,7 @@ let { context } = await bundle({
 await context.watch();
 
 let { host, port } = await context.serve({
-    servedir: resolve(APP_DIR, "debug"),
+    servedir: resolve(APP_DIR, "static"),
     host: "127.0.0.1",
     port: 8081,
 });

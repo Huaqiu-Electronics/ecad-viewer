@@ -55,6 +55,6 @@
         "build:3d": " node ../../scripts/build-3d.js",
         "build:glyph": " node ../../scripts/build-glyph.js",
         "build-all": "cd ../kicad-parser && npm install && npm run build && cd ../ecad-viewer-app && npm run build:no-check && npm run build:glyph && npm run build:3d",
-        "clean": "rm -rf build && rm -rf debug/ecad-viewer"
+        "clean": "rm -rf build && rm -rf static/ecad-viewer"
     }
 }

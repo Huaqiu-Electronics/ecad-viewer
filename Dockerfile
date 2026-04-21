@@ -25,7 +25,7 @@ RUN set -ex; \
     npm install; \
     cd packages/kicad-parser && npm install && npm run build; \
     cd ../ecad-viewer-app && npm install && npm run build-all;
-    mv packages/ecad-viewer-app/debug /app; \
+    mv packages/ecad-viewer-app/static /app; \
     mv packages/ecad-viewer-app/build /app/ecad_viewer; \
     echo "IMAGE_TAG=$IMAGE_TAG"; \
     if [ -n "$IMAGE_TAG" ]; then \

@@ -149,7 +149,7 @@ Explanation:
 - `ecad-3d-source`: Customer tag in which the 3D model url is stored in the `src` attribute
 - `convert_pcb_to_glb_url`: URL of the API endpoint for converting KiCad PCB to 3D model
 
-Check out the [Standalone example](debug/index.html)
+Check out the [Standalone example](static/index.html)
 
 ### Embedded
 
@@ -175,7 +175,7 @@ Explanation:
 - `url`: URL of the KiCad PCB or AD design or multiple KiCad PCB or AD designs separated by semicolon
 - `is-bom`: If set to true, the embedded viewer will show the BOM instead of the schematic
 
-Check out the [Embedded example](debug/embedded.html)
+Check out the [Embedded example](static/embedded.html)
 
 ### kicad-cli server
 
