@@ -8,11 +8,11 @@ import type * as S from "./proto/schematic";
 import type * as C from "./proto/common";
 
 function escapeString(str: string | undefined): string {
-    if (str === undefined) return '';
+    if (str === undefined) return "";
     return str
-        .replaceAll('\\', '\\\\')
+        .replaceAll("\\", "\\\\")
         .replaceAll('"', '\\"')
-        .replaceAll('\n', '\\n');
+        .replaceAll("\n", "\\n");
 }
 
 function serializeAt(at: C.I_At): string {
@@ -23,7 +23,8 @@ function serializeEffects(effects: C.I_Effects): string {
     let result = "(effects";
     if (effects.font) {
         result += ` (font (size ${effects.font.size?.x || 0} ${effects.font.size?.y || 0})`;
-        if (effects.font.face) result += ` (name "${escapeString(effects.font.face)}")`;
+        if (effects.font.face)
+            result += ` (name "${escapeString(effects.font.face)}")`;
         if (effects.font.bold) result += " (bold yes)";
         if (effects.font.italic) result += " (italic yes)";
         result += ")";
@@ -67,8 +68,10 @@ function serializePaper(paper: C.I_Paper): string {
 
 function serializeTitleBlock(titleBlock: C.I_TitleBlock): string {
     let result = "(title_block";
-    if (titleBlock.title) result += ` (title "${escapeString(titleBlock.title)}")`;
-    if (titleBlock.company) result += ` (company "${escapeString(titleBlock.company)}")`;
+    if (titleBlock.title)
+        result += ` (title "${escapeString(titleBlock.title)}")`;
+    if (titleBlock.company)
+        result += ` (company "${escapeString(titleBlock.company)}")`;
     if (titleBlock.date) result += ` (date "${escapeString(titleBlock.date)}")`;
     if (titleBlock.rev) result += ` (rev "${escapeString(titleBlock.rev)}")`;
     if (titleBlock.comment) {
@@ -79,8 +82,6 @@ function serializeTitleBlock(titleBlock: C.I_TitleBlock): string {
     result += ")";
     return result;
 }
-
-
 
 function serializeProperty(property: S.I_Property): string {
     let result = `(property "${escapeString(property.name)}" "${escapeString(property.text)}"`;
@@ -122,14 +123,16 @@ function serializeLibSymbol(symbol: S.I_LibSymbol): string {
     if (symbol.pin_numbers?.hide) result += " (pin_numbers hide)";
     if (symbol.pin_names) {
         result += " (pin_names";
-        if (symbol.pin_names.offset) result += ` (offset ${symbol.pin_names.offset})`;
+        if (symbol.pin_names.offset)
+            result += ` (offset ${symbol.pin_names.offset})`;
         if (symbol.pin_names.hide) result += " (hide yes)";
         result += ")";
     }
     if (symbol.exclude_from_sim) result += " (exclude_from_sim yes)";
     if (symbol.in_bom) result += " (in_bom yes)";
     if (symbol.embedded_fonts) result += " (embedded_fonts yes)";
-    if (symbol.embedded_files) result += ` (embedded_files "${escapeString(symbol.embedded_files)}")`;
+    if (symbol.embedded_files)
+        result += ` (embedded_files "${escapeString(symbol.embedded_files)}")`;
     if (symbol.on_board) result += " (on_board yes)";
     if (symbol.properties && symbol.properties.length > 0) {
         for (const property of symbol.properties) {
@@ -148,7 +151,7 @@ function serializeLibSymbol(symbol: S.I_LibSymbol): string {
     }
     if (symbol.drawings && symbol.drawings.length > 0) {
         for (const drawing of symbol.drawings) {
-            if ('start' in drawing && 'mid' in drawing && 'end' in drawing) {
+            if ("start" in drawing && "mid" in drawing && "end" in drawing) {
                 const arc = drawing as S.I_Arc;
                 result += ` (arc (start (xy ${arc.start.x} ${arc.start.y})) (mid (xy ${arc.mid?.x ?? 0} ${arc.mid?.y ?? 0})) (end (xy ${arc.end.x} ${arc.end.y}))`;
                 if (arc.radius) {
@@ -158,55 +161,63 @@ function serializeLibSymbol(symbol: S.I_LibSymbol): string {
                 if (arc.fill) result += ` ${serializeFill(arc.fill)}`;
                 if (arc.uuid) result += ` (uuid "${arc.uuid}")`;
                 result += ")";
-            } else if ('pts' in drawing && !('center' in drawing)) {
+            } else if ("pts" in drawing && !("center" in drawing)) {
                 const bezier = drawing as S.I_Bezier;
                 result += ` (bezier (pts`;
                 for (const pt of bezier.pts) {
                     result += ` (xy ${pt.x} ${pt.y})`;
                 }
                 result += ")";
-                if (bezier.stroke) result += ` ${serializeStroke(bezier.stroke)}`;
+                if (bezier.stroke)
+                    result += ` ${serializeStroke(bezier.stroke)}`;
                 if (bezier.fill) result += ` ${serializeFill(bezier.fill)}`;
                 if (bezier.uuid) result += ` (uuid "${bezier.uuid}")`;
                 result += ")";
-            } else if ('center' in drawing && 'radius' in drawing) {
+            } else if ("center" in drawing && "radius" in drawing) {
                 const circle = drawing as S.I_Circle;
                 result += ` (circle (center (xy ${circle.center.x} ${circle.center.y})) (radius ${circle.radius})`;
-                if (circle.stroke) result += ` ${serializeStroke(circle.stroke)}`;
+                if (circle.stroke)
+                    result += ` ${serializeStroke(circle.stroke)}`;
                 if (circle.fill) result += ` ${serializeFill(circle.fill)}`;
                 if (circle.uuid) result += ` (uuid "${circle.uuid}")`;
                 result += ")";
-            } else if ('pts' in drawing) {
+            } else if ("pts" in drawing) {
                 const polyline = drawing as S.I_Polyline;
                 result += ` (polyline (pts`;
                 for (const pt of polyline.pts) {
                     result += ` (xy ${pt.x} ${pt.y})`;
                 }
                 result += ")";
-                if (polyline.stroke) result += ` ${serializeStroke(polyline.stroke)}`;
+                if (polyline.stroke)
+                    result += ` ${serializeStroke(polyline.stroke)}`;
                 if (polyline.fill) result += ` ${serializeFill(polyline.fill)}`;
                 if (polyline.uuid) result += ` (uuid "${polyline.uuid}")`;
                 result += ")";
-            } else if ('start' in drawing && 'end' in drawing) {
+            } else if ("start" in drawing && "end" in drawing) {
                 const rectangle = drawing as S.I_Rectangle;
                 result += ` (rectangle (start (xy ${rectangle.start.x} ${rectangle.start.y})) (end (xy ${rectangle.end.x} ${rectangle.end.y}))`;
-                if (rectangle.stroke) result += ` ${serializeStroke(rectangle.stroke)}`;
-                if (rectangle.fill) result += ` ${serializeFill(rectangle.fill)}`;
+                if (rectangle.stroke)
+                    result += ` ${serializeStroke(rectangle.stroke)}`;
+                if (rectangle.fill)
+                    result += ` ${serializeFill(rectangle.fill)}`;
                 if (rectangle.uuid) result += ` (uuid "${rectangle.uuid}")`;
                 result += ")";
-            } else if ('text' in drawing && !('size' in drawing)) {
+            } else if ("text" in drawing && !("size" in drawing)) {
                 const text = drawing as S.I_Text;
                 result += ` (text "${escapeString(text.text)}" ${serializeAt(text.at)} ${serializeEffects(text.effects)}`;
                 if (text.exclude_from_sim) result += " (exclude_from_sim yes)";
                 if (text.uuid) result += ` (uuid "${text.uuid}")`;
                 result += ")";
-            } else if ('text' in drawing && 'size' in drawing) {
+            } else if ("text" in drawing && "size" in drawing) {
                 const textbox = drawing as S.I_TextBox;
                 result += ` (text_box "${escapeString(textbox.text)}" ${serializeAt(textbox.at)} (size ${textbox.size.x} ${textbox.size.y})`;
-                if (textbox.exclude_from_sim) result += ` (exclude_from_sim ${textbox.exclude_from_sim ? "yes" : "no"})`;
-                if (textbox.margins) result += ` (margins ${textbox.margins.x} ${textbox.margins.y} ${textbox.margins.z} ${textbox.margins.w})`;
+                if (textbox.exclude_from_sim)
+                    result += ` (exclude_from_sim ${textbox.exclude_from_sim ? "yes" : "no"})`;
+                if (textbox.margins)
+                    result += ` (margins ${textbox.margins.x} ${textbox.margins.y} ${textbox.margins.z} ${textbox.margins.w})`;
                 result += ` ${serializeEffects(textbox.effects)}`;
-                if (textbox.stroke) result += ` ${serializeStroke(textbox.stroke)}`;
+                if (textbox.stroke)
+                    result += ` ${serializeStroke(textbox.stroke)}`;
                 if (textbox.fill) result += ` ${serializeFill(textbox.fill)}`;
                 if (textbox.uuid) result += ` (uuid "${textbox.uuid}")`;
                 result += ")";
@@ -308,14 +319,16 @@ function serializeHierarchicalLabel(label: S.I_HierarchicalLabel): string {
 
 function serializePinInstance(pin: S.I_PinInstance): string {
     let result = `(pin "${escapeString(pin.number)}" (uuid "${pin.uuid}")`;
-    if (pin.alternate) result += ` (alternate "${escapeString(pin.alternate)}")`;
+    if (pin.alternate)
+        result += ` (alternate "${escapeString(pin.alternate)}")`;
     result += ")";
     return result;
 }
 
-function serializeSchematicSymbol(symbol: S.I_SchematicSymbol): string {
+export function serializeSchematicSymbol(symbol: S.I_SchematicSymbol): string {
     let result = "(symbol";
-    if (symbol.lib_name) result += ` (lib_name "${escapeString(symbol.lib_name)}")`;
+    if (symbol.lib_name)
+        result += ` (lib_name "${escapeString(symbol.lib_name)}")`;
     result += ` (lib_id "${escapeString(symbol.lib_id)}")`;
     result += ` ${serializeAt(symbol.at)}`;
     if (symbol.mirror) result += ` (mirror "${escapeString(symbol.mirror)}")`;
@@ -359,10 +372,13 @@ function serializeSchematicSymbol(symbol: S.I_SchematicSymbol): string {
                 if (project.paths && project.paths.length > 0) {
                     for (const path of project.paths) {
                         result += ` (path "${escapeString(path.path)}"`;
-                        if (path.reference) result += ` (reference "${escapeString(path.reference)}")`;
-                        if (path.value) result += ` (value "${escapeString(path.value)}")`;
+                        if (path.reference)
+                            result += ` (reference "${escapeString(path.reference)}")`;
+                        if (path.value)
+                            result += ` (value "${escapeString(path.value)}")`;
                         if (path.unit) result += ` (unit ${path.unit})`;
-                        if (path.footprint) result += ` (footprint "${escapeString(path.footprint)}")`;
+                        if (path.footprint)
+                            result += ` (footprint "${escapeString(path.footprint)}")`;
                         result += ")";
                     }
                 }
@@ -419,7 +435,8 @@ function serializeSchematicSheet(sheet: S.I_SchematicSheet): string {
                 if (project.paths && project.paths.length > 0) {
                     for (const path of project.paths) {
                         result += ` (path "${escapeString(path.path)}"`;
-                        if (path.page) result += ` (page "${escapeString(path.page)}")`;
+                        if (path.page)
+                            result += ` (page "${escapeString(path.page)}")`;
                         result += ")";
                     }
                 }
@@ -436,11 +453,13 @@ export { serializeLibSymbol };
 export function serializeSchematic(schematic: S.I_KicadSch): string {
     let result = "(kicad_sch";
     result += ` (version ${schematic.version})`;
-    if (schematic.generator) result += ` (generator "${escapeString(schematic.generator)}")`;
+    if (schematic.generator)
+        result += ` (generator "${escapeString(schematic.generator)}")`;
     result += ` (generator_version "${escapeString(schematic.generator_version)}")`;
     result += ` (uuid "${schematic.uuid}")`;
     if (schematic.paper) result += ` ${serializePaper(schematic.paper)}`;
-    if (schematic.title_block) result += ` ${serializeTitleBlock(schematic.title_block)}`;
+    if (schematic.title_block)
+        result += ` ${serializeTitleBlock(schematic.title_block)}`;
     if (schematic.lib_symbols && schematic.lib_symbols.length > 0) {
         result += " (lib_symbols";
         for (const symbol of schematic.lib_symbols) {
@@ -488,7 +507,10 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
             result += ` ${serializeGlobalLabel(label)}`;
         }
     }
-    if (schematic.hierarchical_labels && schematic.hierarchical_labels.length > 0) {
+    if (
+        schematic.hierarchical_labels &&
+        schematic.hierarchical_labels.length > 0
+    ) {
         for (const label of schematic.hierarchical_labels) {
             result += ` ${serializeHierarchicalLabel(label)}`;
         }
@@ -500,7 +522,7 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
     }
     if (schematic.drawings && schematic.drawings.length > 0) {
         for (const drawing of schematic.drawings) {
-            if ('start' in drawing && 'mid' in drawing && 'end' in drawing) {
+            if ("start" in drawing && "mid" in drawing && "end" in drawing) {
                 const arc = drawing as S.I_Arc;
                 result += ` (arc (start (xy ${arc.start.x} ${arc.start.y})) (mid (xy ${arc.mid?.x ?? 0} ${arc.mid?.y ?? 0})) (end (xy ${arc.end.x} ${arc.end.y}))`;
                 if (arc.radius) {
@@ -510,55 +532,72 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
                 if (arc.fill) result += ` ${serializeFill(arc.fill)}`;
                 if (arc.uuid) result += ` (uuid "${arc.uuid}")`;
                 result += ")";
-            } else if ('pts' in drawing && !('center' in drawing) && 'pts' in drawing && (drawing as S.I_Bezier).pts.length === 4) {
+            } else if (
+                "pts" in drawing &&
+                !("center" in drawing) &&
+                "pts" in drawing &&
+                (drawing as S.I_Bezier).pts.length === 4
+            ) {
                 const bezier = drawing as S.I_Bezier;
                 result += ` (bezier (pts`;
                 for (const pt of bezier.pts) {
                     result += ` (xy ${pt.x} ${pt.y})`;
                 }
                 result += ")";
-                if (bezier.stroke) result += ` ${serializeStroke(bezier.stroke)}`;
+                if (bezier.stroke)
+                    result += ` ${serializeStroke(bezier.stroke)}`;
                 if (bezier.fill) result += ` ${serializeFill(bezier.fill)}`;
                 if (bezier.uuid) result += ` (uuid "${bezier.uuid}")`;
                 result += ")";
-            } else if ('center' in drawing && 'radius' in drawing) {
+            } else if ("center" in drawing && "radius" in drawing) {
                 const circle = drawing as S.I_Circle;
                 result += ` (circle (center (xy ${circle.center.x} ${circle.center.y})) (radius ${circle.radius})`;
-                if (circle.stroke) result += ` ${serializeStroke(circle.stroke)}`;
+                if (circle.stroke)
+                    result += ` ${serializeStroke(circle.stroke)}`;
                 if (circle.fill) result += ` ${serializeFill(circle.fill)}`;
                 if (circle.uuid) result += ` (uuid "${circle.uuid}")`;
                 result += ")";
-            } else if ('pts' in drawing) {
+            } else if ("pts" in drawing) {
                 const polyline = drawing as S.I_Polyline;
                 result += ` (polyline (pts`;
                 for (const pt of polyline.pts) {
                     result += ` (xy ${pt.x} ${pt.y})`;
                 }
                 result += ")";
-                if (polyline.stroke) result += ` ${serializeStroke(polyline.stroke)}`;
+                if (polyline.stroke)
+                    result += ` ${serializeStroke(polyline.stroke)}`;
                 if (polyline.fill) result += ` ${serializeFill(polyline.fill)}`;
                 if (polyline.uuid) result += ` (uuid "${polyline.uuid}")`;
                 result += ")";
-            } else if ('start' in drawing && 'end' in drawing && !('mid' in drawing)) {
+            } else if (
+                "start" in drawing &&
+                "end" in drawing &&
+                !("mid" in drawing)
+            ) {
                 const rectangle = drawing as S.I_Rectangle;
                 result += ` (rectangle (start (xy ${rectangle.start.x} ${rectangle.start.y})) (end (xy ${rectangle.end.x} ${rectangle.end.y}))`;
-                if (rectangle.stroke) result += ` ${serializeStroke(rectangle.stroke)}`;
-                if (rectangle.fill) result += ` ${serializeFill(rectangle.fill)}`;
+                if (rectangle.stroke)
+                    result += ` ${serializeStroke(rectangle.stroke)}`;
+                if (rectangle.fill)
+                    result += ` ${serializeFill(rectangle.fill)}`;
                 if (rectangle.uuid) result += ` (uuid "${rectangle.uuid}")`;
                 result += ")";
-            } else if ('text' in drawing && !('size' in drawing)) {
+            } else if ("text" in drawing && !("size" in drawing)) {
                 const text = drawing as S.I_Text;
                 result += ` (text "${escapeString(text.text)}" ${serializeAt(text.at)} ${serializeEffects(text.effects)}`;
                 if (text.exclude_from_sim) result += " (exclude_from_sim yes)";
                 if (text.uuid) result += ` (uuid "${text.uuid}")`;
                 result += ")";
-            } else if ('text' in drawing && 'size' in drawing) {
+            } else if ("text" in drawing && "size" in drawing) {
                 const textbox = drawing as S.I_TextBox;
                 result += ` (text_box "${escapeString(textbox.text)}" ${serializeAt(textbox.at)} (size ${textbox.size.x} ${textbox.size.y})`;
-                if (textbox.exclude_from_sim) result += ` (exclude_from_sim ${textbox.exclude_from_sim ? "yes" : "no"})`;
-                if (textbox.margins) result += ` (margins ${textbox.margins.x} ${textbox.margins.y} ${textbox.margins.z} ${textbox.margins.w})`;
+                if (textbox.exclude_from_sim)
+                    result += ` (exclude_from_sim ${textbox.exclude_from_sim ? "yes" : "no"})`;
+                if (textbox.margins)
+                    result += ` (margins ${textbox.margins.x} ${textbox.margins.y} ${textbox.margins.z} ${textbox.margins.w})`;
                 result += ` ${serializeEffects(textbox.effects)}`;
-                if (textbox.stroke) result += ` ${serializeStroke(textbox.stroke)}`;
+                if (textbox.stroke)
+                    result += ` ${serializeStroke(textbox.stroke)}`;
                 if (textbox.fill) result += ` ${serializeFill(textbox.fill)}`;
                 if (textbox.uuid) result += ` (uuid "${textbox.uuid}")`;
                 result += ")";
@@ -581,7 +620,8 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
         result += " (sheet_instances";
         for (const instance of schematic.sheet_instances) {
             result += ` (path "${escapeString(instance.path)}"`;
-            if (instance.page) result += ` (page "${escapeString(instance.page)}")`;
+            if (instance.page)
+                result += ` (page "${escapeString(instance.page)}")`;
             result += ")";
         }
         result += ")";

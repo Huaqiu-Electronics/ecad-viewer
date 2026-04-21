@@ -66,8 +66,12 @@ function parseBusAlias(expr: Parseable): S.I_BusAlias {
         P.start("bus_alias"),
         P.positional("name", T.string),
         P.item("members", (e) => {
-            const parsed = parse_expr(e, P.start("members"), P.list("members", T.string));
-            return parsed['members'] || [];
+            const parsed = parse_expr(
+                e,
+                P.start("members"),
+                P.list("members", T.string),
+            );
+            return parsed["members"] || [];
         }),
     ) as unknown as S.I_BusAlias;
 }
@@ -105,14 +109,21 @@ function parsePolyline(expr: Parseable): S.I_Polyline {
     ) as unknown as S.I_Polyline;
 }
 
-function parseCenterOrStartOrEnd(expr: Parseable, name: string): {x: number, y: number} {
+function parseCenterOrStartOrEnd(
+    expr: Parseable,
+    name: string,
+): { x: number; y: number } {
     // Check if the expression has an inner (xy x y) or just x y as arguments
     if (Array.isArray(expr)) {
         // First check if the second element is another array starting with "xy"
-        if (expr.length >= 2 && Array.isArray(expr[1]) && expr[1][0] === 'xy') {
+        if (expr.length >= 2 && Array.isArray(expr[1]) && expr[1][0] === "xy") {
             // Case: (name (xy x y))
             return parse_expr(expr, P.start(name), P.vec2("xy"))["xy"];
-        } else if (expr.length >= 3 && typeof expr[1] === 'number' && typeof expr[2] === 'number') {
+        } else if (
+            expr.length >= 3 &&
+            typeof expr[1] === "number" &&
+            typeof expr[2] === "number"
+        ) {
             // Case: (name x y)
             return { x: expr[1], y: expr[2] };
         }
@@ -498,19 +509,19 @@ function parseSchematicSheet(expr: Parseable): S.I_SchematicSheet {
     );
 
     return {
-        at: parsed['at'],
-        size: parsed['size'],
-        fields_autoplaced: parsed['fields_autoplaced'] || false,
-        exclude_from_sim: parsed['exclude_from_sim'] || false,
-        in_bom: parsed['in_bom'] || false,
-        on_board: parsed['on_board'] || false,
-        dnp: parsed['dnp'] || false,
-        stroke: parsed['stroke'],
-        fill: parsed['fill'],
-        properties: parsed['properties'] || [],
-        pins: parsed['pins'] || [],
-        uuid: parsed['uuid'],
-        instances: parsed['instances'] || { projects: [] },
+        at: parsed["at"],
+        size: parsed["size"],
+        fields_autoplaced: parsed["fields_autoplaced"] || false,
+        exclude_from_sim: parsed["exclude_from_sim"] || false,
+        in_bom: parsed["in_bom"] || false,
+        on_board: parsed["on_board"] || false,
+        dnp: parsed["dnp"] || false,
+        stroke: parsed["stroke"],
+        fill: parsed["fill"],
+        properties: parsed["properties"] || [],
+        pins: parsed["pins"] || [],
+        uuid: parsed["uuid"],
+        instances: parsed["instances"] || { projects: [] },
     } as unknown as S.I_SchematicSheet;
 }
 
@@ -555,7 +566,16 @@ function parseSymbolInstances(expr: Parseable): S.I_SymbolInstance[] {
     return parsed["paths"] as S.I_SymbolInstance[];
 }
 
-export { parseLibSymbol, parseCircle, parseArc, parseBezier, parseRectangle, parsePolyline, parseText, parseTextBox };
+export {
+    parseLibSymbol,
+    parseCircle,
+    parseArc,
+    parseBezier,
+    parseRectangle,
+    parsePolyline,
+    parseText,
+    parseTextBox,
+};
 export class SchematicParser {
     public parse(text: string): S.I_KicadSch {
         const expr = listify(text);
