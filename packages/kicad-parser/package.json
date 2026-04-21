@@ -1,6 +1,6 @@
 {
     "name": "kicad-sexpr-parser",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "description": "KiCad sexpr file parser",
     "type": "module",
     "main": "./dist/index.js",
