@@ -14,6 +14,7 @@ import {
     parseTitleBlock,
 } from "./common";
 import { listify, type List } from "./tokenizer";
+import { serializeSchematic } from "./schematic_serializer";
 
 function parseFill(expr: Parseable): S.I_Fill {
     return parse_expr(
@@ -571,5 +572,9 @@ export class SchematicParser {
             P.item("symbol_instances", parseSymbolInstances),
             P.collection("sheets", "sheet", T.item(parseSchematicSheet)),
         ) as unknown as S.I_KicadSch;
+    }
+
+    public save(schematic: S.I_KicadSch): string {
+        return serializeSchematic(schematic);
     }
 }
