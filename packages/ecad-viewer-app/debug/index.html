@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="./style.css" />
+        <title>ECAD Viewer</title>
+    </head>
+    <body>
+        <!-- Container div for the horizontal layout -->
+        <ecad-viewer> </ecad-viewer>
+    </body>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./three/three.module.js",
+                "three/addons/": "./three/addons/",
+                "3d-viewer": "./ecad_viewer/3d-viewer.js",
+                "glyph-full": "./ecad_viewer/glyph-full.js"
+            }
+        }
+    </script>
+    <script type="module" src="./ecad_viewer/ecad-viewer.js"></script>
+    <script></script>
+</html>

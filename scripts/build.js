@@ -6,18 +6,26 @@
 
 import fs from "node:fs";
 import { bundle } from "./bundle.js";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-export const ENTRY = resolve("src/index.ts");
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = resolve(__dirname, "..");
+const APP_DIR = resolve(ROOT_DIR, "packages/ecad-viewer-app");
+export const ENTRY = resolve(APP_DIR, "src/index.ts");
 
 let { options, context } = await bundle({
     entryPoints: {
         "ecad-viewer": ENTRY,
-        "parser.worker": resolve("src/kicanvas/parser.worker.ts"),
+        "parser.worker": resolve(APP_DIR, "src/kicanvas/parser.worker.ts"),
     },
-    outdir: "build",
+    outdir: resolve(APP_DIR, "build"),
     minify: true,
     metafile: true,
+    resolveExtensions: [".ts", ".js"],
+    alias: {
+        "kicad-parser": resolve(ROOT_DIR, "packages/kicad-parser/src"),
+    },
 });
 
 console.log(`Building to ${options.outdir}`);
@@ -34,7 +42,7 @@ for (const msg of result.errors) {
 }
 
 fs.writeFileSync(
-    "build/ecad-viewer-esbuild-meta.json",
+    resolve(APP_DIR, "build/ecad-viewer-esbuild-meta.json"),
     JSON.stringify(result.metafile),
 );
 

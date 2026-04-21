@@ -5,28 +5,36 @@
 */
 
 import { bundle } from "./bundle.js";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-export const ENTRY = resolve("src/index.ts");
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = resolve(__dirname, "..");
+const APP_DIR = resolve(ROOT_DIR, "packages/ecad-viewer-app");
+export const ENTRY = resolve(APP_DIR, "src/index.ts");
 
 let { context } = await bundle({
     entryPoints: {
         "ecad-viewer": ENTRY,
-        "parser.worker": resolve("src/kicanvas/parser.worker.ts"),
+        "parser.worker": resolve(APP_DIR, "src/kicanvas/parser.worker.ts"),
     },
-    outdir: "debug/ecad_viewer",
+    outdir: resolve(APP_DIR, "debug/ecad_viewer"),
     sourcemap: true,
     define: {
         DEBUG: "true",
+    },
+    resolveExtensions: [".ts", ".js"],
+    alias: {
+        "kicad-parser": resolve(ROOT_DIR, "packages/kicad-parser/src"),
     },
 });
 
 await context.watch();
 
 let { host, port } = await context.serve({
-    servedir: "./debug",
+    servedir: resolve(APP_DIR, "debug"),
     host: "127.0.0.1",
-    port: 8080,
+    port: 8081,
 });
 
 console.log(`[serve] listening at http://${host}:${port}`);

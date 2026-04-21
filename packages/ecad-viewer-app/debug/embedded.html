@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+            ecad-viewer,
+            ecad-viewer-embedded {
+                width: 100%;
+                height: 800px;
+                border: 1px solid cyan;
+                margin: 5px;
+            }
+            .flex-container {
+                display: flex;
+                margin-top: 60px;
+                margin-left: 10%;
+                margin-right: 10%;
+                flex-direction: column;
+            }
+
+            .col-flex-container {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .canvas-container {
+                margin: 10px;
+                padding: 1px;
+            }
+        </style>
+        <title>Embedded demo</title>
+    </head>
+    <body>
+        <div class="flex-container">
+            <ecad-viewer-embedded url="video/video.kicad_pcb">
+            </ecad-viewer-embedded>
+            <ecad-viewer-embedded url="video/video.glb"> </ecad-viewer-embedded>
+            <ecad-viewer-embedded
+                url="video/video.kicad_sch;
+      video/bus_pci.kicad_sch;
+      video/esvideo.kicad_sch;
+      video/graphic.kicad_sch;
+      video/modul.kicad_sch;
+      video/muxdata.kicad_sch;
+      video/pal-ntsc.kicad_sch;
+      video/rams.kicad_sch">
+            </ecad-viewer-embedded>
+            <ecad-viewer-embedded
+                is-bom="true"
+                url="video/video.kicad_sch;
+      video/bus_pci.kicad_sch;
+      video/esvideo.kicad_sch;
+      video/graphic.kicad_sch;
+      video/modul.kicad_sch;
+      video/muxdata.kicad_sch;
+      video/pal-ntsc.kicad_sch;
+      video/rams.kicad_sch">
+            </ecad-viewer-embedded>
+        </div>
+    </body>
+
+    <script type="module" src="./ecad_viewer/ecad-viewer.js"></script>
+</html>

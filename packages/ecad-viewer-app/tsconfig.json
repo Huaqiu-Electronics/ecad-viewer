@@ -1,0 +1,36 @@
+{
+    "compilerOptions": {
+        "target": "es2022",
+        "moduleResolution": "bundler",
+        "experimentalDecorators": true,
+        "useDefineForClassFields": false,
+        "module": "es2022",
+        "verbatimModuleSyntax": true,
+        "allowArbitraryExtensions": true,
+        "allowJs": true,
+        "checkJs": true,
+        "outDir": "./dist",
+        "declaration": true,
+        "forceConsistentCasingInFileNames": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        "strictBindCallApply": true,
+        "noImplicitThis": true,
+        "useUnknownInCatchVariables": true,
+        "alwaysStrict": true,
+        "noUnusedLocals": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedIndexedAccess": true,
+        "noImplicitOverride": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "allowUnusedLabels": false,
+        "allowUnreachableCode": false,
+        "paths": {
+            "kicad-parser": ["../kicad-parser/src"]
+        }
+    },
+    "include": ["./src/**/*"],
+    "exclude": ["./node_modules", "./**/node_modules/*"]
+}
