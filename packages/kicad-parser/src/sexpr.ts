@@ -83,7 +83,7 @@ export const T = {
         };
     },
     vec2(obj: Obj, name: string, e: ListOrAtom): { x: number; y: number } {
-        const el = e as number[];
+        const el = e as any[];
         return { x: el[1] || 0, y: el[2] || 0 };
     },
     color(obj: Obj, name: string, e: ListOrAtom): I_Color {

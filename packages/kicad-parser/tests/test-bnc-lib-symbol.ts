@@ -1,0 +1,30 @@
+#!/usr/bin/env tsx
+import { SchematicParser } from "../src/schematic_parser";
+import { parseLibSymbol } from "../src/schematic_parser";
+import { serializeLibSymbol } from "../src/schematic_serializer";
+import * as fs from "fs";
+import * as path from "path";
+import { fileURLToPath } from "url";
+import { listify } from "../src/tokenizer";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const parser = new SchematicParser();
+const testFile = path.join(__dirname, "demos/video/video.kicad_sch");
+const content = fs.readFileSync(testFile, "utf-8");
+const schematic1 = parser.parse(content);
+const serialized1 = parser.save(schematic1);
+console.log("=== serialized1 snippet with BNC_0_1 ===");
+const bncIndex1 = serialized1.indexOf("(symbol \"BNC_0_1\"");
+let endIdx = serialized1.indexOf("(symbol \"BNC_1_1\"", bncIndex1);
+const bncSymbolStr1 = serialized1.slice(bncIndex1, endIdx);
+console.log("bncSymbolStr1:", bncSymbolStr1);
+console.log("=== listify bncSymbolStr1 ===");
+const listed = listify(bncSymbolStr1);
+console.log("listed:", JSON.stringify(listed, null, 2));
+console.log("\n=== parseLibSymbol(listed[0]) ===");
+const libSym = parseLibSymbol(listed[0]);
+console.log("libSym:", JSON.stringify(libSym, null, 2));
+console.log("\n=== serializeLibSymbol(libSym) ===");
+const ser = serializeLibSymbol(libSym);
+console.log("ser:", ser);

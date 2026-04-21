@@ -59,14 +59,27 @@ export function parseEffects(expr: Parseable): I_Effects {
             P.atom("italic"),
             P.pair("line_spacing", T.number),
         ),
-        P.object(
-            "justify",
-            { horiz: "center", vert: "center", mirror: false },
-            P.start("justify"),
-            P.atom("horiz", ["left", "right"]),
-            P.atom("vert", ["top", "bottom"]),
-            P.atom("mirror"),
-        ),
+        P.item("justify", (e) => {
+            // e is like ['justify', 'left', 'center'] or ['justify', 'right', 'bottom', 'mirror']
+            let horiz = "center";
+            let vert = "center";
+            let mirror = false;
+            if (Array.isArray(e)) {
+                for (let i = 1; i < e.length; i++) {
+                    const item = e[i];
+                    if (typeof item === "string") {
+                        if (item === "left" || item === "right") {
+                            horiz = item;
+                        } else if (item === "top" || item === "bottom") {
+                            vert = item;
+                        } else if (item === "mirror") {
+                            mirror = true;
+                        }
+                    }
+                }
+            }
+            return { horiz, vert, mirror };
+        }),
         P.atom("hide"),
         P.pair("href", T.string),
     ) as unknown as I_Effects;

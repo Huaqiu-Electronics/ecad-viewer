@@ -41,7 +41,11 @@ function serializeStroke(stroke: C.I_Stroke): string {
 }
 
 function serializeFill(fill: S.I_Fill): string {
-    let result = `(fill ${fill.type}`;
+    if (!fill) return "";
+    let result = "(fill";
+    if (fill.type && fill.type !== "none") {
+        result += ` (type ${fill.type})`;
+    }
     if (fill.color) {
         result += ` (color ${Math.round(fill.color.r * 255)} ${Math.round(fill.color.g * 255)} ${Math.round(fill.color.b * 255)} ${fill.color.a})`;
     }
@@ -59,19 +63,22 @@ function serializeTitleBlock(titleBlock: C.I_TitleBlock): string {
     if (titleBlock.company) result += ` (company "${titleBlock.company}")`;
     if (titleBlock.date) result += ` (date "${titleBlock.date}")`;
     if (titleBlock.rev) result += ` (rev "${titleBlock.rev}")`;
-    for (const [key, value] of Object.entries(titleBlock.comment)) {
-        result += ` (comment ${key} "${value}")`;
+    if (titleBlock.comment) {
+        for (const [key, value] of Object.entries(titleBlock.comment)) {
+            result += ` (comment ${key} "${value}")`;
+        }
     }
     result += ")";
     return result;
 }
 
-function serializeVec2(vec: { x: number; y: number }): string {
-    return `${vec.x} ${vec.y}`;
-}
+
 
 function serializeProperty(property: S.I_Property): string {
-    let result = `(property "${property.name}" "${property.text}" ${property.id}`;
+    let result = `(property "${property.name}" "${property.text}"`;
+    if (property.id) {
+        result += ` ${property.id}`;
+    }
     result += ` ${serializeAt(property.at)}`;
     result += ` ${serializeEffects(property.effects)}`;
     if (property.show_name) result += " (show_name yes)";
@@ -135,9 +142,9 @@ function serializeLibSymbol(symbol: S.I_LibSymbol): string {
         for (const drawing of symbol.drawings) {
             if ('start' in drawing && 'mid' in drawing && 'end' in drawing) {
                 const arc = drawing as S.I_Arc;
-                result += ` (arc (start (xy ${arc.start.x} ${arc.start.y})) (mid (xy ${arc.mid!.x} ${arc.mid!.y})) (end (xy ${arc.end.x} ${arc.end.y}))`;
+                result += ` (arc (start (xy ${arc.start.x} ${arc.start.y})) (mid (xy ${arc.mid?.x ?? 0} ${arc.mid?.y ?? 0})) (end (xy ${arc.end.x} ${arc.end.y}))`;
                 if (arc.radius) {
-                    result += ` (radius ${serializeVec2(arc.radius.at)} (length ${arc.radius.length}) (angles ${serializeVec2(arc.radius.angles)}))`;
+                    result += ` (radius (xy ${arc.radius.at.x} ${arc.radius.at.y}) (length ${arc.radius.length}) (angles ${arc.radius.angles.x} ${arc.radius.angles.y}))`;
                 }
                 if (arc.stroke) result += ` ${serializeStroke(arc.stroke)}`;
                 if (arc.fill) result += ` ${serializeFill(arc.fill)}`;
@@ -301,9 +308,15 @@ function serializeSchematicSymbol(symbol: S.I_SchematicSymbol): string {
     if (symbol.mirror) result += ` (mirror "${symbol.mirror}")`;
     if (symbol.exclude_from_sim) result += " (exclude_from_sim yes)";
     result += ` (unit ${symbol.unit})`;
-    result += ` (convert ${symbol.convert})`;
-    if (symbol.in_bom) result += " (in_bom yes)";
-    if (symbol.on_board) result += " (on_board yes)";
+    if (typeof symbol.convert !== "undefined" && symbol.convert !== null) {
+        result += ` (convert ${symbol.convert})`;
+    }
+    if (typeof symbol.in_bom !== "undefined") {
+        result += ` (in_bom ${symbol.in_bom ? "yes" : "no"})`;
+    }
+    if (typeof symbol.on_board !== "undefined") {
+        result += ` (on_board ${symbol.on_board ? "yes" : "no"})`;
+    }
     if (symbol.dnp) result += " (dnp yes)";
     if (symbol.fields_autoplaced) result += " (fields_autoplaced yes)";
     result += ` (uuid "${symbol.uuid}")`;
@@ -358,9 +371,22 @@ function serializeSheetPin(pin: S.I_SchematicSheetPin): string {
 
 function serializeSchematicSheet(sheet: S.I_SchematicSheet): string {
     let result = `(sheet ${serializeAt(sheet.at)} (size ${sheet.size.x} ${sheet.size.y})`;
+    if (sheet.exclude_from_sim !== undefined) {
+        result += ` (exclude_from_sim ${sheet.exclude_from_sim ? "yes" : "no"})`;
+    }
+    if (sheet.in_bom !== undefined) {
+        result += ` (in_bom ${sheet.in_bom ? "yes" : "no"})`;
+    }
+    if (sheet.on_board !== undefined) {
+        result += ` (on_board ${sheet.on_board ? "yes" : "no"})`;
+    }
+    if (sheet.dnp !== undefined) {
+        result += ` (dnp ${sheet.dnp ? "yes" : "no"})`;
+    }
     if (sheet.fields_autoplaced) result += " (fields_autoplaced yes)";
     result += ` ${serializeStroke(sheet.stroke)}`;
-    result += ` ${serializeFill(sheet.fill)}`;
+    const fillStr = serializeFill(sheet.fill);
+    if (fillStr) result += ` ${fillStr}`;
     result += ` (uuid "${sheet.uuid}")`;
     if (sheet.properties && sheet.properties.length > 0) {
         for (const property of sheet.properties) {
@@ -393,6 +419,7 @@ function serializeSchematicSheet(sheet: S.I_SchematicSheet): string {
     return result;
 }
 
+export { serializeLibSymbol };
 export function serializeSchematic(schematic: S.I_KicadSch): string {
     let result = "(kicad_sch";
     result += ` (version ${schematic.version})`;
@@ -400,7 +427,6 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
     result += ` (generator_version "${schematic.generator_version}")`;
     result += ` (uuid "${schematic.uuid}")`;
     if (schematic.paper) result += ` ${serializePaper(schematic.paper)}`;
-    if (schematic.embedded_fonts) result += " (embedded_fonts yes)";
     if (schematic.title_block) result += ` ${serializeTitleBlock(schematic.title_block)}`;
     if (schematic.lib_symbols && schematic.lib_symbols.length > 0) {
         result += " (lib_symbols";
@@ -472,7 +498,7 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
                 if (polyline.fill) result += ` ${serializeFill(polyline.fill)}`;
                 if (polyline.uuid) result += ` (uuid "${polyline.uuid}")`;
                 result += ")";
-            } else if ('start' in drawing && 'end' in drawing) {
+            } else if ('start' in drawing && 'end' in drawing && !('mid' in drawing)) {
                 const rectangle = drawing as S.I_Rectangle;
                 result += ` (rectangle (start (xy ${rectangle.start.x} ${rectangle.start.y})) (end (xy ${rectangle.end.x} ${rectangle.end.y}))`;
                 if (rectangle.stroke) result += ` ${serializeStroke(rectangle.stroke)}`;
@@ -481,9 +507,9 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
                 result += ")";
             } else if ('start' in drawing && 'mid' in drawing && 'end' in drawing) {
                 const arc = drawing as S.I_Arc;
-                result += ` (arc (start (xy ${arc.start.x} ${arc.start.y})) (mid (xy ${arc.mid!.x} ${arc.mid!.y})) (end (xy ${arc.end.x} ${arc.end.y}))`;
+                result += ` (arc (start (xy ${arc.start.x} ${arc.start.y})) (mid (xy ${arc.mid?.x ?? 0} ${arc.mid?.y ?? 0})) (end (xy ${arc.end.x} ${arc.end.y}))`;
                 if (arc.radius) {
-                    result += ` (radius ${serializeVec2(arc.radius.at)} (length ${arc.radius.length}) (angles ${serializeVec2(arc.radius.angles)}))`;
+                    result += ` (radius (xy ${arc.radius.at.x} ${arc.radius.at.y}) (length ${arc.radius.length}) (angles ${arc.radius.angles.x} ${arc.radius.angles.y}))`;
                 }
                 if (arc.stroke) result += ` ${serializeStroke(arc.stroke)}`;
                 if (arc.fill) result += ` ${serializeFill(arc.fill)}`;
@@ -505,10 +531,17 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
             result += ")";
         }
     }
+    if (schematic.sheets && schematic.sheets.length > 0) {
+        for (const sheet of schematic.sheets) {
+            result += ` ${serializeSchematicSheet(sheet)}`;
+        }
+    }
     if (schematic.sheet_instances && schematic.sheet_instances.length > 0) {
         result += " (sheet_instances";
         for (const instance of schematic.sheet_instances) {
-            result += ` (path "${instance.path}" (page "${instance.page}"))`;
+            result += ` (path "${instance.path}"`;
+            if (instance.page) result += ` (page "${instance.page}")`;
+            result += ")";
         }
         result += ")";
     }
@@ -519,10 +552,8 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
         }
         result += ")";
     }
-    if (schematic.sheets && schematic.sheets.length > 0) {
-        for (const sheet of schematic.sheets) {
-            result += ` ${serializeSchematicSheet(sheet)}`;
-        }
+    if (schematic.embedded_fonts !== undefined) {
+        result += ` (embedded_fonts ${schematic.embedded_fonts ? "yes" : "no"})`;
     }
     result += ")";
     return result;

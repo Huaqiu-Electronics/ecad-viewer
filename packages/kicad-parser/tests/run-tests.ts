@@ -1,14 +1,19 @@
+#!/usr/bin/env tsx
 import { SchematicParser } from '../src/schematic_parser';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const parser = new SchematicParser();
 
 // Test all kicad_sch files in the demos directory
-const demosDir = path.resolve(__dirname, 'demos');
+const demosDir = path.join(__dirname, 'demos');
 
-function testSchematicFile(filePath: string) {
-    test(`Parse and serialize ${path.relative(demosDir, filePath)}`, () => {
+function testSchematicFile(filePath: string): boolean {
+    console.log(`\nTesting ${path.relative(demosDir, filePath)}...`);
+    try {
         const content = fs.readFileSync(filePath, 'utf8');
         
         // Parse the schematic
@@ -24,12 +29,22 @@ function testSchematicFile(filePath: string) {
         const reserialized = parser.save(reparsed);
         
         // The reserialized content should match the first serialized content
-        expect(reserialized).toBe(serialized);
-    });
+        if (reserialized === serialized) {
+            console.log(`✓ PASSED: ${path.relative(demosDir, filePath)}`);
+            return true;
+        } else {
+            console.error(`✗ FAILED: Serialized output differs for ${path.relative(demosDir, filePath)}`);
+            return false;
+        }
+    } catch (error) {
+        console.error(`✗ FAILED: Error processing ${path.relative(demosDir, filePath)}`);
+        console.error(`  Error: ${error}`);
+        return false;
+    }
 }
 
 // Recursively find all kicad_sch files in demos directory
-function findSchematicFiles(dir: string) {
+function findSchematicFiles(dir: string): string[] {
     const files: string[] = [];
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     
@@ -46,5 +61,20 @@ function findSchematicFiles(dir: string) {
 }
 
 // Run tests for all found schematic files
+console.log('Running schematic parser and serializer tests...');
 const schematicFiles = findSchematicFiles(demosDir);
-schematicFiles.forEach(testSchematicFile);
+let passed = 0;
+let failed = 0;
+
+schematicFiles.forEach(filePath => {
+    if (testSchematicFile(filePath)) {
+        passed++;
+    } else {
+        failed++;
+    }
+});
+
+console.log(`\nTest summary: ${passed} passed, ${failed} failed`);
+
+// Exit with appropriate code
+process.exit(failed > 0 ? 1 : 0);

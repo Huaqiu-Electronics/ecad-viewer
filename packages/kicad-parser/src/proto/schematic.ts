@@ -285,6 +285,10 @@ export interface I_SchematicSheet {
     at: I_At;
     size: { x: number; y: number };
     fields_autoplaced: boolean;
+    exclude_from_sim: boolean;
+    in_bom: boolean;
+    on_board: boolean;
+    dnp: boolean;
     stroke: I_Stroke;
     fill: I_Fill;
     properties: I_Property[];

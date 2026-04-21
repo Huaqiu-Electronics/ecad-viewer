@@ -17,12 +17,16 @@ import { listify, type List } from "./tokenizer";
 import { serializeSchematic } from "./schematic_serializer";
 
 function parseFill(expr: Parseable): S.I_Fill {
-    return parse_expr(
+    const parsed = parse_expr(
         expr,
         P.start("fill"),
-        P.pair("type", T.string),
         P.color(),
-    ) as unknown as S.I_Fill;
+        P.pair("type", T.string),
+    ) as any;
+    return {
+        type: parsed.type || "none",
+        color: parsed.color,
+    } as S.I_Fill;
 }
 
 function parseWire(expr: Parseable): S.I_Wire {
@@ -98,12 +102,28 @@ function parsePolyline(expr: Parseable): S.I_Polyline {
     ) as unknown as S.I_Polyline;
 }
 
+function parseCenterOrStartOrEnd(expr: Parseable, name: string): {x: number, y: number} {
+    // Check if the expression has an inner (xy x y) or just x y as arguments
+    if (Array.isArray(expr)) {
+        // First check if the second element is another array starting with "xy"
+        if (expr.length >= 2 && Array.isArray(expr[1]) && expr[1][0] === 'xy') {
+            // Case: (name (xy x y))
+            return parse_expr(expr, P.start(name), P.vec2("xy"))["xy"];
+        } else if (expr.length >= 3 && typeof expr[1] === 'number' && typeof expr[2] === 'number') {
+            // Case: (name x y)
+            return { x: expr[1], y: expr[2] };
+        }
+    }
+    // Fallback
+    return { x: 0, y: 0 };
+}
+
 function parseRectangle(expr: Parseable): S.I_Rectangle {
     return parse_expr(
         expr,
         P.start("rectangle"),
-        P.vec2("start"),
-        P.vec2("end"),
+        P.item("start", (e) => parseCenterOrStartOrEnd(e, "start")),
+        P.item("end", (e) => parseCenterOrStartOrEnd(e, "end")),
         P.item("stroke", parseStroke),
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
@@ -111,37 +131,37 @@ function parseRectangle(expr: Parseable): S.I_Rectangle {
 }
 
 function parseCircle(expr: Parseable): S.I_Circle {
+    // Parse circle, handling (center (xy x y)) or (center x y)
     return parse_expr(
         expr,
         P.start("circle"),
-        P.vec2("center"),
+        P.item("center", (e) => parseCenterOrStartOrEnd(e, "center")),
         P.pair("radius", T.number),
         P.item("stroke", parseStroke),
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
-    ) as unknown as S.I_Circle;
+    ) as any;
 }
 
 function parseArc(expr: Parseable): S.I_Arc {
-    const res = parse_expr(
+    return parse_expr(
         expr,
         P.start("arc"),
-        P.vec2("start"),
-        P.vec2("mid"),
-        P.vec2("end"),
+        P.item("start", (e) => parseCenterOrStartOrEnd(e, "start")),
+        P.item("mid", (e) => parseCenterOrStartOrEnd(e, "mid")),
+        P.item("end", (e) => parseCenterOrStartOrEnd(e, "end")),
         P.object(
             "radius",
             {},
             P.start("radius"),
-            P.vec2("at"),
+            P.item("at", (e) => parseCenterOrStartOrEnd(e, "at")),
             P.pair("length"),
-            P.vec2("angles"),
+            P.item("angles", (e) => parseCenterOrStartOrEnd(e, "angles")),
         ),
         P.item("stroke", parseStroke),
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
     ) as unknown as S.I_Arc;
-    return res;
 }
 
 function parseBezier(expr: Parseable): S.I_Bezier {
@@ -233,7 +253,7 @@ function parseNetLabel(expr: Parseable): S.I_NetLabel {
 }
 
 function parseProperty(expr: Parseable): S.I_Property {
-    return parse_expr(
+    const parsed = parse_expr(
         expr,
         P.start("property"),
         P.positional("name", T.string),
@@ -243,7 +263,18 @@ function parseProperty(expr: Parseable): S.I_Property {
         P.item("effects", parseEffects),
         P.atom("show_name"),
         P.atom("do_not_autoplace"),
-    ) as unknown as S.I_Property;
+        P.atom("hide"),
+    ) as any;
+    return {
+        name: parsed.name,
+        text: parsed.text,
+        id: parsed.id || 0,
+        at: parsed.at,
+        show_name: parsed.show_name || false,
+        do_not_autoplace: parsed.do_not_autoplace || false,
+        hide: parsed.hide || false,
+        effects: parsed.effects,
+    } as S.I_Property;
 }
 
 function parseGlobalLabel(expr: Parseable): S.I_GlobalLabel {
@@ -437,6 +468,10 @@ function parseSchematicSheet(expr: Parseable): S.I_SchematicSheet {
         P.item("at", parseAt),
         P.vec2("size"),
         P.atom("fields_autoplaced"),
+        P.pair("exclude_from_sim", T.boolean),
+        P.pair("in_bom", T.boolean),
+        P.pair("on_board", T.boolean),
+        P.pair("dnp", T.boolean),
         P.item("stroke", parseStroke),
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
@@ -468,7 +503,21 @@ function parseSchematicSheet(expr: Parseable): S.I_SchematicSheet {
         ),
     );
 
-    return parsed as unknown as S.I_SchematicSheet;
+    return {
+        at: parsed['at'],
+        size: parsed['size'],
+        fields_autoplaced: parsed['fields_autoplaced'] || false,
+        exclude_from_sim: parsed['exclude_from_sim'] || false,
+        in_bom: parsed['in_bom'] || false,
+        on_board: parsed['on_board'] || false,
+        dnp: parsed['dnp'] || false,
+        stroke: parsed['stroke'],
+        fill: parsed['fill'],
+        properties: parsed['properties'] || [],
+        pins: parsed['pins'] || [],
+        uuid: parsed['uuid'],
+        instances: parsed['instances'] || { projects: [] },
+    } as unknown as S.I_SchematicSheet;
 }
 
 function parseSheetInstances(expr: Parseable): S.I_SheetInstance[] {
@@ -512,6 +561,7 @@ function parseSymbolInstances(expr: Parseable): S.I_SymbolInstance[] {
     return parsed["paths"] as S.I_SymbolInstance[];
 }
 
+export { parseLibSymbol, parseCircle, parseArc, parseBezier, parseRectangle, parsePolyline, parseText, parseTextBox };
 export class SchematicParser {
     public parse(text: string): S.I_KicadSch {
         const expr = listify(text);
