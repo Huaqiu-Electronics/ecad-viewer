@@ -10,6 +10,8 @@
         "allowJs": true,
         "checkJs": true,
         "outDir": "./dist",
+        "rootDir": ".",
+        "skipLibCheck": true,
         "declaration": true,
         "forceConsistentCasingInFileNames": true,
         "noImplicitAny": true,
@@ -28,6 +30,11 @@
         "allowUnusedLabels": false,
         "allowUnreachableCode": false
     },
-    "include": ["./src/**/*"],
-    "exclude": ["./node_modules", "./**/node_modules/*"]
+    "include": [
+        "./src/**/*"
+    ],
+    "exclude": [
+        "./node_modules",
+        "./**/node_modules/*"
+    ]
 }

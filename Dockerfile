@@ -23,13 +23,13 @@ WORKDIR /src
 
 RUN set -ex; \
     npm install; \
-    cd packages/ecad-viewer-app && npm run build-all; \
+    npm run build-all -w ecad-viewer-app; \
     mv packages/ecad-viewer-app/static /app; \
     mv packages/ecad-viewer-app/build /app/ecad_viewer; \
     echo "IMAGE_TAG=$IMAGE_TAG"; \
     if [ -n "$IMAGE_TAG" ]; then \
     cp /app/ecad_viewer/ecad-viewer.js /app/ecad_viewer/ecad-viewer-"$IMAGE_TAG".js; \
-    sed -i "s|<script type=\"module\" src=\"./ecad_viewer/ecad-viewer.js\"></script>|<script type=\"module\" src=\"./ecad_viewer/ecad-viewer-$IMAGE_TAG.js\"></script>|g" /app/index.html; \
+    sed -i "s|<script type=\\\"module\\\" src=\\\"./ecad_viewer/ecad-viewer.js\\\"></script>|<script type=\\\"module\\\" src=\\\"./ecad_viewer/ecad-viewer-$IMAGE_TAG.js\\\"></script>|g" /app/index.html; \
     fi;
 
 RUN set -ex; \
