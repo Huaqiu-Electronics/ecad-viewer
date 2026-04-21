@@ -190,18 +190,7 @@ function parseText(expr: Parseable): S.I_Text {
 function parseTextBox(expr: Parseable): S.I_TextBox {
     return parse_expr(
         expr,
-        P.start("text"), // uses "text" token in source? check kicad source, actually it's (text_box ...) usually?
-        // Wait, looking at schematic.ts line 691 it says P.start("text").
-        // But the class is TextBox. Is it really (text ...)?
-        // Ah, likely (textbox ...) in recent versions or (text ...) with box property?
-        // Let's check schematic.ts again. Line 691: P.start("text").
-        // NOTE: In `LibSymbol` constructor line 895 it parses `P.collection("drawings", "textbox", T.item(TextBox, this))`
-        // So strict start would be "textbox".
-        // But `TextBox` class constructor uses `P.start("text")`.
-        // This implies `TextBox` might handle `(text ...)` nodes too or the constructor definition is slightly loose/wrong in `schematic.ts`.
-        // Let's assume `textbox` for `LibSymbol` collections.
-        // If it's `(text ...)` it's valid too but usually that's `Text`.
-        // Let's use `textbox` as start for strict parsing if called via `textbox` collection.
+        P.start("text_box"),
         P.positional("text", T.string),
         P.item("at", parseAt),
         P.vec2("size"),
@@ -616,6 +605,9 @@ export class SchematicParser {
             P.collection("drawings", "rectangle", T.item(parseRectangle)),
             P.collection("drawings", "arc", T.item(parseArc)),
             P.collection("drawings", "text", T.item(parseText)),
+            P.collection("drawings", "bezier", T.item(parseBezier)),
+            P.collection("drawings", "text_box", T.item(parseTextBox)),
+            P.collection("drawings", "circle", T.item(parseCircle)),
 
             P.collection("images", "image", T.item(parseImage)),
             P.item("sheet_instances", parseSheetInstances),

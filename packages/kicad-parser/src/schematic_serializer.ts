@@ -161,7 +161,7 @@ function serializeLibSymbol(symbol: S.I_LibSymbol): string {
                 if (bezier.fill) result += ` ${serializeFill(bezier.fill)}`;
                 if (bezier.uuid) result += ` (uuid "${bezier.uuid}")`;
                 result += ")";
-            } else if ('center' in drawing) {
+            } else if ('center' in drawing && 'radius' in drawing) {
                 const circle = drawing as S.I_Circle;
                 result += ` (circle (center (xy ${circle.center.x} ${circle.center.y})) (radius ${circle.radius})`;
                 if (circle.stroke) result += ` ${serializeStroke(circle.stroke)}`;
@@ -487,7 +487,35 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
     }
     if (schematic.drawings && schematic.drawings.length > 0) {
         for (const drawing of schematic.drawings) {
-            if ('pts' in drawing) {
+            if ('start' in drawing && 'mid' in drawing && 'end' in drawing) {
+                const arc = drawing as S.I_Arc;
+                result += ` (arc (start (xy ${arc.start.x} ${arc.start.y})) (mid (xy ${arc.mid?.x ?? 0} ${arc.mid?.y ?? 0})) (end (xy ${arc.end.x} ${arc.end.y}))`;
+                if (arc.radius) {
+                    result += ` (radius (xy ${arc.radius.at.x} ${arc.radius.at.y}) (length ${arc.radius.length}) (angles ${arc.radius.angles.x} ${arc.radius.angles.y}))`;
+                }
+                if (arc.stroke) result += ` ${serializeStroke(arc.stroke)}`;
+                if (arc.fill) result += ` ${serializeFill(arc.fill)}`;
+                if (arc.uuid) result += ` (uuid "${arc.uuid}")`;
+                result += ")";
+            } else if ('pts' in drawing && !('center' in drawing) && 'pts' in drawing && (drawing as S.I_Bezier).pts.length === 4) {
+                const bezier = drawing as S.I_Bezier;
+                result += ` (bezier (pts`;
+                for (const pt of bezier.pts) {
+                    result += ` (xy ${pt.x} ${pt.y})`;
+                }
+                result += ")";
+                if (bezier.stroke) result += ` ${serializeStroke(bezier.stroke)}`;
+                if (bezier.fill) result += ` ${serializeFill(bezier.fill)}`;
+                if (bezier.uuid) result += ` (uuid "${bezier.uuid}")`;
+                result += ")";
+            } else if ('center' in drawing && 'radius' in drawing) {
+                const circle = drawing as S.I_Circle;
+                result += ` (circle (center (xy ${circle.center.x} ${circle.center.y})) (radius ${circle.radius})`;
+                if (circle.stroke) result += ` ${serializeStroke(circle.stroke)}`;
+                if (circle.fill) result += ` ${serializeFill(circle.fill)}`;
+                if (circle.uuid) result += ` (uuid "${circle.uuid}")`;
+                result += ")";
+            } else if ('pts' in drawing) {
                 const polyline = drawing as S.I_Polyline;
                 result += ` (polyline (pts`;
                 for (const pt of polyline.pts) {
@@ -505,21 +533,18 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
                 if (rectangle.fill) result += ` ${serializeFill(rectangle.fill)}`;
                 if (rectangle.uuid) result += ` (uuid "${rectangle.uuid}")`;
                 result += ")";
-            } else if ('start' in drawing && 'mid' in drawing && 'end' in drawing) {
-                const arc = drawing as S.I_Arc;
-                result += ` (arc (start (xy ${arc.start.x} ${arc.start.y})) (mid (xy ${arc.mid?.x ?? 0} ${arc.mid?.y ?? 0})) (end (xy ${arc.end.x} ${arc.end.y}))`;
-                if (arc.radius) {
-                    result += ` (radius (xy ${arc.radius.at.x} ${arc.radius.at.y}) (length ${arc.radius.length}) (angles ${arc.radius.angles.x} ${arc.radius.angles.y}))`;
-                }
-                if (arc.stroke) result += ` ${serializeStroke(arc.stroke)}`;
-                if (arc.fill) result += ` ${serializeFill(arc.fill)}`;
-                if (arc.uuid) result += ` (uuid "${arc.uuid}")`;
-                result += ")";
-            } else if ('text' in drawing) {
+            } else if ('text' in drawing && !('size' in drawing)) {
                 const text = drawing as S.I_Text;
                 result += ` (text "${text.text}" ${serializeAt(text.at)} ${serializeEffects(text.effects)}`;
                 if (text.exclude_from_sim) result += " (exclude_from_sim yes)";
                 if (text.uuid) result += ` (uuid "${text.uuid}")`;
+                result += ")";
+            } else if ('text' in drawing && 'size' in drawing) {
+                const textbox = drawing as S.I_TextBox;
+                result += ` (text_box "${textbox.text}" ${serializeAt(textbox.at)} (size ${textbox.size.x} ${textbox.size.y}) ${serializeEffects(textbox.effects)}`;
+                if (textbox.stroke) result += ` ${serializeStroke(textbox.stroke)}`;
+                if (textbox.fill) result += ` ${serializeFill(textbox.fill)}`;
+                if (textbox.uuid) result += ` (uuid "${textbox.uuid}")`;
                 result += ")";
             }
         }

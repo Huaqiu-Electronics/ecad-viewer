@@ -330,7 +330,7 @@ export interface I_KicadSch {
     hierarchical_labels: I_HierarchicalLabel[];
     symbols: I_SchematicSymbol[];
     no_connects: I_NoConnect[];
-    drawings: (I_Polyline | I_Rectangle | I_Arc | I_Text)[];
+    drawings: (I_Polyline | I_Rectangle | I_Arc | I_Text | I_Bezier | I_TextBox)[];
     images: I_Image[];
     sheet_instances?: I_SheetInstance[];
     symbol_instances?: I_SymbolInstance[];
