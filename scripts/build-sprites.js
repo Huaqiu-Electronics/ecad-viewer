@@ -8,8 +8,8 @@ import * as fs from "node:fs/promises";
 import { resolve, basename } from "node:path";
 import svgstore from "svgstore";
 
-const ICON_SRC_DIR = resolve("src/kicanvas/icons");
-const OUT_FILE = resolve("src/kicanvas/icons/sprites.svg");
+const ICON_SRC_DIR = resolve("packages/ecad-viewer-app/src/kicanvas/icons");
+const OUT_FILE = resolve("packages/ecad-viewer-app/src/kicanvas/icons/sprites.svg");
 
 const sprites = svgstore({
     cleanDefs: true,
@@ -32,3 +32,4 @@ for (const filename of await fs.readdir(ICON_SRC_DIR)) {
 }
 
 await fs.writeFile(OUT_FILE, sprites.toString());
+

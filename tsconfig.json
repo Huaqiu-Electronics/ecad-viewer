@@ -42,7 +42,16 @@
         "noPropertyAccessFromIndexSignature": true /* Enforces using indexed accessors for keys declared using an indexed type. */,
         "allowUnusedLabels": false,
         "allowUnreachableCode": false,
+        "paths": {
+            "@ecad-viewer/base": ["./packages/base/src/index.ts"],
+            "@ecad-viewer/base/*": ["./packages/base/src/*"],
+            "kicad-parser": ["./packages/kicad-parser/src/index.ts"],
+            "kicad-parser/*": ["./packages/kicad-parser/src/*"],
+            "third_party/*": ["./third_party/*"],
+            "@ecad-viewer/app/*": ["./packages/ecad-viewer-app/src/*"]
+        },
+        "baseUrl": "."
     },
-    "include": ["./src/**/*", "./test/**/*"],
+    "include": ["./packages/**/src/**/*", "./test/**/*"],
     "exclude": ["./node_modules", "./**/node_modules/*", "./scripts/"],
 }

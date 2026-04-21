@@ -8,13 +8,13 @@ import esbuild from "esbuild";
 import { resolve } from "node:path";
 import { readFile } from "node:fs/promises";
 
-export const ENTRY = resolve("src/index.ts");
+export const ENTRY = resolve("packages/ecad-viewer-app/src/index.ts");
 
 export async function bundle(options = {}) {
     options = {
         entryPoints: {
             "ecad-viewer": ENTRY,
-            "parser.worker": resolve("src/kicanvas/parser.worker.ts"),
+            "parser.worker": resolve("packages/ecad-viewer-app/src/kicanvas/parser.worker.ts"),
         },
         bundle: true,
         format: "esm",
@@ -66,3 +66,4 @@ const ESbuildProblemMatcherPlugin = {
         });
     },
 };
+

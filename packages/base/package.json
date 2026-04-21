@@ -1,0 +1,12 @@
+{
+  "name": "@ecad-viewer/base",
+  "version": "1.0.0",
+  "description": "Base utilities for ecad-viewer",
+  "type": "module",
+  "main": "./src/index.ts",
+  "dependencies": {},
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  }
+}

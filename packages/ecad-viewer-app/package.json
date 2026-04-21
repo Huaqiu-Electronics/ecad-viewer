@@ -1,0 +1,20 @@
+{
+  "name": "@ecad-viewer/app",
+  "version": "1.0.2",
+  "description": "ECAD Viewer Application",
+  "type": "module",
+  "dependencies": {
+    "comlink": "^4.4.2",
+    "immutable": "^5.0.0-beta.5",
+    "jszip": "^3.10.1",
+    "@ecad-viewer/base": "*",
+    "kicad-parser": "*"
+  },
+  "private": true,
+  "scripts": {
+    "test": "web-test-runner --config ../../scripts/web-test-runner.config.mjs",
+    "lint": "eslint --config ../../.eslintrc.cjs src/ --ext .js,.ts",
+    "build": "tsc -p tsconfig.json && node ../../scripts/build.js",
+    "serve": "node ../../scripts/serve.js"
+  }
+}

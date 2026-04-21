@@ -81,3 +81,4 @@ console.log(
 await fs.writeFile(OUTFILE, output, "utf8");
 
 console.log(`Wrote glyph data to ${OUTFILE}`);
+

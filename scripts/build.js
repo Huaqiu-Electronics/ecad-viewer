@@ -8,12 +8,12 @@ import fs from "node:fs";
 import { bundle } from "./bundle.js";
 import { resolve } from "node:path";
 
-export const ENTRY = resolve("src/index.ts");
+export const ENTRY = resolve("packages/ecad-viewer-app/src/index.ts");
 
 let { options, context } = await bundle({
     entryPoints: {
         "ecad-viewer": ENTRY,
-        "parser.worker": resolve("src/kicanvas/parser.worker.ts"),
+        "parser.worker": resolve("packages/ecad-viewer-app/src/kicanvas/parser.worker.ts"),
     },
     outdir: "build",
     minify: true,
@@ -39,3 +39,4 @@ fs.writeFileSync(
 );
 
 context.dispose();
+

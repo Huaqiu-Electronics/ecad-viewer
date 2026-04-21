@@ -1,0 +1,17 @@
+{
+  "name": "kicad-parser",
+  "version": "1.0.0",
+  "description": "A standalone KiCad file parser",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@ecad-viewer/base": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  }
+}

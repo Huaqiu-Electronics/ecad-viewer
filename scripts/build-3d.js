@@ -8,7 +8,7 @@ import fs from "node:fs";
 import { bundle } from "./bundle.js";
 import { resolve } from "node:path";
 
-export const ENTRY = resolve("src/3d-viewer/index.ts");
+export const ENTRY = resolve("packages/ecad-viewer-app/src/3d-viewer/index.ts");
 
 let { options, context } = await bundle({
     entryPoints: [ENTRY],
@@ -42,3 +42,4 @@ fs.writeFileSync(
 );
 
 context.dispose();
+

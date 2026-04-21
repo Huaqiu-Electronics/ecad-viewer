@@ -8,7 +8,7 @@ import fs from "node:fs";
 import { bundle } from "./bundle.js";
 import { resolve } from "node:path";
 
-export const ENTRY = resolve("src/glyph/index.ts");
+export const ENTRY = resolve("packages/ecad-viewer-app/src/glyph/index.ts");
 
 let { options, context } = await bundle({
     entryPoints: [ENTRY],
@@ -39,3 +39,4 @@ for (const msg of result.errors) {
 fs.writeFileSync("build/glyph-full-meta.json", JSON.stringify(result.metafile));
 
 context.dispose();
+

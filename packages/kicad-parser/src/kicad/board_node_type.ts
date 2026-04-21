@@ -1,0 +1,35 @@
+export type BoardNodeType =
+    | "KicadPCB"
+    | "LineSegment"
+    | "ArcSegment"
+    | "Via"
+    | "Zone"
+    | "ZoneKeepout"
+    | "ZoneFill"
+    | "Layer"
+    | "Setup"
+    | "PCBPlotParams"
+    | "Stackup"
+    | "StackupLayer"
+    | "Net"
+    | "Dimension"
+    | "DimensionFormat"
+    | "DimensionStyle"
+    | "Footprint"
+    | "GraphicItem"
+    | "TextRenderCache"
+    | "Text"
+    | "Pad"
+    | "PadDrill";
+
+
+
+
+
+
+
+
+
+
+
+
