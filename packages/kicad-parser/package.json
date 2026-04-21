@@ -11,6 +11,16 @@
             "types": "./dist/index.d.ts"
         }
     },
+    "files": [
+        "dist"
+    ],
+    "keywords": [
+        "kicad",
+        "eda",
+        "parser"
+    ],
+    "author": "Ethan Chien",
+    "license": "MIT",
     "dependencies": {
         "immutable": "^5.0.0-beta.5"
     },
