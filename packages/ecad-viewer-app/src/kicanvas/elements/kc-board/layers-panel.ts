@@ -4,13 +4,13 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { attribute, css, html, query } from "@ecad-viewer/base/src/web-components";
+import { attribute, css, html, query } from "@ecad-viewer/base";
 import {
     KCUIElement,
     KCUIMenuElement,
     type KCUIMenuItemElement,
     type KCUIPanelBodyElement,
-} from "../../../kc-ui";
+} from "../../kc-ui";
 import { LayerNames, LayerSet } from "../../../viewers/board/layers";
 import { BoardViewer } from "../../../viewers/board/viewer";
 

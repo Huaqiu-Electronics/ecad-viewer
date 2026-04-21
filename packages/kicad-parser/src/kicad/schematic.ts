@@ -4,7 +4,7 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { DrawingSheet } from ".";
+
 import { Color } from "@ecad-viewer/base/src/color";
 import type { CrossHightAble } from "@ecad-viewer/base/src/cross_highlight_able";
 import type { HighlightAble } from "@ecad-viewer/base/src/highlightable";
@@ -85,7 +85,8 @@ export class KicadSch {
     is_converted_from_ad = false;
 
     public get bbox() {
-        return DrawingSheet.default().page_bbox;
+        // TODO: Fix bbox calculation
+        return new BBox(0, 0, 100, 100);
     }
 
     constructor(

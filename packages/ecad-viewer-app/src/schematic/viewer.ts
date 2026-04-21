@@ -4,14 +4,14 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { BBox, Vec2 } from "@ecad-viewer/base/src/math";
-import { is_showing_design_block } from "../../ecad-viewer/ecad_viewer_global";
-import { Color, Polygon, Polyline, Renderer } from "../../graphics";
-import { Canvas2DRenderer } from "../../graphics/canvas2d";
-import { NullRenderer } from "../../graphics/null-renderer";
+import { BBox, Vec2 } from "@ecad-viewer/base";
+import { is_showing_design_block } from "../ecad-viewer/ecad_viewer_global";
+import { Color, Polygon, Polyline, Renderer } from "@ecad-viewer/base";
+import { Canvas2DRenderer } from "../canvas2d";
+import { NullRenderer } from "../null-renderer";
 import { type SchematicTheme } from "kicad-parser/src/kicad";
 import { HierarchicalSheetPin, KicadSch, Label } from "kicad-parser/src/kicad/schematic";
-import { DocumentViewer } from "@ecad-viewer/base/src/document-viewer";
+import { DocumentViewer } from "../viewers/base/document-viewer";
 import {
     HierarchicalSheetPinClickEvent,
     KiCanvasSelectEvent,
@@ -19,8 +19,8 @@ import {
     SheetChangeEvent,
     SheetLoadEvent,
     CommentClickEvent,
-} from "@ecad-viewer/base/src/events";
-import { ViewerType } from "@ecad-viewer/base/src/viewer";
+} from "../viewers/base/events";
+import { ViewerType } from "../viewers/base/viewer";
 import { LayerNames, LayerSet } from "./layers";
 import { SchematicPainter } from "./painter";
 import { get_symbol_transform } from "./painters/symbol";

@@ -10,11 +10,9 @@
  * Each item class has a corresponding Painter implementation.
  */
 
-import { Angle, Arc, BBox, Matrix3, Vec2 } from "@ecad-viewer/base/src/math";
-import { Circle, Color, Polygon, Polyline, Renderer } from "../../graphics";
-import * as board_items from "kicad-parser/src/kicad/board";
-import { EDAText, StrokeFont } from "kicad-parser/src/kicad/text";
-import { DocumentPainter } from "@ecad-viewer/base/src/painter";
+import { Angle, BBox, Matrix3, Vec2, Circle, Color, Polygon, Polyline, Renderer, Arc as MathArc } from "@ecad-viewer/base";
+import { Kicad } from "kicad-parser";
+import { DocumentPainter } from "../viewers/base/painter";
 import {
     CopperVirtualLayerNames,
     FabVirtualLayerNames,
@@ -24,25 +22,22 @@ import {
     copper_layers_between,
     virtual_layer_for,
 } from "./layers";
-import type { BoardTheme } from "kicad-parser/src/kicad";
-import {
-    BoxInteractiveItem,
-    LineInteractiveItem,
-    type BoardInteractiveItem,
-} from "kicad-parser/src/kicad/board_bbox_visitor";
+import type { BoardTheme } from "kicad-parser/src/kicad/theme";
+import { EDAText, StrokeFont } from "kicad-parser/src/kicad/text";
+const { GrLine, FpLine, GrRect, FpRect, Poly, GrPoly, FpPoly, GrArc, FpArc, GrCircle, FpCircle, LineSegment, ArcSegment, Via, GrText, FpText, Property_Kicad_8, Dimension, should_fill } = Kicad;
 import { FootprintPainter } from "./footprint-painter";
 import { BoardItemPainter } from "./painter-base";
 import { PadPainter } from "./pad-painter";
 import { ZonePainter } from "./zone-painter";
 
 class LinePainter extends BoardItemPainter {
-    classes = [board_items.GrLine, board_items.FpLine];
+    classes = [GrLine, FpLine];
 
-    layers_for(item: board_items.GrLine | board_items.FpLine) {
+    layers_for(item: any) {
         return [item.layer];
     }
 
-    paint(layer: ViewLayer, s: board_items.GrLine | board_items.FpLine) {
+    paint(layer: ViewLayer, s: any) {
         let color = layer.color;
         if (this.filter_net) color = Color.dark_gray;
 
@@ -52,13 +47,13 @@ class LinePainter extends BoardItemPainter {
 }
 
 class RectPainter extends BoardItemPainter {
-    classes = [board_items.GrRect, board_items.FpRect];
+    classes = [GrRect, FpRect];
 
-    layers_for(item: board_items.GrRect | board_items.FpRect) {
+    layers_for(item: any) {
         return [item.layer];
     }
 
-    paint(layer: ViewLayer, r: board_items.GrRect | board_items.FpRect) {
+    paint(layer: ViewLayer, r: any) {
         let color = layer.color;
         if (this.filter_net) color = Color.dark_gray;
 
@@ -72,24 +67,24 @@ class RectPainter extends BoardItemPainter {
 
         this.gfx.line(new Polyline(points, r.width, color));
 
-        if (board_items.should_fill(r)) {
+        if (should_fill(r)) {
             this.gfx.polygon(new Polygon(points, color));
         }
     }
 }
 
 class PolyPainter extends BoardItemPainter {
-    classes = [board_items.Poly, board_items.GrPoly, board_items.FpPoly];
+    classes = [Poly, GrPoly, FpPoly];
 
     layers_for(
-        item: board_items.Poly | board_items.GrPoly | board_items.FpPoly,
+        item: any,
     ) {
         return [item.layer];
     }
 
     paint(
         layer: ViewLayer,
-        p: board_items.Poly | board_items.GrPoly | board_items.FpPoly,
+        p: any,
     ) {
         let color = layer.color;
         if (this.filter_net) color = Color.dark_gray;
@@ -101,20 +96,20 @@ class PolyPainter extends BoardItemPainter {
             );
         }
 
-        if (board_items.should_fill(p)) {
+        if (should_fill(p)) {
             this.gfx.polygon(new Polygon(p.points, color));
         }
     }
 }
 
 class ArcPainter extends BoardItemPainter {
-    classes = [board_items.GrArc, board_items.FpArc];
+    classes = [GrArc, FpArc];
 
-    layers_for(item: board_items.GrArc | board_items.FpArc) {
+    layers_for(item: any) {
         return [item.layer];
     }
 
-    paint(layer: ViewLayer, a: board_items.GrArc | board_items.FpArc) {
+    paint(layer: ViewLayer, a: any) {
         let color = layer.color;
         if (this.filter_net) color = Color.dark_gray;
         const arc = a.arc;
@@ -124,44 +119,51 @@ class ArcPainter extends BoardItemPainter {
 }
 
 class CirclePainter extends BoardItemPainter {
-    classes = [board_items.GrCircle, board_items.FpCircle];
+    classes = [GrCircle, FpCircle];
 
-    layers_for(item: board_items.GrCircle | board_items.FpCircle) {
+    layers_for(item: any) {
         return [item.layer];
     }
 
-    paint(layer: ViewLayer, c: board_items.GrCircle | board_items.FpCircle) {
+    paint(layer: ViewLayer, c: any) {
         let color = layer.color;
         if (this.filter_net) color = Color.dark_gray;
 
         const radius = c.center.sub(c.end).magnitude;
-        const arc = new Arc(
+        const arc = new MathArc(
             c.center,
             radius,
             new Angle(0),
             new Angle(2 * Math.PI),
             c.width,
+            false
         );
 
-        if (board_items.should_fill(c)) {
+        if (should_fill(c)) {
             this.gfx.circle(
                 new Circle(arc.center, arc.radius + (c.width ?? 0), color),
             );
         } else {
-            const points = arc.to_polyline();
+            // Simplified approach for circle drawing
+            const segments = 32;
+            const points = [];
+            for (let i = 0; i <= segments; i++) {
+                const angle = new Angle((i / segments) * 2 * Math.PI);
+                points.push(arc.center.add(new Vec2(Math.cos(angle.radians) * radius, Math.sin(angle.radians) * radius)));
+            }
             this.gfx.line(new Polyline(points, arc.width, color));
         }
     }
 }
 
 class TraceSegmentPainter extends BoardItemPainter {
-    classes = [board_items.LineSegment];
+    classes = [LineSegment];
 
-    layers_for(item: board_items.LineSegment) {
+    layers_for(item: any) {
         return [item.layer];
     }
 
-    paint(layer: ViewLayer, s: board_items.LineSegment) {
+    paint(layer: ViewLayer, s: any) {
         let color = layer.color;
         if (this.filter_net) {
             color = this.color_for(s.layer);
@@ -176,27 +178,47 @@ class TraceSegmentPainter extends BoardItemPainter {
 }
 
 class TraceArcPainter extends BoardItemPainter {
-    classes = [board_items.ArcSegment];
+    classes = [ArcSegment];
 
-    layers_for(item: board_items.ArcSegment) {
+    layers_for(item: any) {
         return [item.layer];
     }
 
-    paint(layer: ViewLayer, a: board_items.ArcSegment) {
+    paint(layer: ViewLayer, a: any) {
         let color = layer.color;
         if (this.filter_net && a.net !== this.filter_net)
             color = Color.dark_gray;
 
-        const arc = Arc.from_three_points(a.start, a.mid, a.end, a.width);
-        const points = arc.to_polyline();
-        this.gfx.line(new Polyline(points, arc.width, color));
+        // Simplified approach for arc drawing
+        const segments = 16;
+        const points = [];
+        
+        // Calculate center and radius
+        const d = 2 * (a.start.x * (a.mid.y - a.end.y) + a.mid.x * (a.end.y - a.start.y) + a.end.x * (a.start.y - a.mid.y));
+        const x = ((a.start.x * a.start.x + a.start.y * a.start.y) * (a.mid.y - a.end.y) + (a.mid.x * a.mid.x + a.mid.y * a.mid.y) * (a.end.y - a.start.y) + (a.end.x * a.end.x + a.end.y * a.end.y) * (a.start.y - a.mid.y)) / d;
+        const y = ((a.start.x * a.start.x + a.start.y * a.start.y) * (a.end.x - a.mid.x) + (a.mid.x * a.mid.x + a.mid.y * a.mid.y) * (a.start.x - a.end.x) + (a.end.x * a.end.x + a.end.y * a.end.y) * (a.mid.x - a.start.x)) / d;
+        const center = new Vec2(x, y);
+        const radius = center.sub(a.start).magnitude;
+        
+        // Calculate start and end angles
+        const startAngle = Math.atan2(a.start.y - center.y, a.start.x - center.x);
+        const endAngle = Math.atan2(a.end.y - center.y, a.end.x - center.x);
+        
+        // Generate points
+        for (let i = 0; i <= segments; i++) {
+            const t = i / segments;
+            const angle = startAngle + t * (endAngle - startAngle);
+            points.push(center.add(new Vec2(Math.cos(angle) * radius, Math.sin(angle) * radius)));
+        }
+        
+        this.gfx.line(new Polyline(points, a.width, color));
     }
 }
 
 class ViaPainter extends BoardItemPainter {
-    classes = [board_items.Via];
+    classes = [Via];
 
-    layers_for(v: board_items.Via): string[] {
+    layers_for(v: any): string[] {
         if (v.layers) {
             // blind/buried vias have two layers - the start and end layer,
             // and should only be drawn on the layers they're actually on.
@@ -225,7 +247,7 @@ class ViaPainter extends BoardItemPainter {
         }
     }
 
-    paint(layer: ViewLayer, v: board_items.Via) {
+    paint(layer: ViewLayer, v: any) {
         let color = layer.color;
 
         if (this.filter_net) {
@@ -267,13 +289,13 @@ class ViaPainter extends BoardItemPainter {
 }
 
 class GrTextPainter extends BoardItemPainter {
-    classes = [board_items.GrText];
+    classes = [GrText];
 
-    layers_for(t: board_items.GrText) {
+    layers_for(t: any) {
         return [t.layer.name];
     }
 
-    paint(layer: ViewLayer, t: board_items.GrText) {
+    paint(layer: ViewLayer, t: any) {
         if (this.filter_net) return;
 
         if (t.hide || !t.shown_text) {
@@ -306,11 +328,11 @@ class GrTextPainter extends BoardItemPainter {
 }
 
 class FpTextPainter extends BoardItemPainter {
-    classes = [board_items.FpText, board_items.Property_Kicad_8];
+    classes = [FpText, Property_Kicad_8];
 
-    layers_for(t: board_items.FpText | board_items.Property_Kicad_8) {
-        const layer_name =
-            t instanceof board_items.FpText ? t.layer.name : t.layer;
+    layers_for(t: any) {
+        const layer_name = 
+            t instanceof FpText ? t.layer.name : t.layer;
 
         switch (t.type) {
             case "reference":
@@ -331,12 +353,14 @@ class FpTextPainter extends BoardItemPainter {
                         FabVirtualLayerNames.hidden_text,
                     ),
                 ];
+            default:
+                return [layer_name];
         }
     }
 
     paint(
         layer: ViewLayer,
-        t: board_items.FpText | board_items.Property_Kicad_8,
+        t: any,
     ) {
         if (this.filter_net) return;
 
@@ -393,13 +417,13 @@ class FpTextPainter extends BoardItemPainter {
 }
 
 class DimensionPainter extends BoardItemPainter {
-    classes = [board_items.Dimension];
+    classes = [Dimension];
 
-    layers_for(d: board_items.Dimension): string[] {
+    layers_for(d: any): string[] {
         return [d.layer];
     }
 
-    paint(layer: ViewLayer, d: board_items.Dimension) {
+    paint(layer: ViewLayer, d: any) {
         switch (d.type) {
             case "orthogonal":
             case "aligned":
@@ -417,7 +441,7 @@ class DimensionPainter extends BoardItemPainter {
         }
     }
 
-    paint_center(layer: ViewLayer, d: board_items.Dimension) {
+    paint_center(layer: ViewLayer, d: any) {
         const thickness = d.style.thickness ?? 0.2;
 
         let arm = d.end.sub(d.start);
@@ -435,7 +459,7 @@ class DimensionPainter extends BoardItemPainter {
         );
     }
 
-    paint_radial(layer: ViewLayer, d: board_items.Dimension) {
+    paint_radial(layer: ViewLayer, d: any) {
         const thickness = d.style.thickness ?? 0.2;
 
         const center = d.start.copy();
@@ -496,7 +520,7 @@ class DimensionPainter extends BoardItemPainter {
         this.paint_text(text);
     }
 
-    paint_leader(layer: ViewLayer, d: board_items.Dimension) {
+    paint_leader(layer: ViewLayer, d: any) {
         const thickness = d.style.thickness ?? 0.2;
 
         // Line from center to text.
@@ -529,7 +553,7 @@ class DimensionPainter extends BoardItemPainter {
             );
         }
         if (d.style.text_frame == 2) {
-            const radius =
+            const radius = 
                 text_bbox.w / 2 -
                 text.get_effective_text_thickness() / 10000 / 2;
             this.gfx.arc(
@@ -564,7 +588,7 @@ class DimensionPainter extends BoardItemPainter {
         this.paint_text(text);
     }
 
-    paint_linear(layer: ViewLayer, d: board_items.Dimension) {
+    paint_linear(layer: ViewLayer, d: any) {
         const thickness = d.style.thickness ?? 0.2;
 
         let extension = new Vec2();
@@ -601,7 +625,7 @@ class DimensionPainter extends BoardItemPainter {
         }
 
         // Draw extensions
-        const extension_height =
+        const extension_height = 
             Math.abs(d.height) -
             d.style.extension_offset +
             d.style.extension_height;
@@ -654,7 +678,7 @@ class DimensionPainter extends BoardItemPainter {
         this.paint_text(this.make_text(layer, d));
     }
 
-    make_text(layer: ViewLayer, d: board_items.Dimension) {
+    make_text(layer: ViewLayer, d: any) {
         const pcbtext = new EDAText(d.gr_text.shown_text);
         pcbtext.apply_effects(d.gr_text.effects);
         pcbtext.apply_at(d.gr_text.at);
@@ -716,7 +740,7 @@ export class BoardPainter extends DocumentPainter {
         return this.#net_bbox;
     }
 
-    paint_footprint(fp: board_items.Footprint) {
+    paint_footprint(fp: any) {
         this.clear_interactive();
 
         const layer = this.layers.selection_mask;
@@ -736,7 +760,7 @@ export class BoardPainter extends DocumentPainter {
     }
 
     paint_net(
-        board: board_items.KicadPCB,
+        board: any,
         net: number | null,
         layer_visibility: Map<string, boolean>,
     ) {
@@ -754,7 +778,7 @@ export class BoardPainter extends DocumentPainter {
             for (const item of board.items()) {
                 switch (item.typeId) {
                     case "LineSegment": {
-                        const line = item as board_items.LineSegment;
+                        const line = item as Kicad.LineSegment;
                         if (
                             layer_visibility.get(line.layer) &&
                             line.net !== net
@@ -791,9 +815,9 @@ export class BoardPainter extends DocumentPainter {
             for (const item of board.items()) {
                 switch (item.typeId) {
                     case "LineSegment":
-                        if ((item as board_items.LineSegment).net === net) {
+                        if ((item as Kicad.LineSegment).net === net) {
                             const painter = this.painter_for(item);
-                            const line = item as board_items.LineSegment;
+                            const line = item as Kicad.LineSegment;
 
                             if (!this.#net_bbox) this.#net_bbox = line.bbox;
                             else
@@ -828,18 +852,18 @@ export class BoardPainter extends DocumentPainter {
         return true;
     }
 
-    highlight(item: BoardInteractiveItem | null) {
+    highlight(item: any | null) {
         const layer = this.layers.overlay;
         layer.clear();
         this.gfx.start_layer(layer.name);
         if (item) {
-            if (item instanceof LineInteractiveItem)
+            if (item.line)
                 this.gfx.line(
                     [item.line.start, item.line.end],
                     item.line.width,
                     Color.cyan,
                 );
-            else if (item instanceof BoxInteractiveItem)
+            else if (item.bbox)
                 this.gfx.line(
                     [
                         item.bbox.top_left,

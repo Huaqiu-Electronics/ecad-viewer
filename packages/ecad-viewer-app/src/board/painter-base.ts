@@ -10,11 +10,10 @@
  * Each item class has a corresponding Painter implementation.
  */
 
-import { Color } from "../../graphics";
-import { ItemPainter } from "@ecad-viewer/base/src/painter";
-import { ViewLayerNames } from "@ecad-viewer/base/src/view-layers";
+import { Color } from "@ecad-viewer/base";
+import { ItemPainter } from "../viewers/base/painter";
 import { LayerNames } from "./layers";
-import type { BoardTheme } from "kicad-parser/src/kicad";
+import type { BoardTheme } from "kicad-parser/src/kicad/theme";
 export abstract class BoardItemPainter extends ItemPainter {
     override get theme(): BoardTheme {
         return (this.view_painter as any).theme;
@@ -30,9 +29,9 @@ export abstract class BoardItemPainter extends ItemPainter {
     }
 
     static interactive_layers: Set<string> = new Set([
-        ViewLayerNames.overlay,
-        ViewLayerNames.selection_bg,
-        ViewLayerNames.selection_fg,
+        "overlay",
+        "selection_bg",
+        "selection_fg",
     ]);
 
     color_for(layer_name: string): Color {

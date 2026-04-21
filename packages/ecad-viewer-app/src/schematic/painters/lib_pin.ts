@@ -4,16 +4,15 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { Angle, Matrix3, Vec2 } from "@ecad-viewer/base/src/math";
-import { Color, Renderer } from "../../../graphics";
-import { Effects } from "../../../kicad/common";
-import * as schematic_items from "../../../kicad/schematic";
+import { Angle, Matrix3, Vec2, Color, Renderer } from "@ecad-viewer/base";
+import { Effects } from "kicad-parser/src/kicad/common";
+import * as schematic_items from "kicad-parser/src/kicad/schematic";
 import {
     EDAText,
     StrokeFont,
     type HAlign,
     type VAlign,
-} from "../../../kicad/text";
+} from "kicad-parser/src/kicad/text";
 import { LayerNames, ViewLayer } from "../layers";
 import { SchematicItemPainter } from "./base";
 

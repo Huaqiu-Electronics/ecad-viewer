@@ -4,10 +4,7 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { Color } from "@ecad-viewer/base/src/color";
-import { Angle, BBox, Matrix3, Vec2 } from "@ecad-viewer/base/src/math";
-import { Renderer, RenderLayer, RenderStateStack } from "@ecad-viewer/base/src/graphics/renderer";
-import { Arc, Circle, Polygon, Polyline } from "./shapes";
+import { Color, Angle, BBox, Matrix3, Vec2, Renderer, RenderLayer, RenderStateStack, Arc, Circle, Polygon, Polyline } from "@ecad-viewer/base";
 
 /**
  * Canvas2d-based renderer.

@@ -5,7 +5,7 @@
 */
 
 import { Logger } from "@ecad-viewer/base/src/log";
-import { Renderer } from "../../graphics";
+import { Renderer } from "@ecad-viewer/base";
 import type { BaseTheme } from "kicad-parser/src/kicad";
 import { ViewLayer, ViewLayerSet } from "./view-layers";
 

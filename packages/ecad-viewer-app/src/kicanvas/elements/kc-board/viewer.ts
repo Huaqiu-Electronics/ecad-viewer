@@ -4,7 +4,7 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { BoardViewer } from "../../../viewers/board/viewer";
+import { BoardViewer } from "../../../board/viewer";
 import { KCViewerElement } from "../common/viewer";
 
 export class KCBoardViewerElement extends KCViewerElement<BoardViewer> {

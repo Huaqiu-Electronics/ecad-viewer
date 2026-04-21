@@ -4,8 +4,7 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { Angle, BBox, Arc as MathArc, Matrix3, Vec2 } from "@ecad-viewer/base/src/math";
-import { BezierCurve } from "@ecad-viewer/base/src/math";
+import { Angle, BBox, MathArc, Matrix3, Vec2, BezierCurve } from "@ecad-viewer/base";
 
 import {
     Arc,
@@ -14,7 +13,7 @@ import {
     Polygon,
     Polyline,
     Renderer,
-} from "../../graphics";
+} from "@ecad-viewer/base";
 import { type SchematicTheme } from "kicad-parser/src/kicad";
 import * as schematic_items from "kicad-parser/src/kicad/schematic";
 import { LibText, SchField, SchText, StrokeFont } from "kicad-parser/src/kicad/text";

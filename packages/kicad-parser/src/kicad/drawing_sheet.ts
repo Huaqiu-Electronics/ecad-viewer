@@ -4,12 +4,10 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { Color } from "@ecad-viewer/base/src/color";
-import { BBox, Vec2 } from "@ecad-viewer/base/src/math";
+import { Color, BBox, Vec2 } from "@ecad-viewer/base";
 import { Paper, expand_text_vars } from "./common";
-import default_sheet from "./default_drawing_sheet.kicad_wks";
-import * as DS from "kicad-parser/src/proto/drawing_sheet";
-import { parse_drawing_sheet } from "kicad-parser/src/parser/drawing_sheet_parser";
+// import default_sheet from "./default_drawing_sheet.kicad_wks";
+import * as DS from "kicad-parser/proto/drawing_sheet";
 
 export type DrawingSheetDocument = {
     paper?: Paper;
@@ -49,7 +47,8 @@ export class DrawingSheet {
     }
 
     static default() {
-        return new DrawingSheet(parse_drawing_sheet(default_sheet));
+        // TODO: Fix default sheet loading
+        throw new Error("Default sheet not implemented");
     }
 
     *items() {

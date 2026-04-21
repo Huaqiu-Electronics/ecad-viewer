@@ -17,7 +17,7 @@ import { Viewer } from "./viewer";
 import { later } from "@ecad-viewer/base/src/async";
 import { DrawingSheetPainter } from "../../drawing-sheet/painter";
 import { is_showing_design_block } from "../../ecad-viewer/ecad_viewer_global";
-import { Color } from "../../graphics";
+import { Color } from "@ecad-viewer/base";
 
 type ViewableDocument = DrawingSheetDocument &
     PaintableDocument & {
@@ -98,7 +98,25 @@ export abstract class DocumentViewer<
 
         // Load the default drawing sheet.
         if (!this.drawing_sheet) {
-            this.drawing_sheet = DrawingSheet.default();
+            // TODO: Fix drawing sheet loading
+            this.drawing_sheet = new DrawingSheet({
+                version: 1,
+                generator: "Ecad Viewer",
+                setup: {
+                    linewidth: 0.15,
+                    textsize: { x: 1.5, y: 1.5 },
+                    textlinewidth: 0.15,
+                    top_margin: 0,
+                    left_margin: 0,
+                    bottom_margin: 0,
+                    right_margin: 0
+                },
+                drawings: []
+            });
+            this.drawing_sheet.document = {
+                paper: { size: "A4", portrait: false },
+                resolve_text_var: () => undefined
+            };
         }
         this.drawing_sheet.document = this.document;
 

@@ -4,14 +4,14 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { css, html, query } from "@ecad-viewer/base/src/web-components";
+import { css, html, query } from "@ecad-viewer/base";
 import {
     KCUIElement,
     KCUIFilteredListElement,
     KCUITextFilterInputElement,
     type KCUIMenuItemElement,
 } from "../../../kc-ui";
-import { KicadPCB } from "kicad-parser/src/kicad";
+import { Kicad } from "kicad-parser";
 import { BoardViewer } from "../../../viewers/board/viewer";
 
 export class KCBoardNetsPanelElement extends KCUIElement {
@@ -90,7 +90,7 @@ export class KCBoardNetsPanelElement extends KCUIElement {
         const board = this.viewer.board;
 
         const nets = [];
-        if (board instanceof KicadPCB)
+        if (board instanceof Kicad.KicadPCB)
             for (const net of board.nets) {
                 nets.push(
                     html`<kc-ui-menu-item

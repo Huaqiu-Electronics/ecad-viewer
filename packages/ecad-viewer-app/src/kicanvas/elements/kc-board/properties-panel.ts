@@ -4,23 +4,21 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { css, html } from "@ecad-viewer/base/src/web-components";
+import { css, html } from "@ecad-viewer/base";
 import {
     KCUIElement,
     KCUIPanelTitleWithCloseElement,
     HorizontalResizerElement,
 } from "../../../kc-ui";
-import { Footprint, LineSegment, Pad, Via, Zone } from "../../../kicad/board";
-import type {
-    BoardInspectItem,
-    NetInfo,
-} from "../../../kicad/board_bbox_visitor";
+import { Kicad } from "kicad-parser";
 import { KiCanvasSelectEvent } from "../../../viewers/base/events";
 import { BoardViewer } from "../../../viewers/board/viewer";
 
+const { Footprint, LineSegment, Pad, Via, Zone, BoardBBoxVisitor } = Kicad;
+
 export class KCBoardPropertiesPanelElement extends KCUIElement {
     viewer: BoardViewer;
-    selected_item?: BoardInspectItem;
+    selected_item?: Kicad.BoardInspectItem | Kicad.NetInfo;
 
     static override styles = [
         ...KCUIElement.styles,
@@ -76,7 +74,7 @@ export class KCBoardPropertiesPanelElement extends KCUIElement {
     private setup_events() {
         this.addDisposable(
             this.viewer.addEventListener(KiCanvasSelectEvent.type, (e) => {
-                this.selected_item = e.detail.item as BoardInspectItem;
+                this.selected_item = e.detail.item as Kicad.BoardInspectItem | Kicad.NetInfo;
                 if (!this.selected_item) {
                     this.hidden = true;
                 } else {
@@ -292,7 +290,7 @@ export class KCBoardPropertiesPanelElement extends KCUIElement {
         `;
     }
 
-    getNetInfo(net: NetInfo) {
+    getNetInfo(net: Kicad.NetInfo) {
         let layers = "";
         if (net.layers) for (const i of net.layers) layers += i + ",";
         if (layers.length) layers.slice(0, layers.length - 1);

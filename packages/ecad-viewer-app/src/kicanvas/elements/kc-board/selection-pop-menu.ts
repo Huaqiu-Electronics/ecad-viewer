@@ -1,16 +1,14 @@
-import { Vec2 } from "@ecad-viewer/base/src/math";
-import { css, html } from "@ecad-viewer/base/src/web-components";
+import { Vec2 } from "@ecad-viewer/base";
+import { css, html } from "@ecad-viewer/base";
 import { KCUIElement } from "../../../kc-ui";
-import type {
-    BoardSelectable,
-    BoardInteractiveItem,
-} from "../../../kicad/board_bbox_visitor";
+import { Kicad } from "kicad-parser";
 import {
     KiCanvasFitterMenuEvent,
     KiCanvasSelectEvent,
 } from "../../../viewers/base/events";
 import { BoardViewer } from "../../../viewers/board/viewer";
-import { Footprint, LineSegment, Pad, Via, Zone } from "../../../kicad/board";
+
+const { Footprint, LineSegment, Pad, Via, Zone } = Kicad;
 
 export class SelectionPopMenu extends KCUIElement {
     static override styles = [
@@ -52,7 +50,7 @@ export class SelectionPopMenu extends KCUIElement {
             }
         `,
     ];
-    #selected_items: BoardInteractiveItem[] = [];
+    #selected_items: Kicad.BoardInteractiveItem[] = [];
     #content: HTMLDivElement;
     #pos: Vec2 | null = null;
     viewer: BoardViewer;
@@ -88,7 +86,7 @@ export class SelectionPopMenu extends KCUIElement {
 
         this.addDisposable(
             this.viewer.addEventListener(KiCanvasFitterMenuEvent.type, (e) => {
-                this.#selected_items = e.detail.items as BoardInteractiveItem[];
+                this.#selected_items = e.detail.items as Kicad.BoardInteractiveItem[];
                 if (!this.#selected_items.length) {
                     this.hidden = true;
                 } else {
@@ -102,7 +100,7 @@ export class SelectionPopMenu extends KCUIElement {
         );
     }
 
-    build_item_desc(itm: BoardSelectable) {
+    build_item_desc(itm: Kicad.BoardSelectable) {
         switch (itm.typeId) {
             case "Footprint":
                 return this.getFootprintProperties(itm as Footprint);

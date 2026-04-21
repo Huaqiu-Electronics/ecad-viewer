@@ -4,33 +4,26 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import type { CrossHightAble } from "@ecad-viewer/base/src/cross_highlight_able";
-import { Logger } from "@ecad-viewer/base/src/log";
-import { Vec2 } from "@ecad-viewer/base/src/math";
-import { Color, Renderer } from "../../graphics";
-import { WebGL2Renderer } from "../../graphics/webgl";
-import type { BoardTheme } from "kicad-parser/src/kicad";
-import * as board_items from "kicad-parser/src/kicad/board";
-import {
-    BoardBBoxVisitor,
-    type BoardInteractiveItem,
-    Depth,
-    type NetProperty,
-} from "kicad-parser/src/kicad/board_bbox_visitor";
-import type { KCBoardLayersPanelElement } from "../../kicanvas/elements/kc-board/layers-panel";
-import { DocumentViewer } from "@ecad-viewer/base/src/document-viewer";
-import { CommentClickEvent, KiCanvasFitterMenuEvent, KiCanvasSelectEvent } from "@ecad-viewer/base/src/events";
-import type { VisibilityType } from "@ecad-viewer/base/src/view-layers";
-import { ViewerType } from "@ecad-viewer/base/src/viewer";
-import { LayerNames, LayerSet, ViewLayer } from "./layers";
+import type { CrossHightAble } from "@ecad-viewer/base";
+import { Logger, Vec2, Color, Renderer } from "@ecad-viewer/base";
+import { DocumentViewer } from "../viewers/base/document-viewer";
+import { ViewerType } from "../viewers/base/viewer";
+import { CommentClickEvent, KiCanvasFitterMenuEvent, KiCanvasSelectEvent } from "../viewers/base/events";
+import { WebGL2Renderer } from "../webgl/renderer";
+import { LayerNames, LayerSet, ViewLayer, type VisibilityType } from "./layers";
 import { BoardPainter } from "./painter";
 import { OrderedMap } from "immutable";
+import { Kicad } from "kicad-parser";
+import type { BoardTheme } from "kicad-parser/src/kicad/theme";
+import type { KCBoardLayersPanelElement } from "../kicanvas/elements/kc-board/layers-panel";
+
+const { BoardBBoxVisitor, Depth } = Kicad;
 const log = new Logger("pcb:viewer");
 
 export const ZONE_DEFAULT_OPACITY = 0.6;
 
 export class BoardViewer extends DocumentViewer<
-    board_items.KicadPCB,
+    Kicad.KicadPCB,
     BoardPainter,
     LayerSet,
     BoardTheme
@@ -87,7 +80,7 @@ export class BoardViewer extends DocumentViewer<
         }
     }
 
-    public highlight_fp(fp: board_items.Footprint) {
+    public highlight_fp(fp: Kicad.Footprint) {
         if (!this.#zones_visibility.size)
             for (const layer of this.layers.zone_layers()) {
                 this.#zones_visibility.set(layer.name, layer.visibility);
@@ -176,7 +169,7 @@ export class BoardViewer extends DocumentViewer<
     }
 
     find_items_under_pos(pos: Vec2) {
-        const items: BoardInteractiveItem[] = [];
+        const items: Kicad.BoardInteractiveItem[] = [];
 
         if (!this.#layer_visibility_ctrl) return items;
 
@@ -184,14 +177,14 @@ export class BoardViewer extends DocumentViewer<
         for (const [k, v] of this.layer_visibility)
             if (v) visible_layers.add(k);
 
-        const is_item_visible = (item: BoardInteractiveItem) => {
+        const is_item_visible = (item: Kicad.BoardInteractiveItem) => {
             for (const layer of visible_layers)
                 if (item.is_on_layer(layer)) return true;
 
             return false;
         };
 
-        const check_depth = (depth: Depth) => {
+        const check_depth = (depth: Kicad.Depth) => {
             const layer_items = this.#interactive.get(depth) ?? [];
             if (layer_items.length)
                 for (const i of layer_items) {
@@ -203,24 +196,24 @@ export class BoardViewer extends DocumentViewer<
 
         for (const [depth] of this.#interactive) {
             switch (depth) {
-                case Depth.GRAPHICS:
+                case Kicad.Depth.GRAPHICS:
                     break;
-                case Depth.VIA:
-                case Depth.PAD:
-                case Depth.LINE_SEGMENTS:
+                case Kicad.Depth.VIA:
+                case Kicad.Depth.PAD:
+                case Kicad.Depth.LINE_SEGMENTS:
                     check_depth(depth);
                     break;
-                case Depth.FOOT_PRINT:
-                case Depth.ZONE:
+                case Kicad.Depth.FOOT_PRINT:
+                case Kicad.Depth.ZONE:
                     break;
             }
         }
 
         // look up the footprints then
-        if (!items.length) check_depth(Depth.FOOT_PRINT);
+        if (!items.length) check_depth(Kicad.Depth.FOOT_PRINT);
 
         // look up the zones finally
-        if (!items.length) check_depth(Depth.ZONE);
+        if (!items.length) check_depth(Kicad.Depth.ZONE);
 
         return items;
     }
@@ -229,24 +222,23 @@ export class BoardViewer extends DocumentViewer<
         const items = this.find_items_under_pos(pos);
 
         if (items.length > 0) {
-            {
-                const it = items[0]!;
+            {                const it = items[0]!;
                 if (it.net) {
                     this.highlight_net(it.net);
                 } else if (it.item?.typeId === "Footprint") {
                     this.painter.filter_net = null;
-                    this.highlight_fp(it.item as board_items.Footprint);
+                    this.highlight_fp(it.item as Kicad.Footprint);
                 }
             }
         }
     }
     override type: ViewerType = ViewerType.PCB;
 
-    #interactive: OrderedMap<Depth, BoardInteractiveItem[]> = OrderedMap();
+    #interactive: OrderedMap<Kicad.Depth, Kicad.BoardInteractiveItem[]> = OrderedMap();
 
-    #net_info: Map<number, NetProperty>;
+    #net_info: Map<number, Kicad.NetProperty>;
 
-    #last_hover: BoardInteractiveItem | null = null;
+    #last_hover: Kicad.BoardInteractiveItem | null = null;
 
     #highlighted_track = true;
 
@@ -254,11 +246,11 @@ export class BoardViewer extends DocumentViewer<
         this.#highlighted_track = val;
     }
 
-    get board(): board_items.KicadPCB {
+    get board(): Kicad.KicadPCB {
         return this.document;
     }
 
-    override async load(src: board_items.KicadPCB) {
+    override async load(src: Kicad.KicadPCB) {
         try {
             const visitor = new BoardBBoxVisitor();
             visitor.visit(src);
@@ -357,7 +349,7 @@ export class BoardViewer extends DocumentViewer<
         for (const [k, v] of this.layer_visibility)
             if (v) visible_layers.add(k);
 
-        const is_item_visible = (item: BoardInteractiveItem) => {
+        const is_item_visible = (item: Kicad.BoardInteractiveItem) => {
             for (const layer of visible_layers)
                 if (item.is_on_layer(layer)) return true;
 
@@ -383,7 +375,7 @@ export class BoardViewer extends DocumentViewer<
 
         if (
             !this.#highlighted_track &&
-            hover_item?.depth === Depth.LINE_SEGMENTS
+            hover_item?.depth === Kicad.Depth.LINE_SEGMENTS
         )
             return;
 

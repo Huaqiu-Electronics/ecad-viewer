@@ -1,19 +1,18 @@
-import { Color, Polygon } from "../../graphics";
-import * as board_items from "kicad-parser/src/kicad/board";
+import { Color, Polygon } from "@ecad-viewer/base";
+import { Kicad } from "kicad-parser";
 import {
     CopperVirtualLayerNames,
     CopperLayerNames,
-    LayerNames,
     ViewLayer,
     virtual_layer_for,
 } from "./layers";
 import { BoardItemPainter } from "./painter-base";
 
 export class ZonePainter extends BoardItemPainter {
-    classes = [board_items.Zone];
+    classes = [Kicad.Zone];
     color_cache: Color | null = null;
 
-    layers_for(z: board_items.Zone): string[] {
+    layers_for(z: any): string[] {
         const layers = z.layers ?? [z.layer];
 
         if (layers.length && layers[0] == "F&B.Cu") {
@@ -21,8 +20,8 @@ export class ZonePainter extends BoardItemPainter {
             layers.push("F.Cu", "B.Cu");
         }
 
-        return layers.map((l) => {
-            if (CopperLayerNames.includes(l as LayerNames)) {
+        return layers.map((l: string) => {
+            if (CopperLayerNames.includes(l)) {
                 return virtual_layer_for(l, CopperVirtualLayerNames.zones);
             } else {
                 return l;
@@ -30,7 +29,7 @@ export class ZonePainter extends BoardItemPainter {
         });
     }
 
-    paint(layer: ViewLayer, z: board_items.Zone) {
+    paint(layer: ViewLayer, z: any) {
         if (!z.filled_polygons) {
             return;
         }

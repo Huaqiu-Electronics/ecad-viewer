@@ -7,7 +7,7 @@
 import { iterable_as_array } from "@ecad-viewer/base/src/array";
 import type { IDisposable } from "@ecad-viewer/base/src/disposable";
 import { BBox, Vec2 } from "@ecad-viewer/base/src/math";
-import { Color, RenderLayer } from "../../graphics";
+import { Color, RenderLayer } from "@ecad-viewer/base";
 
 /**
  * Common view layer names across all viewers.

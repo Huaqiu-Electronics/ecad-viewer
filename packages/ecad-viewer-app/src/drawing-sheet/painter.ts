@@ -10,13 +10,13 @@
  * Each item class has a corresponding Painter implementation.
  */
 
-import { Angle, BBox, Vec2 } from "@ecad-viewer/base/src/math";
-import { Polyline, Renderer } from "../../graphics";
+import { Angle, BBox, Vec2 } from "@ecad-viewer/base";
+import { Polyline, Renderer } from "@ecad-viewer/base";
 import type { BaseTheme } from "kicad-parser/src/kicad";
 import * as drawing_sheet from "kicad-parser/src/kicad/drawing-sheet";
 import { EDAText, StrokeFont } from "kicad-parser/src/kicad/text";
-import { DocumentPainter, ItemPainter } from "@ecad-viewer/base/src/painter";
-import { ViewLayer, ViewLayerNames, ViewLayerSet } from "@ecad-viewer/base/src/view-layers";
+import { DocumentPainter, ItemPainter } from "../viewers/base/painter";
+import { ViewLayer, ViewLayerNames, ViewLayerSet } from "../viewers/base/view-layers";
 
 function offset_point(
     sheet: drawing_sheet.DrawingSheet,

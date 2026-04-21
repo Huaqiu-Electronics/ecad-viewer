@@ -5,7 +5,7 @@
 */
 
 import { Angle, BBox, Camera2, Vec2 } from "@ecad-viewer/base/src/math";
-import { Color, Renderer } from "../../graphics";
+import { Color, Renderer } from "@ecad-viewer/base";
 import { ViewLayer } from "./view-layers";
 
 /**

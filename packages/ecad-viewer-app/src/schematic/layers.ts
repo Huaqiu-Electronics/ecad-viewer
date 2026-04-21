@@ -8,8 +8,8 @@ import {
     ViewLayerNames as BaseLayerNames,
     ViewLayerSet as BaseLayerSet,
     ViewLayer,
-} from "@ecad-viewer/base/src/view-layers";
-import { Color } from "@ecad-viewer/base/src/color";
+} from "../viewers/base/view-layers";
+import { Color } from "@ecad-viewer/base";
 import type { SchematicTheme } from "kicad-parser/src/kicad";
 export { ViewLayer };
 

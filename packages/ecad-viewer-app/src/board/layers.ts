@@ -4,15 +4,10 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { Color } from "@ecad-viewer/base/src/color";
-import { is_string } from "@ecad-viewer/base/src/types";
-import { KicadPCB, type BoardTheme } from "kicad-parser/src/kicad";
-import {
-    ViewLayerNames as BaseLayerNames,
-    ViewLayerSet as BaseLayerSet,
-    ViewLayer,
-    type VisibilityType,
-} from "@ecad-viewer/base/src/view-layers";
+import { Color, is_string } from "@ecad-viewer/base";
+import { ViewLayer, ViewLayerSet, type VisibilityType } from "../viewers/base/view-layers";
+import { Kicad } from "kicad-parser";
+import type { BoardTheme } from "kicad-parser/src/kicad/theme";
 export { ViewLayer };
 
 /** Board view layer names
@@ -89,8 +84,8 @@ export enum LayerNames {
     b_paste = "B.Paste",
     b_crtyd = "B.CrtYd",
     b_fab = "B.Fab",
-    drawing_sheet = BaseLayerNames.drawing_sheet,
-    grid = BaseLayerNames.grid,
+    drawing_sheet = "drawing_sheet",
+    grid = "grid",
 }
 
 export const HoleLayerNames = [
@@ -200,12 +195,12 @@ export function* copper_layers_between(
 /**
  * Board view layer set
  */
-export class LayerSet extends BaseLayerSet {
+export class LayerSet extends ViewLayerSet {
     /**
      * Create a new LayerSet
      */
     constructor(
-        board: KicadPCB,
+        board: Kicad.KicadPCB,
         public theme: BoardTheme,
     ) {
         super();

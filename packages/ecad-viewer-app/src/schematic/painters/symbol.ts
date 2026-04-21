@@ -4,10 +4,10 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { BBox, Matrix3, Vec2 } from "@ecad-viewer/base/src/math";
-import { NullRenderer } from "../../../graphics/null-renderer";
+import { BBox, Matrix3, Vec2 } from "@ecad-viewer/base";
+import { NullRenderer } from "../../null-renderer";
 import type { SchematicTheme } from "kicad-parser/src/kicad";
-import * as schematic_items from "../../../kicad/schematic";
+import * as schematic_items from "kicad-parser/src/kicad/schematic";
 import { LayerNames, LayerSet, ViewLayer } from "../layers";
 import { SchematicPainter } from "../painter";
 import { SchematicItemPainter } from "./base";

@@ -4,8 +4,8 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { html, type ElementOrFragment } from "@ecad-viewer/base/src/web-components";
-import { KicadPCB } from "kicad-parser/src/kicad";
+import { html, type ElementOrFragment } from "@ecad-viewer/base";
+import { Kicad } from "kicad-parser";
 import { KCViewerAppElement, type KicadAssert } from "../common/app";
 import { KCBoardViewerElement } from "./viewer";
 
@@ -24,11 +24,12 @@ import "./objects-visibility-ctrl";
 import "./selection-pop-menu";
 import { KCBoardLayersPanelElement } from "./layers-panel";
 import { KCBoardObjectsPanelElement } from "./objects-panel";
-import { TabView } from "../../../kc-ui/tab-view";
+import { TabView } from "../../kc-ui/tab-view";
 import { KCBoardNetsPanelElement } from "./nets-panel";
-import type { BoardViewer } from "../../../viewers/board/viewer";
-import { AssertType } from "../../project";
-import { Footprint } from "../../../kicad/board";
+import { BoardViewer } from "../../../viewers/board/viewer";
+import { AssertType } from "../../../project";
+
+const { KicadPCB, Footprint } = Kicad;
 
 /**
  * Internal "parent" element for KiCanvas's board viewer. Handles

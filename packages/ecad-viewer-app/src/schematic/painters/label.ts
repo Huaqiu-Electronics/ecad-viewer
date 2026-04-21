@@ -4,10 +4,9 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { Color } from "@ecad-viewer/base/src/color";
-import { Angle, Vec2 } from "@ecad-viewer/base/src/math";
-import * as schematic_items from "../../../kicad/schematic";
-import { SchText, StrokeFont } from "../../../kicad/text";
+import { Color, Angle, Vec2 } from "@ecad-viewer/base";
+import * as schematic_items from "kicad-parser/src/kicad/schematic";
+import { SchText, StrokeFont } from "kicad-parser/src/kicad/text";
 import { LayerNames, ViewLayer } from "../layers";
 import { SchematicItemPainter } from "./base";
 

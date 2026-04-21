@@ -8,7 +8,7 @@ import { Barrier } from "@ecad-viewer/base/src/async";
 import { Disposables, type IDisposable } from "@ecad-viewer/base/src/disposable";
 import { listen } from "@ecad-viewer/base/src/events";
 import { Vec2 } from "@ecad-viewer/base/src/math";
-import { Renderer } from "../../graphics";
+import { Renderer } from "@ecad-viewer/base";
 import {
     CommentClickEvent,
     KiCanvasLoadEvent,

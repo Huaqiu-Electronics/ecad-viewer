@@ -1,7 +1,5 @@
-import { Angle, Matrix3, Vec2 } from "@ecad-viewer/base/src/math";
-import * as log from "@ecad-viewer/base/src/log";
-import { Circle, Color, Polygon, Polyline } from "../../graphics";
-import * as board_items from "kicad-parser/src/kicad/board";
+import { Angle, Matrix3, Vec2, Logger, Circle, Color, Polygon, Polyline } from "@ecad-viewer/base";
+import { Kicad } from "kicad-parser";
 import {
     CopperVirtualLayerNames,
     LayerNames,
@@ -10,12 +8,15 @@ import {
 } from "./layers";
 import { BoardItemPainter } from "./painter-base";
 
+const board_items = Kicad;
+const log = new Logger("pad-painter");
+
 export class PadPainter extends BoardItemPainter {
     classes = [board_items.Pad];
 
     color_cache: Color | null = null;
 
-    layers_for(pad: board_items.Pad): string[] {
+    layers_for(pad: any): string[] {
         // TODO: Port KiCAD's logic over.
         const layers: string[] = [];
 
@@ -52,7 +53,7 @@ export class PadPainter extends BoardItemPainter {
         return layers;
     }
 
-    paint(layer: ViewLayer, pad: board_items.Pad) {
+    paint(layer: ViewLayer, pad: any) {
         let color = layer.color;
         if (!this.color_cache) this.color_cache = color;
 

@@ -8,7 +8,7 @@ import { Barrier } from "@ecad-viewer/base/src/async";
 import { MoveAndZoom } from "@ecad-viewer/base/src/dom/move-and-zoom";
 import { SizeObserver } from "@ecad-viewer/base/src/dom/size-observer";
 import { Angle, BBox, Camera2, Matrix3, Vec2 } from "@ecad-viewer/base/src/math";
-import { Renderer } from "../../graphics";
+import { Renderer } from "@ecad-viewer/base";
 
 /**
  * Viewport combines a canvas, a renderer, and a camera to represent a view

@@ -10,17 +10,17 @@
  * Each item class has a corresponding Painter implementation.
  */
 
-import { Angle, Matrix3, Vec2 } from "@ecad-viewer/base/src/math";
-import { Polyline } from "../../graphics";
-import * as board_items from "kicad-parser/src/kicad/board";
-import { ViewLayerNames } from "@ecad-viewer/base/src/view-layers";
+import { Angle, Matrix3, Vec2, Polyline } from "@ecad-viewer/base";
+import { Kicad } from "kicad-parser";
 import { ViewLayer } from "./layers";
 import { BoardItemPainter } from "./painter-base";
+
+const board_items = Kicad;
 
 export class FootprintPainter extends BoardItemPainter {
     classes = [board_items.Footprint];
 
-    layers_for(fp: board_items.Footprint): string[] {
+    layers_for(fp: any): string[] {
         const layers = new Set();
         for (const item of fp.items()) {
             const item_layers = this.view_painter.layers_for(item);
@@ -31,8 +31,8 @@ export class FootprintPainter extends BoardItemPainter {
         return Array.from(layers.values()) as string[];
     }
 
-    paint(layer: ViewLayer, fp: board_items.Footprint) {
-        if (layer.name === ViewLayerNames.selection_mask) {
+    paint(layer: ViewLayer, fp: any) {
+        if (layer.name === "selection_mask") {
             const bbox = fp.bbox;
             let step = 0.5;
             if (bbox.w > bbox.h) {

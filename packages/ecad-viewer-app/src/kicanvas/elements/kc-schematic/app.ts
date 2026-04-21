@@ -4,7 +4,7 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import { html, type ElementOrFragment } from "@ecad-viewer/base/src/web-components";
+import { html, type ElementOrFragment } from "@ecad-viewer/base";
 import { KCViewerAppElement, type KicadAssert } from "../common/app";
 import { KCSchematicViewerElement } from "./viewer";
 
@@ -15,8 +15,8 @@ import "./viewer";
 import "./erc-inspector";
 import type { KCErcInspectorElement } from "./erc-inspector";
 
-import { KicadSch } from "kicad-parser/src/kicad";
-import { SchematicSheet } from "../../../kicad/schematic";
+import { Kicad } from "kicad-parser";
+import { SchematicSheet } from "../../../schematic";
 import { AssertType, Project } from "../../project";
 import { SchPreviewListElement } from "./sch-preview-list";
 import "./selection-pop-menu";
@@ -31,10 +31,10 @@ import {
     SheetChangeEvent,
     SheetLoadEvent,
     type NetItemIndex,
-} from "../../../viewers/base/events";
-import type { NetRef } from "../../../kicad/net_ref";
-import type { SchematicViewer } from "../../../viewers/schematic/viewer";
-import type { ComponentERCResult } from "kicad-parser/src/proto/component_erc_result";
+} from "../../../base/events";
+import type { NetRef } from "../../../net_ref";
+import type { SchematicViewer } from "../../../schematic/viewer";
+import type { ComponentERCResult } from "kicad-parser";
 
 /**
  * Internal "parent" element for KiCanvas's schematic viewer. Handles
@@ -63,7 +63,7 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
         super.initialContentCallback();
         this.viewer.addEventListener(SheetChangeEvent.type, (e) => {
             const sch = this.project.file_by_name(e.detail);
-            if (sch instanceof KicadSch) this.viewer.load(sch);
+            if (sch instanceof Kicad.KicadSch) this.viewer.load(sch);
         });
 
         this.viewer.addEventListener(SheetLoadEvent.type, (e) => {
@@ -113,7 +113,7 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
                     const sch = this.project.file_by_name(
                         sch_symbol.sheet_name,
                     );
-                    if (sch instanceof KicadSch) {
+                    if (sch instanceof Kicad.KicadSch) {
                         this.viewer.load(sch);
                     }
                 }
@@ -153,7 +153,7 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
                     const sch = this.project.file_by_name(
                         sch_symbol.sheet_name,
                     );
-                    if (sch instanceof KicadSch) {
+                    if (sch instanceof Kicad.KicadSch) {
                         this.viewer.load(sch);
                     }
                 }
@@ -178,7 +178,7 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
 
     #select_item(idx: NetItemIndex) {
         const sch = this.project.file_by_name(idx.sheet);
-        if (sch instanceof KicadSch) {
+        if (sch instanceof Kicad.KicadSch) {
             if (sch.filename === this.sch_viewer.sch_name) {
                 this.sch_viewer.zoom_fit_item(idx.uuid);
             } else {
@@ -210,7 +210,7 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
     }
 
     override can_load(src: KicadAssert): boolean {
-        return src instanceof KicadSch;
+        return src instanceof Kicad.KicadSch;
     }
 
     protected override do_render() {

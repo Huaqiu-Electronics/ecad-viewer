@@ -4,10 +4,10 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import type { Color } from "@ecad-viewer/base/src/color";
+import type { Color } from "@ecad-viewer/base";
 import type { SchematicTheme } from "kicad-parser/src/kicad";
-import * as schematic_items from "../../../kicad/schematic";
-import { DocumentPainter, ItemPainter } from "@ecad-viewer/base/src/painter";
+import * as schematic_items from "kicad-parser/src/kicad/schematic";
+import { DocumentPainter, ItemPainter } from "../../viewers/base/painter";
 import { LayerNames, type ViewLayer } from "../layers";
 import type { SchematicPainter } from "../painter";
 import type { SymbolTransform } from "./symbol";

@@ -4,9 +4,9 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-import type { CrossHightAble } from "@ecad-viewer/base/src/cross_highlight_able";
-import { Angle, BBox, Arc as MathArc, Matrix3, Vec2 } from "@ecad-viewer/base/src/math";
-import { Color } from "@ecad-viewer/base/src/color";
+import type { CrossHightAble } from "@ecad-viewer/base";
+import { Angle, BBox, MathArc, Matrix3, Vec2 } from "@ecad-viewer/base";
+import { Color } from "@ecad-viewer/base";
 import { LayerNames } from "./board_layers";
 import {
     At,
@@ -16,7 +16,7 @@ import {
     TitleBlock,
     expand_text_vars,
 } from "./common";
-import * as B from "kicad-parser/src/proto/board";
+import * as B from "kicad-parser/proto/board";
 
 import type { BoardNodeType } from "./board_node_type";
 export interface BoardNode {

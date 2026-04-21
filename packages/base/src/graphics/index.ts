@@ -4,9 +4,9 @@
     Full text available at: https://opensource.org/licenses/MIT
 */
 
-export * from "../graphics/renderer";
+export * from "./renderer";
 export * from "./shapes";
-export { Color } from "@ecad-viewer/base/src/color";
+export { Color } from "../color";
 
 
 
