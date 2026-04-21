@@ -1,7 +1,7 @@
 {
-    "name": "kicad-parser",
+    "name": "kicad-sexpr-parser",
     "version": "1.0.0",
-    "description": "KiCad file parser",
+    "description": "KiCad sexpr file parser",
     "type": "module",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -17,6 +17,7 @@
     "keywords": [
         "kicad",
         "eda",
+        "sexpr",
         "parser"
     ],
     "author": "Ethan Chien",
