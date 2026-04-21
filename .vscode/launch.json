@@ -8,8 +8,8 @@
             "type": "chrome",
             "request": "launch",
             "name": "Launch Chrome against localhost",
-            "preLaunchTask": "npm: serve",
-            "url": "http://localhost:8080/",
+            "preLaunchTask": "serve:ecad-viewer-app",
+            "url": "http://localhost:8081/",
             "webRoot": "${workspaceFolder}/www",
             "sourceMapPathOverrides": {
                 "..": "${workspaceFolder}/www/*"

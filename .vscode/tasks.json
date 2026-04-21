@@ -1,19 +1,18 @@
 {
-	// See https://go.microsoft.com/fwlink/?LinkId=733558
-	// for the documentation about the tasks.json format
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "npm: serve",
+			"label": "serve:ecad-viewer-app",
 			"type": "npm",
 			"script": "serve",
+			"path": "packages/ecad-viewer-app",
 			"isBackground": true,
 			"presentation": {
 				"focus": true,
 				"panel": "dedicated"
 			},
 			"group": {
-				"kind": "build",
+				"kind": "build"
 			},
 			"problemMatcher": {
 				"owner": "custom",
@@ -32,7 +31,7 @@
 						"regexp": "\\[watch\\] build started"
 					},
 					"endsPattern": {
-						"regexp": "\\[watch\\] build finished",
+						"regexp": "\\[watch\\] build finished"
 					}
 				}
 			}
