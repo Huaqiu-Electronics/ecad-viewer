@@ -10,8 +10,8 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = resolve(__dirname, "..");
-const APP_DIR = resolve(ROOT_DIR, "packages/ecad-viewer-app");
+const APP_DIR = resolve(__dirname, "..");
+const ROOT_DIR = resolve(APP_DIR, "../..");
 export const ENTRY = resolve(APP_DIR, "src/index.ts");
 
 let { options, context } = await bundle({
