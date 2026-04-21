@@ -1,6 +1,6 @@
 {
     "name": "kicad-sexpr-parser",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "KiCad sexpr file parser",
     "type": "module",
     "main": "./dist/index.js",
@@ -22,9 +22,6 @@
     ],
     "author": "Ethan Chien",
     "license": "MIT",
-    "dependencies": {
-        "immutable": "^5.0.0-beta.5"
-    },
     "devDependencies": {
         "typescript": "^5.2.2"
     },
