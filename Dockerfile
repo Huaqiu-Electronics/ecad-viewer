@@ -16,21 +16,20 @@ RUN sh -c 'curl -fsSL https://deb.nodesource.com/setup_20.x | bash - ' ;\
 WORKDIR /src
 
 RUN set -ex;   \
-    git clone https://github.com/Huaqiu-Electronics/ecad-viewer.git .;
+    git clone https://github.com/Huaqiu-Electronics/ecad-viewer.git .; \
     git clone https://github.com/Huaqiu-Electronics/ecad-viewer-docker-scripts.git;
 
 WORKDIR /src
 
 RUN set -ex; \
     npm install; \
-    cd packages/kicad-parser && npm install && npm run build; \
-    cd ../ecad-viewer-app && npm install && npm run build-all;
+    cd packages/ecad-viewer-app && npm run build-all; \
     mv packages/ecad-viewer-app/static /app; \
     mv packages/ecad-viewer-app/build /app/ecad_viewer; \
     echo "IMAGE_TAG=$IMAGE_TAG"; \
     if [ -n "$IMAGE_TAG" ]; then \
     cp /app/ecad_viewer/ecad-viewer.js /app/ecad_viewer/ecad-viewer-"$IMAGE_TAG".js; \
-    sed -i "s|<script type=\\"module\\" src=\\"./ecad_viewer/ecad-viewer.js\\"></script>|<script type=\\"module\\" src=\\"./ecad_viewer/ecad-viewer-$IMAGE_TAG.js\\"></script>|g" /app/index.html; \
+    sed -i "s|<script type=\"module\" src=\"./ecad_viewer/ecad-viewer.js\"></script>|<script type=\"module\" src=\"./ecad_viewer/ecad-viewer-$IMAGE_TAG.js\"></script>|g" /app/index.html; \
     fi;
 
 RUN set -ex; \
