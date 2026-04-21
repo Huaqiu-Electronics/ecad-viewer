@@ -40,7 +40,7 @@ export interface I_BusEntry {
 
 export interface I_BusAlias {
     name: string;
-    members: string[];
+    members?: string[];
 }
 
 export interface I_Junction {
@@ -105,6 +105,8 @@ export interface I_TextBox extends I_GraphicItem {
     at: I_At;
     size: { x: number; y: number };
     effects: I_Effects;
+    exclude_from_sim?: boolean;
+    margins?: { x: number; y: number; z: number; w: number };
 }
 
 export interface I_Label {

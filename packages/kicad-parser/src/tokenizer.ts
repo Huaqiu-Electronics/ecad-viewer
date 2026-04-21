@@ -201,7 +201,8 @@ export function* tokenize(input: string) {
                     input
                         .substring((start_idx ?? 0) + 1, i)
                         .replaceAll("\\n", "\n")
-                        .replaceAll("\\\\", "\\"),
+                        .replaceAll("\\\\", "\\")
+                        .replaceAll("\\\"", "\""),
                 );
                 state = State.none;
                 escaping = false;

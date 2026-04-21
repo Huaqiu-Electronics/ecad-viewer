@@ -65,7 +65,10 @@ function parseBusAlias(expr: Parseable): S.I_BusAlias {
         expr,
         P.start("bus_alias"),
         P.positional("name", T.string),
-        P.list("members", T.string),
+        P.item("members", (e) => {
+            const parsed = parse_expr(e, P.start("members"), P.list("members", T.string));
+            return parsed['members'] || [];
+        }),
     ) as unknown as S.I_BusAlias;
 }
 
@@ -197,6 +200,8 @@ function parseTextBox(expr: Parseable): S.I_TextBox {
         P.item("effects", parseEffects),
         P.item("stroke", parseStroke),
         P.item("fill", parseFill),
+        P.pair("exclude_from_sim", T.boolean),
+        P.vec4("margins"),
         P.pair("uuid", T.string),
     ) as unknown as S.I_TextBox;
 }
