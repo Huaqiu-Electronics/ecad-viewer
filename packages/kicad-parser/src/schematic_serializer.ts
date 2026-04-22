@@ -25,15 +25,15 @@ function serializeAt(at: C.I_At | undefined, level: number = 0, forceRotation: b
     const y = at.position?.y || 0;
     const rotation = at.rotation || 0;
     if (forceRotation || rotation !== 0) {
-        return `(at ${x} ${y} ${rotation})`;
+        return `(at ${formatDouble(x)} ${formatDouble(y)} ${formatDouble(rotation)})`;
     }
-    return `(at ${x} ${y})`;
+    return `(at ${formatDouble(x)} ${formatDouble(y)})`;
 }
 
 function serializeEffects(effects: C.I_Effects, level: number = 0): string {
     let result = "(effects";
     if (effects.font) {
-        result += ` (font (size ${effects.font.size?.x || 0} ${effects.font.size?.y || 0})`;
+        result += ` (font (size ${formatDouble(effects.font.size?.x || 0)} ${formatDouble(effects.font.size?.y || 0)})`;
         if (effects.font.face) {
             result += ` (name "${escapeString(effects.font.face)}")`;
         }
@@ -61,17 +61,24 @@ function serializeEffects(effects: C.I_Effects, level: number = 0): string {
     return result;
 }
 
+function formatDouble(value: number): string {
+    if (Number.isInteger(value)) {
+        return String(value);
+    }
+    return value.toFixed(4).replace(/\.?0+$/, '');
+}
+
 function formatColorAlpha(alpha: number): string {
     if (alpha === 0) {
         return "0.0000";
     }
-    return String(alpha);
+    return formatDouble(alpha);
 }
 
 function serializeStroke(stroke: C.I_Stroke, level: number = 0): string {
     let result = "(stroke";
     if (stroke.width !== undefined) {
-        result += ` (width ${stroke.width})`;
+        result += ` (width ${formatDouble(stroke.width)})`;
     }
     if (stroke.type) {
         result += ` (type ${stroke.type})`;
@@ -148,7 +155,7 @@ function serializePinAlternate(alternate: S.I_PinAlternate, level: number = 0): 
 
 function serializePin(pin: S.I_Pin, level: number = 0): string {
     let result = `(pin ${pin.type} ${pin.shape}`;
-    result += ` ${serializeAt(pin.at, 0, true)} (length ${pin.length})`;
+    result += ` ${serializeAt(pin.at, 0, true)} (length ${formatDouble(pin.length)})`;
     if (pin.hide) {
         result += " (hide yes)";
     }
@@ -348,7 +355,7 @@ function serializeLibSymbol(symbol: S.I_LibSymbol, level: number = 0): string {
 function serializeWire(wire: S.I_Wire): string {
     let result = "(wire (pts";
     for (const pt of wire.pts) {
-        result += ` (xy ${pt.x} ${pt.y})`;
+        result += ` (xy ${formatDouble(pt.x)} ${formatDouble(pt.y)})`;
     }
     result += ")";
     result += ` ${serializeStroke(wire.stroke)}`;
@@ -360,7 +367,7 @@ function serializeWire(wire: S.I_Wire): string {
 function serializeBus(bus: S.I_Bus): string {
     let result = "(bus (pts";
     for (const pt of bus.pts) {
-        result += ` (xy ${pt.x} ${pt.y})`;
+        result += ` (xy ${formatDouble(pt.x)} ${formatDouble(pt.y)})`;
     }
     result += ")";
     result += ` ${serializeStroke(bus.stroke)}`;
@@ -374,11 +381,11 @@ function serializeBusEntry(busEntry: S.I_BusEntry): string {
     if (busEntry.at) {
         const x = busEntry.at.position?.x || 0;
         const y = busEntry.at.position?.y || 0;
-        result += `(at ${x} ${y})`;
+        result += `(at ${formatDouble(x)} ${formatDouble(y)})`;
     } else {
         result += `(at 0 0)`;
     }
-    result += ` (size ${busEntry.size.x} ${busEntry.size.y})`;
+    result += ` (size ${formatDouble(busEntry.size.x)} ${formatDouble(busEntry.size.y)})`;
     result += ` ${serializeStroke(busEntry.stroke)}`;
     result += ` (uuid "${escapeString(busEntry.uuid)}")`;
     result += ")";
@@ -401,13 +408,13 @@ function serializeJunction(junction: S.I_Junction): string {
     if (junction.at) {
         const x = junction.at.position?.x || 0;
         const y = junction.at.position?.y || 0;
-        result += `(at ${x} ${y})`;
+        result += `(at ${formatDouble(x)} ${formatDouble(y)})`;
     } else {
         result += `(at 0 0)`;
     }
-    if (junction.diameter) result += ` (diameter ${junction.diameter})`;
+    if (junction.diameter) result += ` (diameter ${formatDouble(junction.diameter)})`;
     if (junction.color) {
-        result += ` (color ${Math.round(junction.color.r * 255)} ${Math.round(junction.color.g * 255)} ${Math.round(junction.color.b * 255)} ${junction.color.a})`;
+        result += ` (color ${Math.round(junction.color.r * 255)} ${Math.round(junction.color.g * 255)} ${Math.round(junction.color.b * 255)} ${formatColorAlpha(junction.color.a)})`;
     }
     result += ` (uuid "${escapeString(junction.uuid)}")`;
     result += ")";
@@ -419,7 +426,7 @@ function serializeNoConnect(noConnect: S.I_NoConnect): string {
     if (noConnect.at) {
         const x = noConnect.at.position?.x || 0;
         const y = noConnect.at.position?.y || 0;
-        result += `(at ${x} ${y})`;
+        result += `(at ${formatDouble(x)} ${formatDouble(y)})`;
     } else {
         result += `(at 0 0)`;
     }
@@ -597,7 +604,7 @@ function serializeSchematicSheet(sheet: S.I_SchematicSheet, level: number = 0): 
     
     result += `${indentString(level + 1)}${serializeAt(sheet.at)}
 `;
-    result += `${indentString(level + 1)}(size ${sizeX} ${sizeY})
+    result += `${indentString(level + 1)}(size ${formatDouble(sizeX)} ${formatDouble(sizeY)})
 `;
     
     if (sheet.exclude_from_sim !== undefined) {
@@ -754,13 +761,13 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
         for (const drawing of schematic.drawings) {
             if (drawing.type === "arc") {
                 const arc = drawing as S.I_Arc;
-                result += `${indentString(indent)}(arc (start ${arc.start.x} ${arc.start.y})`;
+                result += `${indentString(indent)}(arc (start ${formatDouble(arc.start.x)} ${formatDouble(arc.start.y)})`;
                 if (arc.mid) {
-                    result += ` (mid ${arc.mid.x} ${arc.mid.y})`;
+                    result += ` (mid ${formatDouble(arc.mid.x)} ${formatDouble(arc.mid.y)})`;
                 }
-                result += ` (end ${arc.end.x} ${arc.end.y})`;
+                result += ` (end ${formatDouble(arc.end.x)} ${formatDouble(arc.end.y)})`;
                 if (arc.radius) {
-                    result += ` (radius (xy ${arc.radius.at.x} ${arc.radius.at.y}) (length ${arc.radius.length}) (angles ${arc.radius.angles.x} ${arc.radius.angles.y}))`;
+                    result += ` (radius (xy ${formatDouble(arc.radius.at.x)} ${formatDouble(arc.radius.at.y)}) (length ${formatDouble(arc.radius.length)}) (angles ${formatDouble(arc.radius.angles.x)} ${formatDouble(arc.radius.angles.y)}))`;
                 }
                 if (arc.stroke) result += ` ${serializeStroke(arc.stroke)}`;
                 if (arc.fill) result += ` ${serializeFill(arc.fill)}`;
@@ -770,7 +777,7 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
                 const bezier = drawing as S.I_Bezier;
                 result += `${indentString(indent)}(bezier (pts`;
                 for (const pt of bezier.pts) {
-                    result += ` (xy ${pt.x} ${pt.y})`;
+                    result += ` (xy ${formatDouble(pt.x)} ${formatDouble(pt.y)})`;
                 }
                 result += `)`;
                 if (bezier.stroke)
@@ -780,7 +787,7 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
                 result += `)\n`;
             } else if (drawing.type === "circle") {
                 const circle = drawing as S.I_Circle;
-                result += `${indentString(indent)}(circle (center ${circle.center.x} ${circle.center.y}) (radius ${circle.radius})`;
+                result += `${indentString(indent)}(circle (center ${formatDouble(circle.center.x)} ${formatDouble(circle.center.y)}) (radius ${formatDouble(circle.radius)})`;
                 if (circle.stroke)
                     result += ` ${serializeStroke(circle.stroke)}`;
                 if (circle.fill) result += ` ${serializeFill(circle.fill)}`;
@@ -790,7 +797,7 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
                 const polyline = drawing as S.I_Polyline;
                 result += `${indentString(indent)}(polyline (pts`;
                 for (const pt of polyline.pts) {
-                    result += ` (xy ${pt.x} ${pt.y})`;
+                    result += ` (xy ${formatDouble(pt.x)} ${formatDouble(pt.y)})`;
                 }
                 result += `)`;
                 if (polyline.stroke)
@@ -800,7 +807,7 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
                 result += `)\n`;
             } else if (drawing.type === "rectangle") {
                 const rectangle = drawing as S.I_Rectangle;
-                result += `${indentString(indent)}(rectangle (start ${rectangle.start.x} ${rectangle.start.y}) (end ${rectangle.end.x} ${rectangle.end.y})`;
+                result += `${indentString(indent)}(rectangle (start ${formatDouble(rectangle.start.x)} ${formatDouble(rectangle.start.y)}) (end ${formatDouble(rectangle.end.x)} ${formatDouble(rectangle.end.y)})`;
                 if (rectangle.stroke)
                     result += ` ${serializeStroke(rectangle.stroke)}`;
                 if (rectangle.fill)
@@ -815,11 +822,11 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
                 result += `)\n`;
             } else if (drawing.type === "text_box") {
                 const textbox = drawing as S.I_TextBox;
-                result += `${indentString(indent)}(text_box "${escapeString(textbox.text)}" ${serializeAt(textbox.at, 0, true)} (size ${textbox.size.x} ${textbox.size.y})`;
+                result += `${indentString(indent)}(text_box "${escapeString(textbox.text)}" ${serializeAt(textbox.at, 0, true)} (size ${formatDouble(textbox.size.x)} ${formatDouble(textbox.size.y)})`;
                 if (textbox.exclude_from_sim)
                     result += ` (exclude_from_sim ${textbox.exclude_from_sim ? "yes" : "no"})`;
                 if (textbox.margins)
-                    result += ` (margins ${textbox.margins.x} ${textbox.margins.y} ${textbox.margins.z} ${textbox.margins.w})`;
+                    result += ` (margins ${formatDouble(textbox.margins.x)} ${formatDouble(textbox.margins.y)} ${formatDouble(textbox.margins.z)} ${formatDouble(textbox.margins.w)})`;
                 result += ` ${serializeEffects(textbox.effects)}`;
                 if (textbox.stroke)
                     result += ` ${serializeStroke(textbox.stroke)}`;
@@ -840,7 +847,7 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
             result += `${indentString(indent)}(image\n`;
             result += `${indentString(indent + 1)}${serializeAt(image.at)}\n`;
             result += `${indentString(indent + 1)}(data ${chunks.join(" ")})\n`;
-            result += `${indentString(indent + 1)}(scale ${image.scale})\n`;
+            result += `${indentString(indent + 1)}(scale ${formatDouble(image.scale)})\n`;
             if (image.uuid) {
                 result += `${indentString(indent + 1)}(uuid "${escapeString(image.uuid)}")\n`;
             }
