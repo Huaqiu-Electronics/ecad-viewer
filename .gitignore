@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 demos
+*.rpt
 
 # Editor directories and files
 .vscode/*
