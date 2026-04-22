@@ -14,19 +14,16 @@ const parser = new SchematicParser();
 const demosDir = path.join(__dirname, 'demos');
 
 function testSchematicFile(filePath: string): boolean {
-    console.log(`\nTesting ${path.relative(demosDir, filePath)}...`);
     try {
         const content = fs.readFileSync(filePath, 'utf8');
         
         // Parse the schematic
         const schematic = parser.parse(content);
-        console.log("✓ Parsed OK");
         
         // Serialize it back
         const serialized = parser.save(schematic);
-        console.log("✓ Serialized OK");
         
-        // Write to /tmp for debugging
+        // Write to temp files
         const baseName = path.basename(filePath);
         const dirName = path.dirname(filePath);
         const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kicad-test-'));
@@ -54,36 +51,22 @@ function testSchematicFile(filePath: string): boolean {
         // Verify with KiCad CLI
         const kicadCliPath = '/Users/admin/code/kicad-mac-builder/build/kicad-dest/KiCad.app/Contents/MacOS/kicad-cli';
         try {
-            execSync(`${kicadCliPath} sch erc ${serFile}`, { encoding: 'utf8', stdio: 'pipe' });
-            console.log(`✓ KiCad CLI could load the file`);
-        } catch (error: any) {
-            console.error(`✗ KiCad CLI failed to load the file:`);
-            console.error(`  Error: ${error.message}`);
-            if (error.stdout) console.error(`  Stdout: ${error.stdout}`);
-            if (error.stderr) console.error(`  Stderr: ${error.stderr}`);
-            console.error(`  Check ${origFile} and ${serFile}`);
-            // Keep temp dir for debugging
+            execSync(`${kicadCliPath} sch erc "${serFile}"`, { encoding: 'utf8', stdio: 'pipe' });
+        } catch {
+            fs.rmSync(tempDir, { recursive: true, force: true });
             return false;
         }
         
         // The reserialized content should match the first serialized content
         if (reserialized === serialized) {
-            console.log(`✓ PASSED: ${path.relative(demosDir, filePath)}`);
             // Clean up temp dir
             fs.rmSync(tempDir, { recursive: true, force: true });
             return true;
         } else {
-            console.error(`✗ FAILED: Serialized output differs for ${path.relative(demosDir, filePath)}`);
-            console.error(`Check ${origFile} and ${serFile}`);
+            fs.rmSync(tempDir, { recursive: true, force: true });
             return false;
         }
-    } catch (error) {
-        console.error(`✗ FAILED: Error processing ${path.relative(demosDir, filePath)}`);
-        if (error instanceof Error && error.stack) {
-            console.error(error.stack);
-        } else {
-            console.error(error);
-        }
+    } catch {
         return false;
     }
 }
@@ -110,10 +93,7 @@ console.log('Running schematic parser and serializer tests...');
 
 // Find all kicad_sch files in the demos directory
 const schematicFiles = findSchematicFiles(demosDir);
-console.log(`Found ${schematicFiles.length} .kicad_sch files:`);
-schematicFiles.forEach(file => {
-    console.log(`  - ${path.relative(demosDir, file)}`);
-});
+console.log(`Found ${schematicFiles.length} .kicad_sch files`);
 
 let passed = 0;
 let failed = 0;
@@ -121,16 +101,20 @@ const failedFiles: string[] = [];
 const passedFiles: string[] = [];
 
 // Test each schematic file
-schematicFiles.forEach(filePath => {
+for (const filePath of schematicFiles) {
+    const relativePath = path.relative(demosDir, filePath);
+    process.stdout.write(`Testing ${relativePath}... `);
     const success = testSchematicFile(filePath);
     if (success) {
         passed++;
         passedFiles.push(filePath);
+        console.log('✓ PASSED');
     } else {
         failed++;
         failedFiles.push(filePath);
+        console.log('✗ FAILED');
     }
-});
+}
 
 // Print summary
 console.log('\n=== Test Summary ===');
