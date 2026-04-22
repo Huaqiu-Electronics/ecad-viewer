@@ -20,73 +20,70 @@ function testSchematicFile(filePath: string): boolean {
         
         // Parse the schematic
         const schematic = parser.parse(content);
+        console.log("✓ Parsed OK");
         
         // Serialize it back
         const serialized = parser.save(schematic);
+        console.log("✓ Serialized OK");
         
-        // Parse the serialized content again to ensure it's valid
-        const reparsed = parser.parse(serialized);
-        
-        // Serialize again to compare
-        const reserialized = parser.save(reparsed);
-        
-        // Write reserialized content to temporary file for KiCad verification
+        // Write to /tmp for debugging
+        const baseName = path.basename(filePath);
+        const dirName = path.dirname(filePath);
         const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kicad-test-'));
-        const tempFile = path.join(tempDir, `${path.basename(filePath)}`);
-        fs.writeFileSync(tempFile, reserialized, 'utf8');
+        // Copy all files from original directory to temp dir
+        const filesToCopy = fs.readdirSync(dirName, { withFileTypes: true });
+        for (const f of filesToCopy) {
+            const src = path.join(dirName, f.name);
+            const dest = path.join(tempDir, f.name);
+            if (f.isDirectory()) {
+                fs.cpSync(src, dest, { recursive: true });
+            } else {
+                fs.copyFileSync(src, dest);
+            }
+        }
+        // Now overwrite ser file
+        const origFile = path.join(tempDir, `orig-${baseName}`);
+        const serFile = path.join(tempDir, baseName);
+        fs.writeFileSync(origFile, content, 'utf8');
+        fs.writeFileSync(serFile, serialized, 'utf8');
+        
+        // Check parse/serialize/parse/serialize cycle
+        const reparsed = parser.parse(serialized);
+        const reserialized = parser.save(reparsed);
         
         // Verify with KiCad CLI
         const kicadCliPath = '/Users/admin/code/kicad-mac-builder/build/kicad-dest/KiCad.app/Contents/MacOS/kicad-cli';
         try {
-            const { stdout, stderr } = execSync(`${kicadCliPath} sch erc ${tempFile}`, { encoding: 'utf8' });
+            execSync(`${kicadCliPath} sch erc ${serFile}`, { encoding: 'utf8', stdio: 'pipe' });
             console.log(`✓ KiCad CLI could load the file`);
         } catch (error: any) {
             console.error(`✗ KiCad CLI failed to load the file:`);
             console.error(`  Error: ${error.message}`);
-            console.error(`  Stderr: ${error.stderr}`);
-            // Clean up temp files
-            fs.rmSync(tempDir, { recursive: true, force: true });
+            if (error.stdout) console.error(`  Stdout: ${error.stdout}`);
+            if (error.stderr) console.error(`  Stderr: ${error.stderr}`);
+            console.error(`  Check ${origFile} and ${serFile}`);
+            // Keep temp dir for debugging
             return false;
         }
-        
-        // Clean up temp files
-        fs.rmSync(tempDir, { recursive: true, force: true });
         
         // The reserialized content should match the first serialized content
         if (reserialized === serialized) {
             console.log(`✓ PASSED: ${path.relative(demosDir, filePath)}`);
+            // Clean up temp dir
+            fs.rmSync(tempDir, { recursive: true, force: true });
             return true;
         } else {
             console.error(`✗ FAILED: Serialized output differs for ${path.relative(demosDir, filePath)}`);
-            // Find the first difference
-            let firstDiffIndex = -1;
-            for (let i = 0; i < Math.min(serialized.length, reserialized.length); i++) {
-                if (serialized[i] !== reserialized[i]) {
-                    firstDiffIndex = i;
-                    break;
-                }
-            }
-            
-            if (firstDiffIndex !== -1) {
-                // Print context around the first difference
-                const start = Math.max(0, firstDiffIndex - 100);
-                const end = Math.min(Math.max(serialized.length, reserialized.length), firstDiffIndex + 100);
-                console.error('Difference found at position', firstDiffIndex);
-                console.error('Context from first serialized:');
-                console.error(serialized.substring(start, end));
-                console.error('Context from reserialized:');
-                console.error(reserialized.substring(start, end));
-            } else {
-                // One is longer than the other
-                console.error('One output is longer than the other');
-                console.error('First serialized length:', serialized.length);
-                console.error('Reserialized length:', reserialized.length);
-            }
+            console.error(`Check ${origFile} and ${serFile}`);
             return false;
         }
     } catch (error) {
         console.error(`✗ FAILED: Error processing ${path.relative(demosDir, filePath)}`);
-        console.error(`  Error: ${error}`);
+        if (error instanceof Error && error.stack) {
+            console.error(error.stack);
+        } else {
+            console.error(error);
+        }
         return false;
     }
 }
@@ -110,56 +107,49 @@ function findSchematicFiles(dir: string): string[] {
 
 // Run tests for all found schematic files
 console.log('Running schematic parser and serializer tests...');
-// For debugging, run only on a specific file
-const testFile = path.join(demosDir, 'complex_hierarchy/complex_hierarchy.kicad_sch');
+
+// Find all kicad_sch files in the demos directory
+const schematicFiles = findSchematicFiles(demosDir);
+console.log(`Found ${schematicFiles.length} .kicad_sch files:`);
+schematicFiles.forEach(file => {
+    console.log(`  - ${path.relative(demosDir, file)}`);
+});
+
 let passed = 0;
 let failed = 0;
-
 const failedFiles: string[] = [];
+const passedFiles: string[] = [];
 
-// Save the reserialized file for inspection
-const content = fs.readFileSync(testFile, 'utf8');
-const schematic = parser.parse(content);
-const serialized = parser.save(schematic);
-const reparsed = parser.parse(serialized);
-const reserialized = parser.save(reparsed);
+// Test each schematic file
+schematicFiles.forEach(filePath => {
+    const success = testSchematicFile(filePath);
+    if (success) {
+        passed++;
+        passedFiles.push(filePath);
+    } else {
+        failed++;
+        failedFiles.push(filePath);
+    }
+});
 
-// Check the first few and last few characters of the reserialized string
-console.log('First 100 characters of reserialized content:');
-console.log(reserialized.slice(0, 100));
-console.log('Last 20 characters of reserialized content:');
-console.log(reserialized.slice(-20));
-console.log('Length:', reserialized.length);
+// Print summary
+console.log('\n=== Test Summary ===');
+console.log(`Total files: ${schematicFiles.length}`);
+console.log(`Passed: ${passed}`);
+console.log(`Failed: ${failed}`);
 
-// Save to a permanent location for inspection
-const debugDir = path.join(__dirname, 'debug');
-if (!fs.existsSync(debugDir)) {
-    fs.mkdirSync(debugDir, { recursive: true });
-}
-const debugFile = path.join(debugDir, 'reserialized.kicad_sch');
-fs.writeFileSync(debugFile, reserialized, 'utf8');
-console.log(`Saved reserialized file to ${debugFile}`);
-
-// Test with KiCad CLI
-const kicadCliPath = '/Users/admin/code/kicad-mac-builder/build/kicad-dest/KiCad.app/Contents/MacOS/kicad-cli';
-try {
-    const { stdout, stderr } = execSync(`${kicadCliPath} sch erc ${debugFile}`, { encoding: 'utf8' });
-    console.log(`✓ KiCad CLI could load the file`);
-} catch (error: any) {
-    console.error(`✗ KiCad CLI failed to load the file:`);
-    console.error(`  Error: ${error.message}`);
-    console.error(`  Stderr: ${error.stderr}`);
+if (passed > 0) {
+    console.log('\nPassed files:');
+    passedFiles.forEach(file => {
+        console.log(`  - ${path.relative(demosDir, file)}`);
+    });
 }
 
-// Also test with the original file for comparison
-console.log('\nTesting with original file:');
-try {
-    const { stdout, stderr } = execSync(`${kicadCliPath} sch erc ${testFile}`, { encoding: 'utf8' });
-    console.log(`✓ KiCad CLI could load the original file`);
-} catch (error: any) {
-    console.error(`✗ KiCad CLI failed to load the original file:`);
-    console.error(`  Error: ${error.message}`);
-    console.error(`  Stderr: ${error.stderr}`);
+if (failed > 0) {
+    console.log('\nFailed files:');
+    failedFiles.forEach(file => {
+        console.log(`  - ${path.relative(demosDir, file)}`);
+    });
 }
 
 // Exit with appropriate code

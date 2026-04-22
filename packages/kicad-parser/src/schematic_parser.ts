@@ -99,7 +99,7 @@ function parseNoConnect(expr: Parseable): S.I_NoConnect {
 // Graphic Items
 
 function parsePolyline(expr: Parseable): S.I_Polyline {
-    return parse_expr(
+    const parsed = parse_expr(
         expr,
         P.start("polyline"),
         P.list("pts", T.vec2),
@@ -107,6 +107,7 @@ function parsePolyline(expr: Parseable): S.I_Polyline {
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
     ) as unknown as S.I_Polyline;
+    return { ...parsed, type: "polyline" };
 }
 
 function parseCenterOrStartOrEnd(
@@ -133,7 +134,7 @@ function parseCenterOrStartOrEnd(
 }
 
 function parseRectangle(expr: Parseable): S.I_Rectangle {
-    return parse_expr(
+    const parsed = parse_expr(
         expr,
         P.start("rectangle"),
         P.item("start", (e) => parseCenterOrStartOrEnd(e, "start")),
@@ -142,11 +143,12 @@ function parseRectangle(expr: Parseable): S.I_Rectangle {
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
     ) as unknown as S.I_Rectangle;
+    return { ...parsed, type: "rectangle" };
 }
 
 function parseCircle(expr: Parseable): S.I_Circle {
     // Parse circle, handling (center (xy x y)) or (center x y)
-    return parse_expr(
+    const parsed = parse_expr(
         expr,
         P.start("circle"),
         P.item("center", (e) => parseCenterOrStartOrEnd(e, "center")),
@@ -155,10 +157,11 @@ function parseCircle(expr: Parseable): S.I_Circle {
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
     ) as any;
+    return { ...parsed, type: "circle" };
 }
 
 function parseArc(expr: Parseable): S.I_Arc {
-    return parse_expr(
+    const parsed = parse_expr(
         expr,
         P.start("arc"),
         P.item("start", (e) => parseCenterOrStartOrEnd(e, "start")),
@@ -176,10 +179,11 @@ function parseArc(expr: Parseable): S.I_Arc {
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
     ) as unknown as S.I_Arc;
+    return { ...parsed, type: "arc" };
 }
 
 function parseBezier(expr: Parseable): S.I_Bezier {
-    return parse_expr(
+    const parsed = parse_expr(
         expr,
         P.start("bezier"),
         P.list("pts", T.vec2),
@@ -187,10 +191,11 @@ function parseBezier(expr: Parseable): S.I_Bezier {
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
     ) as unknown as S.I_Bezier;
+    return { ...parsed, type: "bezier" };
 }
 
 function parseText(expr: Parseable): S.I_Text {
-    return parse_expr(
+    const parsed = parse_expr(
         expr,
         P.start("text"),
         P.positional("text", T.string),
@@ -199,10 +204,11 @@ function parseText(expr: Parseable): S.I_Text {
         P.pair("exclude_from_sim", T.boolean),
         P.pair("uuid", T.string),
     ) as unknown as S.I_Text;
+    return { ...parsed, type: "text" };
 }
 
 function parseTextBox(expr: Parseable): S.I_TextBox {
-    return parse_expr(
+    const parsed = parse_expr(
         expr,
         P.start("text_box"),
         P.positional("text", T.string),
@@ -215,18 +221,10 @@ function parseTextBox(expr: Parseable): S.I_TextBox {
         P.vec4("margins"),
         P.pair("uuid", T.string),
     ) as unknown as S.I_TextBox;
+    return { ...parsed, type: "text_box" };
 }
 
 function parseImage(expr: Parseable): S.I_Image {
-    const parsed = parse_expr(
-        expr,
-        P.start("image"),
-        P.item("at", parseAt),
-        P.pair("data", T.string),
-        P.pair("scale", T.number),
-        P.pair("uuid", T.string),
-    );
-
     let data = "";
     for (const it of expr as List) {
         if (Array.isArray(it) && it.length && it[0] === "data") {
@@ -234,6 +232,13 @@ function parseImage(expr: Parseable): S.I_Image {
             break;
         }
     }
+    const parsed = parse_expr(
+        expr,
+        P.start("image"),
+        P.item("at", parseAt),
+        P.pair("scale", T.number),
+        P.pair("uuid", T.string),
+    );
 
     return {
         ...parsed,
@@ -594,18 +599,17 @@ export class SchematicParser {
             P.item("title_block", parseTitleBlock),
             // lib_symbols parsed as collection of symbols inside lib_symbols item
             P.item("lib_symbols", (e) => {
-                return (
-                    parse_expr(
-                        e,
-                        P.start("lib_symbols"),
-                        P.collection(
-                            "symbols",
-                            "symbol",
-                            T.item(parseLibSymbol),
-                        ),
-                    ) as any
-                )["symbols"];
-            }),
+        const parsed = parse_expr(
+            e,
+            P.start("lib_symbols"),
+            P.collection(
+                "symbols",
+                "symbol",
+                T.item(parseLibSymbol),
+            ),
+        ) as any;
+        return parsed["symbols"] ?? [];
+    }),
             P.collection("wires", "wire", T.item(parseWire)),
             P.collection("buses", "bus", T.item(parseBus)),
             P.collection("bus_entries", "bus_entry", T.item(parseBusEntry)),

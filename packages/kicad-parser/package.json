@@ -23,9 +23,9 @@
     "author": "Ethan Chien",
     "license": "MIT",
     "devDependencies": {
-        "typescript": "^5.2.2",
         "@types/node": "^20.11.30",
-        "tsx": "^4.7.1"
+        "tsx": "^4.21.0",
+        "typescript": "^5.2.2"
     },
     "scripts": {
         "build": "tsc",

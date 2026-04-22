@@ -56,6 +56,7 @@ export interface I_NoConnect {
 }
 
 export interface I_Arc extends I_GraphicItem {
+    type: "arc";
     start: { x: number; y: number };
     mid?: { x: number; y: number };
     end: { x: number; y: number };
@@ -67,19 +68,23 @@ export interface I_Arc extends I_GraphicItem {
 }
 
 export interface I_Bezier extends I_GraphicItem {
+    type: "bezier";
     pts: { x: number; y: number }[];
 }
 
 export interface I_Circle extends I_GraphicItem {
+    type: "circle";
     center: { x: number; y: number };
     radius: number;
 }
 
 export interface I_Polyline extends I_GraphicItem {
+    type: "polyline";
     pts: { x: number; y: number }[];
 }
 
 export interface I_Rectangle extends I_GraphicItem {
+    type: "rectangle";
     start: { x: number; y: number };
     end: { x: number; y: number };
 }
@@ -93,6 +98,7 @@ export interface I_Image {
 }
 
 export interface I_Text {
+    type: "text";
     text: string;
     at: I_At;
     effects: I_Effects;
@@ -101,6 +107,7 @@ export interface I_Text {
 }
 
 export interface I_TextBox extends I_GraphicItem {
+    type: "text_box";
     text: string;
     at: I_At;
     size: { x: number; y: number };
@@ -332,7 +339,7 @@ export interface I_KicadSch {
     hierarchical_labels: I_HierarchicalLabel[];
     symbols: I_SchematicSymbol[];
     no_connects: I_NoConnect[];
-    drawings: (I_Polyline | I_Rectangle | I_Arc | I_Text | I_Bezier | I_TextBox)[];
+    drawings: (I_Polyline | I_Rectangle | I_Arc | I_Text | I_Bezier | I_TextBox | I_Circle)[];
     images: I_Image[];
     sheet_instances?: I_SheetInstance[];
     symbol_instances?: I_SymbolInstance[];
