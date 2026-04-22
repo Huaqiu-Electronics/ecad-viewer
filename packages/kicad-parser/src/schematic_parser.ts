@@ -66,12 +66,17 @@ function parseBusAlias(expr: Parseable): S.I_BusAlias {
         P.start("bus_alias"),
         P.positional("name", T.string),
         P.item("members", (e) => {
-            const parsed = parse_expr(
-                e,
-                P.start("members"),
-                P.list("members", T.string),
-            );
-            return parsed["members"] || [];
+            // Directly process the members list without calling parse_expr
+            // e is the (members "member1" "member2" ...) list
+            if (Array.isArray(e) && e.length > 1) {
+                return e.slice(1).map((member) => {
+                    if (typeof member === "string") {
+                        return member;
+                    }
+                    return "";
+                });
+            }
+            return [];
         }),
     ) as unknown as S.I_BusAlias;
 }
