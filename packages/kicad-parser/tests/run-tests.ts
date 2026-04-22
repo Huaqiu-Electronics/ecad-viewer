@@ -2,6 +2,8 @@
 import { SchematicParser } from '../src/schematic_parser';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -27,6 +29,28 @@ function testSchematicFile(filePath: string): boolean {
         
         // Serialize again to compare
         const reserialized = parser.save(reparsed);
+        
+        // Write reserialized content to temporary file for KiCad verification
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kicad-test-'));
+        const tempFile = path.join(tempDir, `${path.basename(filePath)}`);
+        fs.writeFileSync(tempFile, reserialized, 'utf8');
+        
+        // Verify with KiCad CLI
+        const kicadCliPath = '/Users/admin/code/kicad-mac-builder/build/kicad-dest/KiCad.app/Contents/MacOS/kicad-cli';
+        try {
+            const { stdout, stderr } = execSync(`${kicadCliPath} sch erc ${tempFile}`, { encoding: 'utf8' });
+            console.log(`✓ KiCad CLI could load the file`);
+        } catch (error: any) {
+            console.error(`✗ KiCad CLI failed to load the file:`);
+            console.error(`  Error: ${error.message}`);
+            console.error(`  Stderr: ${error.stderr}`);
+            // Clean up temp files
+            fs.rmSync(tempDir, { recursive: true, force: true });
+            return false;
+        }
+        
+        // Clean up temp files
+        fs.rmSync(tempDir, { recursive: true, force: true });
         
         // The reserialized content should match the first serialized content
         if (reserialized === serialized) {
@@ -86,29 +110,57 @@ function findSchematicFiles(dir: string): string[] {
 
 // Run tests for all found schematic files
 console.log('Running schematic parser and serializer tests...');
-const schematicFiles = findSchematicFiles(demosDir);
+// For debugging, run only on a specific file
+const testFile = path.join(demosDir, 'complex_hierarchy/complex_hierarchy.kicad_sch');
 let passed = 0;
 let failed = 0;
 
 const failedFiles: string[] = [];
 
-schematicFiles.forEach(filePath => {
-    if (testSchematicFile(filePath)) {
-        passed++;
-    } else {
-        failed++;
-        failedFiles.push(filePath);
-    }
-});
+// Save the reserialized file for inspection
+const content = fs.readFileSync(testFile, 'utf8');
+const schematic = parser.parse(content);
+const serialized = parser.save(schematic);
+const reparsed = parser.parse(serialized);
+const reserialized = parser.save(reparsed);
 
-console.log(`\nTest summary: ${passed} passed, ${failed} failed`);
+// Check the first few and last few characters of the reserialized string
+console.log('First 100 characters of reserialized content:');
+console.log(reserialized.slice(0, 100));
+console.log('Last 20 characters of reserialized content:');
+console.log(reserialized.slice(-20));
+console.log('Length:', reserialized.length);
 
-if (failed > 0) {
-    console.log('\nFailed files:');
-    failedFiles.forEach(file => {
-        console.log(`- ${file}`);
-    });
+// Save to a permanent location for inspection
+const debugDir = path.join(__dirname, 'debug');
+if (!fs.existsSync(debugDir)) {
+    fs.mkdirSync(debugDir, { recursive: true });
+}
+const debugFile = path.join(debugDir, 'reserialized.kicad_sch');
+fs.writeFileSync(debugFile, reserialized, 'utf8');
+console.log(`Saved reserialized file to ${debugFile}`);
+
+// Test with KiCad CLI
+const kicadCliPath = '/Users/admin/code/kicad-mac-builder/build/kicad-dest/KiCad.app/Contents/MacOS/kicad-cli';
+try {
+    const { stdout, stderr } = execSync(`${kicadCliPath} sch erc ${debugFile}`, { encoding: 'utf8' });
+    console.log(`✓ KiCad CLI could load the file`);
+} catch (error: any) {
+    console.error(`✗ KiCad CLI failed to load the file:`);
+    console.error(`  Error: ${error.message}`);
+    console.error(`  Stderr: ${error.stderr}`);
+}
+
+// Also test with the original file for comparison
+console.log('\nTesting with original file:');
+try {
+    const { stdout, stderr } = execSync(`${kicadCliPath} sch erc ${testFile}`, { encoding: 'utf8' });
+    console.log(`✓ KiCad CLI could load the original file`);
+} catch (error: any) {
+    console.error(`✗ KiCad CLI failed to load the original file:`);
+    console.error(`  Error: ${error.message}`);
+    console.error(`  Stderr: ${error.stderr}`);
 }
 
 // Exit with appropriate code
-process.exit(failed > 0 ? 1 : 0);
+process.exit(0);

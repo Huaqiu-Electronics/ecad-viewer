@@ -15,120 +15,184 @@ function escapeString(str: string | undefined): string {
         .replaceAll("\n", "\\n");
 }
 
-function serializeAt(at: C.I_At): string {
-    return `(at ${at.position?.x || 0} ${at.position?.y || 0} ${at.rotation || 0})`;
+function indent(level: number): string {
+    return "\t".repeat(level);
 }
 
-function serializeEffects(effects: C.I_Effects): string {
-    let result = "(effects";
-    if (effects.font) {
-        result += ` (font (size ${effects.font.size?.x || 0} ${effects.font.size?.y || 0})`;
-        if (effects.font.face)
-            result += ` (name "${escapeString(effects.font.face)}")`;
-        if (effects.font.bold) result += " (bold yes)";
-        if (effects.font.italic) result += " (italic yes)";
+function serializeWithIndent(fn: () => string, level: number): string {
+    return indent(level) + fn().replace(/\n/g, "\n" + indent(level));
+}
+
+function serializeAt(at: C.I_At | undefined, level: number = 0): string {
+    if (!at) {
+        return "(at 0 0 0)";
+    }
+    return serializeWithIndent(() => {
+        const x = at.position?.x || 0;
+        const y = at.position?.y || 0;
+        const rotation = at.rotation || 0;
+        return `(at ${x} ${y} ${rotation})`;
+    }, level);
+}
+
+function serializeEffects(effects: C.I_Effects, level: number = 0): string {
+    return serializeWithIndent(() => {
+        let result = "(effects\n";
+        if (effects.font) {
+            result += indent(level + 1) + `(font (size ${effects.font.size?.x || 0} ${effects.font.size?.y || 0})`;
+            if (effects.font.face) {
+                result += ` (name "${escapeString(effects.font.face)}")`;
+            }
+            if (effects.font.bold) {
+                result += " (bold yes)";
+            }
+            if (effects.font.italic) {
+                result += " (italic yes)";
+            }
+            result += ")\n";
+        }
+        if (effects.justify) {
+            result += indent(level + 1) + `(justify ${effects.justify.horiz || "left"} ${effects.justify.vert || "top"})\n`;
+        }
+        if (effects.hide) {
+            result += indent(level + 1) + "(hide yes)\n";
+        }
+        if (effects.justify?.mirror) {
+            result += indent(level + 1) + "(mirror yes)\n";
+        }
         result += ")";
-    }
-    if (effects.justify) {
-        result += ` (justify ${effects.justify.horiz || "left"} ${effects.justify.vert || "top"})`;
-    }
-    if (effects.hide) result += " (hide yes)";
-    if (effects.justify?.mirror) result += " (mirror yes)";
-    result += ")";
-    return result;
+        return result;
+    }, level);
 }
 
-function serializeStroke(stroke: C.I_Stroke): string {
-    let result = "(stroke";
-    if (stroke.width) result += ` (width ${stroke.width})`;
-    if (stroke.type) result += ` (type "${escapeString(stroke.type)}")`;
-    if (stroke.color) {
-        result += ` (color ${Math.round(stroke.color.r * 255)} ${Math.round(stroke.color.g * 255)} ${Math.round(stroke.color.b * 255)} ${stroke.color.a})`;
-    }
-    result += ")";
-    return result;
+function serializeStroke(stroke: C.I_Stroke, level: number = 0): string {
+    return serializeWithIndent(() => {
+        let result = "(stroke\n";
+        if (stroke.width !== undefined) {
+            result += indent(level + 1) + `(width ${stroke.width})\n`;
+        }
+        if (stroke.type) {
+            result += indent(level + 1) + `(type ${stroke.type})\n`;
+        }
+        if (stroke.color) {
+            result += indent(level + 1) + `(color ${Math.round(stroke.color.r * 255)} ${Math.round(stroke.color.g * 255)} ${Math.round(stroke.color.b * 255)} ${stroke.color.a})\n`;
+        }
+        result += ")";
+        return result;
+    }, level);
 }
 
-function serializeFill(fill: S.I_Fill): string {
+function serializeFill(fill: S.I_Fill, level: number = 0): string {
     if (!fill) return "";
-    let result = "(fill";
-    if (fill.type && fill.type !== "none") {
-        result += ` (type ${fill.type})`;
-    }
-    if (fill.color) {
-        result += ` (color ${Math.round(fill.color.r * 255)} ${Math.round(fill.color.g * 255)} ${Math.round(fill.color.b * 255)} ${fill.color.a})`;
-    }
-    result += ")";
-    return result;
-}
-
-function serializePaper(paper: C.I_Paper): string {
-    return `(paper "${paper.size}")`;
-}
-
-function serializeTitleBlock(titleBlock: C.I_TitleBlock): string {
-    let result = "(title_block";
-    if (titleBlock.title)
-        result += ` (title "${escapeString(titleBlock.title)}")`;
-    if (titleBlock.company)
-        result += ` (company "${escapeString(titleBlock.company)}")`;
-    if (titleBlock.date) result += ` (date "${escapeString(titleBlock.date)}")`;
-    if (titleBlock.rev) result += ` (rev "${escapeString(titleBlock.rev)}")`;
-    if (titleBlock.comment) {
-        for (const [key, value] of Object.entries(titleBlock.comment)) {
-            result += ` (comment ${key} "${escapeString(value)}")`;
+    return serializeWithIndent(() => {
+        let result = "(fill\n";
+        if (fill.type) {
+            result += indent(level + 1) + `(type ${fill.type})\n`;
         }
-    }
-    result += ")";
-    return result;
-}
-
-function serializeProperty(property: S.I_Property): string {
-    let result = `(property "${escapeString(property.name)}" "${escapeString(property.text)}"`;
-    if (property.id) {
-        result += ` ${property.id}`;
-    }
-    result += ` ${serializeAt(property.at)}`;
-    result += ` ${serializeEffects(property.effects)}`;
-    if (property.show_name) result += " (show_name yes)";
-    if (property.do_not_autoplace) result += " (do_not_autoplace yes)";
-    if (property.hide) result += " (hide yes)";
-    result += ")";
-    return result;
-}
-
-function serializePinAlternate(alternate: S.I_PinAlternate): string {
-    return `(alternate "${escapeString(alternate.name)}" "${escapeString(alternate.type)}" "${escapeString(alternate.shape)}")`;
-}
-
-function serializePin(pin: S.I_Pin): string {
-    let result = `(pin "${escapeString(pin.type)}" "${escapeString(pin.shape)}"`;
-    if (pin.hide) result += " hide";
-    result += ` ${serializeAt(pin.at)}`;
-    result += ` (length ${pin.length})`;
-    result += ` (name "${escapeString(pin.name.text)}" ${serializeEffects(pin.name.effects)})`;
-    result += ` (number "${escapeString(pin.number.text)}" ${serializeEffects(pin.number.effects)})`;
-    if (pin.alternates && pin.alternates.length > 0) {
-        for (const alternate of pin.alternates) {
-            result += ` ${serializePinAlternate(alternate)}`;
+        if (fill.color) {
+            result += indent(level + 1) + `(color ${Math.round(fill.color.r * 255)} ${Math.round(fill.color.g * 255)} ${Math.round(fill.color.b * 255)} ${fill.color.a})\n`;
         }
-    }
-    result += ")";
-    return result;
+        result += ")";
+        return result;
+    }, level);
+}
+
+function serializePaper(paper: C.I_Paper, level: number = 0): string {
+    return serializeWithIndent(() => {
+        return `(paper "${paper.size}")`;
+    }, level);
+}
+
+function serializeTitleBlock(titleBlock: C.I_TitleBlock, level: number = 0): string {
+    return serializeWithIndent(() => {
+        let result = "(title_block\n";
+        if (titleBlock.title) {
+            result += indent(level + 1) + `(title "${escapeString(titleBlock.title)}")\n`;
+        }
+        if (titleBlock.company) {
+            result += indent(level + 1) + `(company "${escapeString(titleBlock.company)}")\n`;
+        }
+        if (titleBlock.date) {
+            result += indent(level + 1) + `(date "${escapeString(titleBlock.date)}")\n`;
+        }
+        if (titleBlock.rev) {
+            result += indent(level + 1) + `(rev "${escapeString(titleBlock.rev)}")\n`;
+        }
+        if (titleBlock.comment) {
+            for (const [key, value] of Object.entries(titleBlock.comment)) {
+                result += indent(level + 1) + `(comment ${key} "${escapeString(value)}")\n`;
+            }
+        }
+        result += ")";
+        return result;
+    }, level);
+}
+
+function serializeProperty(property: S.I_Property, level: number = 0): string {
+    return serializeWithIndent(() => {
+        let result = `(property "${escapeString(property.name)}" "${escapeString(property.text)}"`;
+        if (property.id) {
+            result += ` ${property.id}`;
+        }
+        result += "\n";
+        result += serializeAt(property.at, level + 1) + "\n";
+        result += serializeEffects(property.effects, level + 1) + "\n";
+        if (property.show_name) {
+            result += indent(level + 1) + "(show_name yes)\n";
+        }
+        if (property.do_not_autoplace) {
+            result += indent(level + 1) + "(do_not_autoplace yes)\n";
+        }
+        if (property.hide) {
+            result += indent(level + 1) + "(hide yes)\n";
+        }
+        result += ")";
+        return result;
+    }, level);
+}
+
+function serializePinAlternate(alternate: S.I_PinAlternate, level: number = 0): string {
+    return serializeWithIndent(() => {
+        return `(alternate "${escapeString(alternate.name)}" "${escapeString(alternate.type)}" "${escapeString(alternate.shape)}")`;
+    }, level);
+}
+
+function serializePin(pin: S.I_Pin, level: number = 0): string {
+    return serializeWithIndent(() => {
+        let result = `(pin ${pin.type} ${pin.shape}\n`;
+        result += serializeAt(pin.at, level + 1) + "\n";
+        result += indent(level + 1) + `(length ${pin.length})\n`;
+        if (pin.hide) {
+            result += indent(level + 1) + "(hide yes)\n";
+        }
+        result += indent(level + 1) + `(name "${escapeString(pin.name.text)}"\n`;
+        result += serializeEffects(pin.name.effects, level + 2) + "\n";
+        result += indent(level + 1) + ")\n";
+        result += indent(level + 1) + `(number "${escapeString(pin.number.text)}"\n`;
+        result += serializeEffects(pin.number.effects, level + 2) + "\n";
+        result += indent(level + 1) + ")\n";
+        if (pin.alternates && pin.alternates.length > 0) {
+            for (const alternate of pin.alternates) {
+                result += serializePinAlternate(alternate, level + 1) + "\n";
+            }
+        }
+        result += ")";
+        return result;
+    }, level);
 }
 
 function serializeLibSymbol(symbol: S.I_LibSymbol): string {
     let result = `(symbol "${escapeString(symbol.name)}"`;
-    if (symbol.power) result += " power";
+    if (symbol.power) result += " (power)";
     if (symbol.pin_numbers?.hide) result += " (pin_numbers hide)";
     if (symbol.pin_names) {
         result += " (pin_names";
-        if (symbol.pin_names.offset)
+        if (symbol.pin_names.offset !== undefined)
             result += ` (offset ${symbol.pin_names.offset})`;
         if (symbol.pin_names.hide) result += " (hide yes)";
         result += ")";
     }
-    if (symbol.exclude_from_sim) result += " (exclude_from_sim yes)";
+    if (symbol.exclude_from_sim !== undefined) result += ` (exclude_from_sim ${symbol.exclude_from_sim ? "yes" : "no"})`;
     if (symbol.in_bom) result += " (in_bom yes)";
     if (symbol.embedded_fonts) result += " (embedded_fonts yes)";
     if (symbol.embedded_files)
@@ -161,7 +225,7 @@ function serializeLibSymbol(symbol: S.I_LibSymbol): string {
                 if (arc.fill) result += ` ${serializeFill(arc.fill)}`;
                 if (arc.uuid) result += ` (uuid "${arc.uuid}")`;
                 result += ")";
-            } else if ("pts" in drawing && !("center" in drawing)) {
+            } else if ("pts" in drawing && !("center" in drawing) && (drawing as S.I_Bezier).pts.length === 4) {
                 const bezier = drawing as S.I_Bezier;
                 result += ` (bezier (pts`;
                 for (const pt of bezier.pts) {
@@ -332,7 +396,7 @@ export function serializeSchematicSymbol(symbol: S.I_SchematicSymbol): string {
     result += ` (lib_id "${escapeString(symbol.lib_id)}")`;
     result += ` ${serializeAt(symbol.at)}`;
     if (symbol.mirror) result += ` (mirror "${escapeString(symbol.mirror)}")`;
-    if (symbol.exclude_from_sim) result += " (exclude_from_sim yes)";
+    if (symbol.exclude_from_sim !== undefined) result += ` (exclude_from_sim ${symbol.exclude_from_sim ? "yes" : "no"})`;
     result += ` (unit ${symbol.unit})`;
     if (typeof symbol.convert !== "undefined" && symbol.convert !== null) {
         result += ` (convert ${symbol.convert})`;
@@ -399,7 +463,9 @@ function serializeSheetPin(pin: S.I_SchematicSheetPin): string {
 }
 
 function serializeSchematicSheet(sheet: S.I_SchematicSheet): string {
-    let result = `(sheet ${serializeAt(sheet.at)} (size ${sheet.size.x} ${sheet.size.y})`;
+    const sizeX = sheet.size?.x || 0;
+    const sizeY = sheet.size?.y || 0;
+    let result = `(sheet ${serializeAt(sheet.at)} (size ${sizeX} ${sizeY})`;
     if (sheet.exclude_from_sim !== undefined) {
         result += ` (exclude_from_sim ${sheet.exclude_from_sim ? "yes" : "no"})`;
     }
@@ -637,5 +703,58 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
         result += ` (embedded_fonts ${schematic.embedded_fonts ? "yes" : "no"})`;
     }
     result += ")";
-    return result;
+    // Add a newline at the end of the file to make KiCad happy
+    result += "\n";
+    // Format the S-expression with proper indentation
+    const formatted = formatSExpression(result);
+    return formatted;
+}
+
+// Format the serialized S-expression with proper indentation
+function formatSExpression(sexpr: string): string {
+    let result = '';
+    let indentLevel = 0;
+    let inString = false;
+    let escape = false;
+    
+    for (let i = 0; i < sexpr.length; i++) {
+        const char = sexpr[i];
+        
+        if (escape) {
+            result += char;
+            escape = false;
+            continue;
+        }
+        
+        if (char === '\\') {
+            result += char;
+            escape = true;
+            continue;
+        }
+        
+        if (char === '"') {
+            result += char;
+            inString = !inString;
+            continue;
+        }
+        
+        if (!inString) {
+            if (char === '(') {
+                result += '\n' + '\t'.repeat(indentLevel) + '(';
+                indentLevel++;
+            } else if (char === ')') {
+                indentLevel--;
+                result += '\n' + '\t'.repeat(indentLevel) + ')';
+            } else if (char === ' ') {
+                // Skip spaces outside strings
+                continue;
+            } else {
+                result += char;
+            }
+        } else {
+            result += char;
+        }
+    }
+    
+    return result.trim() + '\n';
 }
