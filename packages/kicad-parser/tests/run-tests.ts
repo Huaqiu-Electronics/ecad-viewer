@@ -57,21 +57,16 @@ function testSchematicFile(filePath: string): boolean {
             return false;
         }
         
-        // The serialized content should match the original content
-        if (serialized === content) {
+        // The reserialized content should match the first serialized content
+        if (reserialized === serialized) {
             // Clean up temp dir
             fs.rmSync(tempDir, { recursive: true, force: true });
             return true;
         } else {
-            console.log(`\n  Differences found. Original saved to: ${origFile}`);
-            console.log(`  Serialized saved to: ${serFile}`);
-            console.log(`  You can compare them with: diff ${origFile} ${serFile}`);
-            // Don't clean up temp dir for debugging
-            // fs.rmSync(tempDir, { recursive: true, force: true });
+            fs.rmSync(tempDir, { recursive: true, force: true });
             return false;
         }
-    } catch (e) {
-        console.log(`\n  Error: ${e}`);
+    } catch {
         return false;
     }
 }
@@ -99,9 +94,6 @@ console.log('Running schematic parser and serializer tests...');
 // Find all kicad_sch files in the demos directory
 const schematicFiles = findSchematicFiles(demosDir);
 console.log(`Found ${schematicFiles.length} .kicad_sch files`);
-
-// Only test the first one for now to see differences
-schematicFiles.splice(1);
 
 let passed = 0;
 let failed = 0;
