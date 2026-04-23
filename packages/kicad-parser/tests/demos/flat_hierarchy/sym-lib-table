@@ -1,4 +1,6 @@
 (sym_lib_table
   (version 7)
   (lib (name "flat_hierarchy")(type "KiCad")(uri "${KIPRJMOD}/flat_hierarchy.kicad_sym")(options "")(descr ""))
+  (lib (name "LM6211MFX_NOPB")(type "KiCad")(uri "${KIPRJMOD}/kicad_api_libs/LM6211MFX_NOPB.kicad_sym")(options "Added by KiCad IPC API")(descr ""))
+  (lib (name "LMC6042AIMX_NOPB")(type "KiCad")(uri "${KIPRJMOD}/kicad_api_libs/LMC6042AIMX_NOPB.kicad_sym")(options "Added by KiCad IPC API")(descr ""))
 )

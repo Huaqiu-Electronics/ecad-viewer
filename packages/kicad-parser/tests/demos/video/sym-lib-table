@@ -1,3 +1,5 @@
 (sym_lib_table
+  (version 7)
   (lib (name "video_schlib")(type "KiCad")(uri "${KIPRJMOD}/libs/video_schlib.kicad_sym")(options "")(descr ""))
+  (lib (name "TS1871IDT")(type "KiCad")(uri "${KIPRJMOD}/kicad_api_libs/TS1871IDT.kicad_sym")(options "Added by KiCad IPC API")(descr ""))
 )
