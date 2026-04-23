@@ -2,13 +2,14 @@
     "name": "kicad-sexpr-parser",
     "version": "1.2.1",
     "description": "KiCad sexpr file parser",
-    "type": "module",
-    "main": "./dist/src/index.js",
-    "types": "./dist/src/index.d.ts",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "import": "./dist/src/index.js",
-            "types": "./dist/src/index.d.ts"
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
         }
     },
     "files": [
@@ -24,11 +25,13 @@
     "license": "MIT",
     "devDependencies": {
         "@types/node": "^20.11.30",
+        "esbuild": "^0.25.0",
+        "rimraf": "^6.0.1",
         "tsx": "^4.21.0",
         "typescript": "^5.2.2"
     },
     "scripts": {
-        "build": "tsc",
+        "build": "rimraf dist && esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/index.js && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.mjs && tsc --emitDeclarationOnly",
         "watch": "tsc --watch",
         "test": "tsx tests/run-tests.ts"
     }

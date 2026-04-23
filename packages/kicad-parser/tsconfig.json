@@ -10,7 +10,7 @@
         "allowJs": true,
         "checkJs": true,
         "outDir": "./dist",
-        "rootDir": ".",
+        "rootDir": "./src",
         "skipLibCheck": true,
         "declaration": true,
         "forceConsistentCasingInFileNames": true,
