@@ -515,7 +515,7 @@ function serializeJunction(junction: S.I_Junction): string {
     } else {
         result += `(at 0 0)`;
     }
-    if (junction.diameter) result += ` (diameter ${formatDouble(junction.diameter)})`;
+    if (junction.diameter !== undefined) result += ` (diameter ${formatDouble(junction.diameter)})`;
     if (junction.color) {
         result += ` (color ${Math.round(junction.color.r * 255)} ${Math.round(junction.color.g * 255)} ${Math.round(junction.color.b * 255)} ${formatColorAlpha(junction.color.a)})`;
     }
