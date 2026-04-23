@@ -16,7 +16,7 @@ import {
     TitleBlock,
     expand_text_vars,
 } from "./common";
-import { boardProto } from "kicad-parser";
+import { boardProto as B } from "kicad-parser";
 
 import type { BoardNodeType } from "./board_node_type";
 export interface BoardNode {
@@ -33,7 +33,7 @@ export type Drawing =
     | GrText
     | Dimension;
 
-const DEFAULT_LAYERS: Partial<boardProto.I_Layer>[] = [
+const DEFAULT_LAYERS: Partial<B.I_Layer>[] = [
     { canonical_name: LayerNames.f_cu, type: "signal" },
     { canonical_name: LayerNames.b_cu, type: "signal" },
     { canonical_name: LayerNames.f_silks, type: "user" },
@@ -81,7 +81,7 @@ export class KicadPCB implements BoardNode {
 
     constructor(
         public filename: string,
-        data: boardProto.I_KicadPCB,
+        data: B.I_KicadPCB,
     ) {
         this.version = data.version;
         this.generator = data.generator;
@@ -274,7 +274,7 @@ export class LineSegment implements BoardNode {
         );
     }
 
-    constructor(data: boardProto.I_LineSegment) {
+    constructor(data: B.I_LineSegment) {
         this.start = new Vec2(data.start.x, data.start.y);
         this.end = new Vec2(data.end.x, data.end.y);
         this.width = data.width;
@@ -297,7 +297,7 @@ export class ArcSegment implements BoardNode {
     locked = false;
     tstamp: string;
 
-    constructor(data: boardProto.I_ArcSegment) {
+    constructor(data: B.I_ArcSegment) {
         this.start = new Vec2(data.start.x, data.start.y);
         this.mid = new Vec2(data.mid.x, data.mid.y);
         this.end = new Vec2(data.end.x, data.end.y);
@@ -343,7 +343,7 @@ export class Via implements BoardNode {
         ).move(-this.size / 2, -this.size / 2);
     }
 
-    constructor(data: boardProto.I_Via) {
+    constructor(data: B.I_Via) {
         this.type = data.type;
         this.at = new At(data.at);
         this.size = data.size;
@@ -403,7 +403,7 @@ export class Zone implements BoardNode {
     }
 
     constructor(
-        data: boardProto.I_Zone,
+        data: B.I_Zone,
         public parent?: KicadPCB | Footprint,
     ) {
         this.locked = data.locked;
@@ -436,7 +436,7 @@ export class ZoneKeepout implements BoardNode {
     footprints: "allowed" | "not_allowed";
     uuid?: string;
 
-    constructor(data?: boardProto.I_ZoneKeepout) {
+    constructor(data?: B.I_ZoneKeepout) {
         if (data) {
             this.tracks = data.tracks ?? "not_allowed";
             this.vias = data.vias ?? "not_allowed";
@@ -477,7 +477,7 @@ export class ZoneFill implements BoardNode {
     hatch_min_hole_area = 0;
     uuid?: string;
 
-    constructor(data?: boardProto.I_ZoneFill) {
+    constructor(data?: B.I_ZoneFill) {
         if (data) {
             this.fill = data.fill ?? false;
             this.mode = data.mode ?? "solid";
@@ -632,7 +632,7 @@ export class StackupLayer implements BoardNode {
     loss_tangent: number;
     uuid?: string;
 
-    constructor(data: boardProto.I_StackupLayer) {
+    constructor(data: B.I_StackupLayer) {
         this.name = data.name;
         this.type = data.type;
         this.color = data.color;
@@ -841,7 +841,7 @@ export class Footprint implements BoardNode {
     }
 
     constructor(
-        data: boardProto.I_Footprint,
+        data: B.I_Footprint,
         public parent: KicadPCB,
     ) {
         this.library_link = data.library_link;
@@ -875,15 +875,23 @@ export class Footprint implements BoardNode {
         if (data.drawings) {
             for (const d of data.drawings) {
                 if ("center" in d) {
-                    this.drawings.push(new FpCircle(d as boardProto.I_Circle, this));
+                    this.drawings.push(
+                        new FpCircle(d as B.I_Circle, this),
+                    );
                 } else if ("mid" in d) {
-                    this.drawings.push(new FpArc(d as boardProto.I_Arc, this));
+                    this.drawings.push(new FpArc(d as B.I_Arc, this));
                 } else if ("pts" in d) {
-                    this.drawings.push(new FpPoly(d as boardProto.I_Poly, this));
+                    this.drawings.push(
+                        new FpPoly(d as B.I_Poly, this),
+                    );
                 } else if ("fill" in d) {
-                    this.drawings.push(new FpRect(d as boardProto.I_Rect, this));
+                    this.drawings.push(
+                        new FpRect(d as B.I_Rect, this),
+                    );
                 } else {
-                    this.drawings.push(new FpLine(d as boardProto.I_Line, this));
+                    this.drawings.push(
+                        new FpLine(d as B.I_Line, this),
+                    );
                 }
             }
         }
@@ -1253,7 +1261,7 @@ export class Poly extends GraphicItem {
     uuid?: string;
 
     constructor(
-        data: boardProto.I_Poly,
+        data: B.I_Poly,
         public override parent?: Footprint | Pad | Dimension | KicadPCB,
     ) {
         super();

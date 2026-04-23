@@ -21,7 +21,7 @@ import {
     unescape_string,
 } from "./common";
 import { get_image_ppi } from "./get_image_ppi";
-import { I_Schematic, I_Wire, I_Bus, I_BusEntry, I_BusAlias, I_Junction, I_NoConnect, I_NetLabel, I_GlobalLabel, I_HierarchicalLabel, I_Image, I_Sheet, I_Text, I_Arc, I_Circle, I_Rect, I_Polyline, I_Polygon, I_Property, I_LibSymbol, I_PinDefinition, I_PinAlternate, I_SymbolInstance, I_SchematicSheetPin } from "kicad-parser";
+import { schematicProto } from "kicad-parser";
 
 /* Default values for various things found in schematics
  * From EESchema's default_values.h, converted from mils to mm. */
@@ -90,7 +90,7 @@ export class KicadSch {
 
     constructor(
         public filename: string,
-        data: I_Schematic,
+        data: schematicProto.I_KicadSch,
     ) {
         this.version = data.version;
         this.generator = data.generator;
@@ -101,25 +101,44 @@ export class KicadSch {
         this.lib_symbols = data.lib_symbols
             ? new LibSymbols(data.lib_symbols, this)
             : undefined;
-        this.wires = data.wires?.map((w: I_Wire) => new Wire(w)) ?? [];
-        this.buses = data.buses?.map((b: I_Bus) => new Bus(b)) ?? [];
-        this.bus_entries = data.bus_entries?.map((e: I_BusEntry) => new BusEntry(e)) ?? [];
-        this.bus_aliases = data.bus_aliases?.map((a: I_BusAlias) => new BusAlias(a)) ?? [];
-        this.junctions = data.junctions?.map((j: I_Junction) => new Junction(j)) ?? [];
-        this.no_connects = data.no_connects?.map((n: I_NoConnect) => new NoConnect(n)) ?? [];
+        this.wires =
+            data.wires?.map((w: schematicProto.I_Wire) => new Wire(w)) ?? [];
+        this.buses =
+            data.buses?.map((b: schematicProto.I_Bus) => new Bus(b)) ?? [];
+        this.bus_entries =
+            data.bus_entries?.map(
+                (e: schematicProto.I_BusEntry) => new BusEntry(e),
+            ) ?? [];
+        this.bus_aliases =
+            data.bus_aliases?.map(
+                (a: schematicProto.I_BusAlias) => new BusAlias(a),
+            ) ?? [];
+        this.junctions =
+            data.junctions?.map(
+                (j: schematicProto.I_Junction) => new Junction(j),
+            ) ?? [];
+        this.no_connects =
+            data.no_connects?.map(
+                (n: schematicProto.I_NoConnect) => new NoConnect(n),
+            ) ?? [];
         this.net_labels =
-            data.net_labels?.map((l: I_NetLabel) => new NetLabel(l, this)) ?? [];
+            data.net_labels?.map(
+                (l: schematicProto.I_NetLabel) => new NetLabel(l, this),
+            ) ?? [];
         this.global_labels =
-            data.global_labels?.map((l: I_GlobalLabel) => new GlobalLabel(l, this)) ?? [];
+            data.global_labels?.map(
+                (l: schematicProto.I_GlobalLabel) => new GlobalLabel(l, this),
+            ) ?? [];
         this.hierarchical_labels =
             data.hierarchical_labels?.map(
-                (l: I_HierarchicalLabel) => new HierarchicalLabel(l, this),
+                (l: schematicProto.I_HierarchicalLabel) =>
+                    new HierarchicalLabel(l, this),
             ) ?? [];
 
         this.symbols = new Map();
         if (data.symbols) {
             for (const sym of data.symbols) {
-                this.symbols.set(sym.uuid, new SchematicSymbol(sym as I_SymbolInstance, this));
+                this.symbols.set(sym.uuid, new SchematicSymbol(sym, this));
             }
         }
 
@@ -129,22 +148,33 @@ export class KicadSch {
                 if ("pts" in d && "start" in (d as any)) {
                     this.drawings.push(new Bezier(d as any, this));
                 } else if ("pts" in d) {
-                    this.drawings.push(new Polyline(d as I_Polyline, this));
+                    this.drawings.push(
+                        new Polyline(d as schematicProto.I_Polyline, this),
+                    );
                 } else if ("mid" in d || "radius" in d) {
-                    this.drawings.push(new Arc(d as I_Arc, this));
+                    this.drawings.push(
+                        new Arc(d as schematicProto.I_Arc, this),
+                    );
                 } else if ("start" in d) {
-                    this.drawings.push(new Rectangle(d as I_Rect, this));
+                    this.drawings.push(
+                        new Rectangle(d as schematicProto.I_Rectangle, this),
+                    );
                 } else if ("text" in d) {
-                    this.drawings.push(new Text(d as I_Text, this));
+                    this.drawings.push(
+                        new Text(d as schematicProto.I_Text, this),
+                    );
                 } else if ("center" in d) {
-                    this.drawings.push(new Circle(d as I_Circle, this));
+                    this.drawings.push(
+                        new Circle(d as schematicProto.I_Circle, this),
+                    );
                 } else if ("size" in d) {
                     this.drawings.push(new TextBox(d as any, this));
                 }
             }
         }
 
-        this.images = data.images?.map((i: I_Image) => new Image(i)) ?? [];
+        this.images =
+            data.images?.map((i: schematicProto.I_Image) => new Image(i)) ?? [];
         this.sheet_instances = data.sheet_instances
             ? new SheetInstances(data.sheet_instances)
             : undefined;
@@ -243,7 +273,7 @@ export class Fill {
     type: "none" | "outline" | "background" | "color";
     color: Color;
 
-    constructor(data: S.I_Fill) {
+    constructor(data: schematicProto.I_Fill) {
         this.type = data.type;
         if (data.color) {
             this.color = new Color(
@@ -267,7 +297,7 @@ export class GraphicItem {
 
     constructor(
         parent?: LibSymbol | SchematicSymbol | KicadSch,
-        data?: S.I_GraphicItem,
+        data?: schematicProto.I_GraphicItem,
     ) {
         this.parent = parent;
         if (data) {
@@ -286,7 +316,7 @@ export class Wire {
     uuid: string;
     stroke: Stroke;
 
-    constructor(data: S.I_Wire) {
+    constructor(data: schematicProto.I_Wire) {
         this.pts = data.pts?.map((p) => new Vec2(p.x, p.y)) ?? [];
         this.stroke = new Stroke(data.stroke);
         this.uuid = data.uuid;
@@ -298,7 +328,7 @@ export class Bus {
     uuid: string;
     stroke: Stroke;
 
-    constructor(data: S.I_Bus) {
+    constructor(data: schematicProto.I_Bus) {
         this.pts = data.pts?.map((p) => new Vec2(p.x, p.y)) ?? [];
         this.stroke = new Stroke(data.stroke);
         this.uuid = data.uuid;
@@ -311,7 +341,7 @@ export class BusEntry {
     uuid: string;
     stroke: Stroke;
 
-    constructor(data: S.I_BusEntry) {
+    constructor(data: schematicProto.I_BusEntry) {
         this.at = new At(data.at);
         this.size = new Vec2(data.size.x, data.size.y);
         this.stroke = new Stroke(data.stroke);
@@ -323,7 +353,7 @@ export class BusAlias {
     name: string;
     members: string[] = [];
 
-    constructor(data: S.I_BusAlias) {
+    constructor(data: schematicProto.I_BusAlias) {
         this.name = data.name;
         this.members = data.members;
     }
@@ -335,7 +365,7 @@ export class Junction {
     color?: Color;
     uuid: string;
 
-    constructor(data: S.I_Junction) {
+    constructor(data: schematicProto.I_Junction) {
         this.at = new At(data.at);
         this.diameter = data.diameter;
         if (data.color) {
@@ -354,7 +384,7 @@ export class NoConnect {
     at: At;
     uuid: string;
 
-    constructor(data: S.I_NoConnect) {
+    constructor(data: schematicProto.I_NoConnect) {
         this.at = new At(data.at);
         this.uuid = data.uuid;
     }
@@ -368,7 +398,7 @@ export class Arc extends GraphicItem {
     end: Vec2;
 
     constructor(
-        data: S.I_Arc,
+        data: schematicProto.I_Arc,
         parent?: LibSymbol | SchematicSymbol | KicadSch,
     ) {
         super(parent, data);
@@ -406,7 +436,7 @@ export class Bezier extends GraphicItem {
     pts: Vec2[];
 
     constructor(
-        data: S.I_Bezier,
+        data: schematicProto.I_Bezier,
         parent?: LibSymbol | SchematicSymbol | KicadSch,
     ) {
         /* TODO: this was added in KiCAD 7 */
@@ -436,7 +466,7 @@ export class Circle extends GraphicItem {
     radius: number;
 
     constructor(
-        data: S.I_Circle,
+        data: schematicProto.I_Circle,
         parent?: LibSymbol | SchematicSymbol | KicadSch,
     ) {
         super(parent, data);
@@ -449,7 +479,7 @@ export class Polyline extends GraphicItem {
     pts: Vec2[];
 
     constructor(
-        data: S.I_Polyline,
+        data: schematicProto.I_Polyline,
         parent?: LibSymbol | SchematicSymbol | KicadSch,
     ) {
         super(parent, data);
@@ -462,7 +492,7 @@ export class Rectangle extends GraphicItem {
     end: Vec2;
 
     constructor(
-        data: S.I_Rectangle,
+        data: schematicProto.I_Rectangle,
         parent?: LibSymbol | SchematicSymbol | KicadSch,
     ) {
         super(parent, data);
@@ -487,7 +517,7 @@ export class Image {
         return this.#img;
     }
 
-    constructor(data: S.I_Image) {
+    constructor(data: schematicProto.I_Image) {
         this.at = new At(data.at);
         this.data = data.data;
         this.scale = data.scale;
@@ -512,7 +542,7 @@ export class Text {
     exclude_from_sim?: boolean;
 
     constructor(
-        data: S.I_Text,
+        data: schematicProto.I_Text,
         public parent: KicadSch | LibSymbol | SchematicSymbol,
         post_validation?: (i: string) => void,
     ) {
@@ -537,7 +567,7 @@ export class Text {
 
 export class LibText extends Text {
     constructor(
-        data: S.I_Text,
+        data: schematicProto.I_Text,
         public override parent: LibSymbol | SchematicSymbol,
     ) {
         super(data, parent);
@@ -556,7 +586,7 @@ export class TextBox extends GraphicItem {
     effects = new Effects();
 
     constructor(
-        data: S.I_TextBox,
+        data: schematicProto.I_TextBox,
         parent?: LibSymbol | SchematicSymbol | KicadSch,
     ) {
         /* TODO: This was added in KiCAD 7 */
@@ -599,7 +629,7 @@ export class Label {
 }
 
 export class NetLabel extends Label {
-    constructor(data: S.I_Label, parent?: KicadSch) {
+    constructor(data: schematicProto.I_Label, parent?: KicadSch) {
         super(parent);
         this.text = data.text;
         this.at = new At(data.at);
@@ -624,7 +654,7 @@ export class GlobalLabel extends Label {
     shape: LabelShapes = "input";
     properties: Property[] = [];
 
-    constructor(data: S.I_GlobalLabel, parent?: KicadSch) {
+    constructor(data: schematicProto.I_GlobalLabel, parent?: KicadSch) {
         super(parent);
         this.text = data.text;
         this.at = new At(data.at);
@@ -640,7 +670,7 @@ export class GlobalLabel extends Label {
 export class HierarchicalLabel extends Label {
     shape: LabelShapes = "input";
 
-    constructor(data?: S.I_HierarchicalLabel, parent?: KicadSch) {
+    constructor(data?: schematicProto.I_HierarchicalLabel, parent?: KicadSch) {
         super(parent);
         if (data) {
             this.text = data.text;
@@ -663,7 +693,7 @@ export class LibSymbols {
     #symbols_by_name: Map<string, LibSymbol> = new Map();
 
     constructor(
-        data: S.I_LibSymbol[],
+        data: schematicProto.I_LibSymbol[],
         public parent?: KicadSch,
     ) {
         this.symbols = data.map((s) => new LibSymbol(s, this));
@@ -716,7 +746,7 @@ export class LibSymbol {
     #properties_by_id: Map<number, Property> = new Map();
 
     constructor(
-        data: S.I_LibSymbol,
+        data: schematicProto.I_LibSymbol,
         public parent: LibSymbols | LibSymbol,
     ) {
         this.name = data.name;
@@ -741,20 +771,46 @@ export class LibSymbol {
         this.drawings = [];
         if (data.drawings) {
             for (const d of data.drawings) {
-                if ("pts" in d && (d as S.I_Polyline).pts) {
-                    this.drawings.push(new Polyline(d as S.I_Polyline, this));
-                } else if (("mid" in d && (d as S.I_Arc).mid) || ("radius" in d && (d as S.I_Arc).radius)) {
-                    this.drawings.push(new Arc(d as S.I_Arc, this));
-                } else if ("start" in d && (d as S.I_Rectangle).start) {
-                    this.drawings.push(new Rectangle(d as S.I_Rectangle, this));
-                } else if ("center" in d && (d as S.I_Circle).center) {
-                    this.drawings.push(new Circle(d as S.I_Circle, this));
-                } else if ("text" in d && (d as S.I_Text).text) {
-                    this.drawings.push(new LibText(d as S.I_Text, this));
-                } else if ("size" in d && (d as S.I_TextBox).size) {
-                    this.drawings.push(new TextBox(d as S.I_TextBox, this));
-                } else if ("pts" in d && (d as S.I_Bezier).pts) {
-                    this.drawings.push(new Bezier(d as S.I_Bezier, this));
+                if ("pts" in d && (d as schematicProto.I_Polyline).pts) {
+                    this.drawings.push(
+                        new Polyline(d as schematicProto.I_Polyline, this),
+                    );
+                } else if (
+                    ("mid" in d && (d as schematicProto.I_Arc).mid) ||
+                    ("radius" in d && (d as schematicProto.I_Arc).radius)
+                ) {
+                    this.drawings.push(
+                        new Arc(d as schematicProto.I_Arc, this),
+                    );
+                } else if (
+                    "start" in d &&
+                    (d as schematicProto.I_Rectangle).start
+                ) {
+                    this.drawings.push(
+                        new Rectangle(d as schematicProto.I_Rectangle, this),
+                    );
+                } else if (
+                    "center" in d &&
+                    (d as schematicProto.I_Circle).center
+                ) {
+                    this.drawings.push(
+                        new Circle(d as schematicProto.I_Circle, this),
+                    );
+                } else if ("text" in d && (d as schematicProto.I_Text).text) {
+                    this.drawings.push(
+                        new LibText(d as schematicProto.I_Text, this),
+                    );
+                } else if (
+                    "size" in d &&
+                    (d as schematicProto.I_TextBox).size
+                ) {
+                    this.drawings.push(
+                        new TextBox(d as schematicProto.I_TextBox, this),
+                    );
+                } else if ("pts" in d && (d as schematicProto.I_Bezier).pts) {
+                    this.drawings.push(
+                        new Bezier(d as schematicProto.I_Bezier, this),
+                    );
                 }
             }
         }
@@ -926,7 +982,7 @@ export class Property {
     #effects?: Effects;
 
     constructor(
-        data: S.I_Property,
+        data: schematicProto.I_Property,
         public parent: LibSymbol | SchematicSymbol | SchematicSheet | Label,
     ) {
         this.name = data.name;
@@ -993,7 +1049,7 @@ export class PinInfo {
     text: string;
     effects: Effects;
 
-    constructor(data: S.I_PinInfo) {
+    constructor(data: schematicProto.I_PinInfo) {
         this.text = data.text;
         this.effects = new Effects(data.effects);
     }
@@ -1010,7 +1066,7 @@ export class PinDefinition {
     alternates?: PinAlternate[];
 
     constructor(
-        data: S.I_Pin,
+        data: schematicProto.I_Pin,
         public parent: LibSymbol,
     ) {
         this.type = data.type as PinElectricalType;
@@ -1033,7 +1089,7 @@ export class PinAlternate {
     type: PinElectricalType;
     shape: PinShape;
 
-    constructor(data: S.I_PinAlternate) {
+    constructor(data: schematicProto.I_PinAlternate) {
         this.name = data.name;
         this.type = data.type as PinElectricalType;
         this.shape = data.shape as PinShape;
@@ -1065,7 +1121,7 @@ export class SchematicSymbol {
     instances: Map<string, SchematicSymbolInstance> = new Map();
 
     constructor(
-        data: S.I_SchematicSymbol,
+        data: schematicProto.I_SchematicSymbol,
         public parent: KicadSch,
     ) {
         this.lib_name = data.lib_name;
@@ -1286,7 +1342,7 @@ export class PinInstance implements HighlightAble, IndexAble {
     alternate: string;
 
     constructor(
-        data: S.I_PinInstance,
+        data: schematicProto.I_PinInstance,
         public parent: SchematicSymbol,
     ) {
         this.number = data.number;
@@ -1405,7 +1461,7 @@ export class SheetInstances {
     }
     sheet_instances: Map<string, SheetInstance> = new Map();
 
-    constructor(data: S.I_SheetInstance[]) {
+    constructor(data: schematicProto.I_SheetInstance[]) {
         this.sheet_instances = new Map(
             data.map((s) => [s.path, new SheetInstance(s)]),
         );
@@ -1420,7 +1476,7 @@ export class SheetInstance {
     page: string;
     path: string;
 
-    constructor(data: S.I_SheetInstance) {
+    constructor(data: schematicProto.I_SheetInstance) {
         this.page = data.page;
         this.path = data.path;
     }
@@ -1432,7 +1488,7 @@ export class SymbolInstances {
     }
     symbol_instances: Map<string, SymbolInstance> = new Map();
 
-    constructor(data: S.I_SymbolInstance[]) {
+    constructor(data: schematicProto.I_SymbolInstance[]) {
         this.symbol_instances = new Map(
             data.map((s) => [s.path, new SymbolInstance(s)]),
         );
@@ -1450,7 +1506,7 @@ export class SymbolInstance {
     value: string;
     footprint: string;
 
-    constructor(data: S.I_SymbolInstance) {
+    constructor(data: schematicProto.I_SymbolInstance) {
         this.path = data.path;
         this.reference = data.reference;
         this.unit = data.unit;
@@ -1522,7 +1578,7 @@ export class SchematicSheet {
     }
 
     constructor(
-        data: S.I_SchematicSheet,
+        data: schematicProto.I_SchematicSheet,
         public parent: KicadSch,
     ) {
         this.at = new At(data.at);
@@ -1578,7 +1634,7 @@ export class SchematicSheetPin {
     uuid: string;
 
     constructor(
-        data: S.I_SchematicSheetPin,
+        data: schematicProto.I_SchematicSheetPin,
         public parent: SchematicSheet,
     ) {
         this.at = new At(data.at);
