@@ -3,7 +3,11 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "verbatimModuleSyntax": false,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "rootDir": ".",
   },
-  "include": ["./tests/**/*", "./src/**/*"]
+  "include": [
+    "./tests/**/*",
+    "./src/**/*"
+  ]
 }
