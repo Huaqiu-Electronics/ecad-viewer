@@ -30,25 +30,23 @@ function parseFill(expr: Parseable): S.I_Fill {
 }
 
 function parseWire(expr: Parseable): S.I_Wire {
-    const wire = parse_expr(
+    return parse_expr(
         expr,
         P.start("wire"),
         P.list("pts", T.vec2),
         P.item("stroke", parseStroke),
         P.pair("uuid", T.string),
     ) as unknown as S.I_Wire;
-    return { ...wire, type: "wire" };
 }
 
 function parseBus(expr: Parseable): S.I_Bus {
-    const bus = parse_expr(
+    return parse_expr(
         expr,
         P.start("bus"),
         P.list("pts", T.vec2),
         P.item("stroke", parseStroke),
         P.pair("uuid", T.string),
     ) as unknown as S.I_Bus;
-    return { ...bus, type: "bus" };
 }
 
 function parseBusEntry(expr: Parseable): S.I_BusEntry {
@@ -111,24 +109,9 @@ function parsePolyline(expr: Parseable): S.I_Polyline {
         P.start("polyline"),
         P.list("pts", T.vec2),
         P.item("stroke", parseStroke),
-        P.pair("width", T.number),
-        P.pair("type", T.string),
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
-    ) as any;
-    
-    // If we have inline stroke properties, create a stroke object
-    if (parsed.width !== undefined || parsed.type !== undefined) {
-        parsed.stroke = {
-            width: parsed.width,
-            type: parsed.type,
-            color: parsed.color,
-        };
-        delete parsed.width;
-        delete parsed.type;
-        delete parsed.color;
-    }
-    
+    ) as unknown as S.I_Polyline;
     return { ...parsed, type: "polyline" };
 }
 
@@ -162,24 +145,9 @@ function parseRectangle(expr: Parseable): S.I_Rectangle {
         P.item("start", (e) => parseCenterOrStartOrEnd(e, "start")),
         P.item("end", (e) => parseCenterOrStartOrEnd(e, "end")),
         P.item("stroke", parseStroke),
-        P.pair("width", T.number),
-        P.pair("type", T.string),
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
-    ) as any;
-    
-    // If we have inline stroke properties, create a stroke object
-    if (parsed.width !== undefined || parsed.type !== undefined) {
-        parsed.stroke = {
-            width: parsed.width,
-            type: parsed.type,
-            color: parsed.color,
-        };
-        delete parsed.width;
-        delete parsed.type;
-        delete parsed.color;
-    }
-    
+    ) as unknown as S.I_Rectangle;
     return { ...parsed, type: "rectangle" };
 }
 
@@ -191,24 +159,9 @@ function parseCircle(expr: Parseable): S.I_Circle {
         P.item("center", (e) => parseCenterOrStartOrEnd(e, "center")),
         P.pair("radius", T.number),
         P.item("stroke", parseStroke),
-        P.pair("width", T.number),
-        P.pair("type", T.string),
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
     ) as any;
-    
-    // If we have inline stroke properties, create a stroke object
-    if (parsed.width !== undefined) {
-        parsed.stroke = {
-            width: parsed.width,
-            type: parsed.type || "default",
-            color: parsed.color,
-        };
-        delete parsed.width;
-        delete parsed.type;
-        delete parsed.color;
-    }
-    
     return { ...parsed, type: "circle" };
 }
 
@@ -228,24 +181,9 @@ function parseArc(expr: Parseable): S.I_Arc {
             P.item("angles", (e) => parseCenterOrStartOrEnd(e, "angles")),
         ),
         P.item("stroke", parseStroke),
-        P.pair("width", T.number),
-        P.pair("type", T.string),
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
-    ) as any;
-    
-    // If we have inline stroke properties, create a stroke object
-    if (parsed.width !== undefined || parsed.type !== undefined) {
-        parsed.stroke = {
-            width: parsed.width,
-            type: parsed.type,
-            color: parsed.color,
-        };
-        delete parsed.width;
-        delete parsed.type;
-        delete parsed.color;
-    }
-    
+    ) as unknown as S.I_Arc;
     return { ...parsed, type: "arc" };
 }
 
@@ -255,24 +193,9 @@ function parseBezier(expr: Parseable): S.I_Bezier {
         P.start("bezier"),
         P.list("pts", T.vec2),
         P.item("stroke", parseStroke),
-        P.pair("width", T.number),
-        P.pair("type", T.string),
         P.item("fill", parseFill),
         P.pair("uuid", T.string),
-    ) as any;
-    
-    // If we have inline stroke properties, create a stroke object
-    if (parsed.width !== undefined || parsed.type !== undefined) {
-        parsed.stroke = {
-            width: parsed.width,
-            type: parsed.type,
-            color: parsed.color,
-        };
-        delete parsed.width;
-        delete parsed.type;
-        delete parsed.color;
-    }
-    
+    ) as unknown as S.I_Bezier;
     return { ...parsed, type: "bezier" };
 }
 
@@ -665,127 +588,66 @@ export {
 };
 export class SchematicParser {
     public parse(text: string): S.I_KicadSch {
-        // Custom parsing to preserve order
         const expr = listify(text);
-        const root = expr.length === 1 && Array.isArray(expr[0]) ? expr[0] : expr;
-        
-        const schematic: any = {
-            version: 20250114,
-            generator: "eeschema",
-            generator_version: "",
-            uuid: "",
-            title_block: {},
-            lib_symbols: [],
-            elements: [],
-            sheet_instances: [],
-            symbol_instances: [],
-        };
-        
-        // Parse top-level properties
-        for (const element of root.slice(1)) {
-            if (!Array.isArray(element)) continue;
-            
-            const [type, ...rest] = element;
-            
-            switch (type) {
-                case "version":
-                    schematic.version = rest[0];
-                    break;
-                case "generator":
-                    schematic.generator = rest[0];
-                    break;
-                case "generator_version":
-                    schematic.generator_version = rest[0];
-                    break;
-                case "uuid":
-                    schematic.uuid = rest[0];
-                    break;
-                case "paper":
-                    schematic.paper = parsePaper(element);
-                    break;
-                case "title_block":
-                    schematic.title_block = parseTitleBlock(element);
-                    break;
-                case "lib_symbols":
-                    const libSymbolsParsed = parse_expr(
-                        element,
-                        P.start("lib_symbols"),
-                        P.collection("symbols", "symbol", T.item(parseLibSymbol)),
-                    ) as any;
-                    schematic.lib_symbols = libSymbolsParsed["symbols"] ?? [];
-                    break;
-                case "junction":
-                    schematic.elements.push({ type: "junction", data: parseJunction(element) });
-                    break;
-                case "wire":
-                    schematic.elements.push({ type: "wire", data: parseWire(element) });
-                    break;
-                case "bus":
-                    schematic.elements.push({ type: "bus", data: parseBus(element) });
-                    break;
-                case "bus_entry":
-                    schematic.elements.push({ type: "bus_entry", data: parseBusEntry(element) });
-                    break;
-                case "bus_alias":
-                    schematic.elements.push({ type: "bus_alias", data: parseBusAlias(element) });
-                    break;
-                case "no_connect":
-                    schematic.elements.push({ type: "no_connect", data: parseNoConnect(element) });
-                    break;
-                case "label":
-                    schematic.elements.push({ type: "label", data: parseNetLabel(element) });
-                    break;
-                case "global_label":
-                    schematic.elements.push({ type: "global_label", data: parseGlobalLabel(element) });
-                    break;
-                case "hierarchical_label":
-                    schematic.elements.push({ type: "hierarchical_label", data: parseHierarchicalLabel(element) });
-                    break;
-                case "symbol":
-                    schematic.elements.push({ type: "symbol", data: parseSchematicSymbol(element) });
-                    break;
-                case "polyline":
-                    schematic.elements.push({ type: "polyline", data: parsePolyline(element) });
-                    break;
-                case "rectangle":
-                    schematic.elements.push({ type: "rectangle", data: parseRectangle(element) });
-                    break;
-                case "arc":
-                    schematic.elements.push({ type: "arc", data: parseArc(element) });
-                    break;
-                case "text":
-                    schematic.elements.push({ type: "text", data: parseText(element) });
-                    break;
-                case "bezier":
-                    schematic.elements.push({ type: "bezier", data: parseBezier(element) });
-                    break;
-                case "text_box":
-                    schematic.elements.push({ type: "text_box", data: parseTextBox(element) });
-                    break;
-                case "circle":
-                    schematic.elements.push({ type: "circle", data: parseCircle(element) });
-                    break;
-                case "image":
-                    schematic.elements.push({ type: "image", data: parseImage(element) });
-                    break;
-                case "sheet_instances":
-                    schematic.sheet_instances = parseSheetInstances(element);
-                    break;
-                case "symbol_instances":
-                    schematic.symbol_instances = parseSymbolInstances(element);
-                    break;
-                case "sheet":
-                    schematic.elements.push({ type: "sheet", data: parseSchematicSheet(element) });
-                    break;
-                case "embedded_fonts":
-                    if (Array.isArray(element) && element.length > 1) {
-                        schematic.embedded_fonts = element[1] === "yes";
-                    }
-                    break;
-            }
-        }
-        
-        return schematic as S.I_KicadSch;
+        const root =
+            expr.length === 1 && Array.isArray(expr[0]) ? expr[0] : expr;
+
+        return parse_expr(
+            root,
+            P.start("kicad_sch"),
+            P.pair("version", T.number),
+            P.pair("generator", T.string),
+            P.pair("generator_version", T.string),
+            P.pair("uuid", T.string),
+            P.item("paper", parsePaper),
+            P.pair("embedded_fonts", T.boolean),
+            P.item("title_block", parseTitleBlock),
+            // lib_symbols parsed as collection of symbols inside lib_symbols item
+            P.item("lib_symbols", (e) => {
+        const parsed = parse_expr(
+            e,
+            P.start("lib_symbols"),
+            P.collection(
+                "symbols",
+                "symbol",
+                T.item(parseLibSymbol),
+            ),
+        ) as any;
+        return parsed["symbols"] ?? [];
+    }),
+            P.collection("wires", "wire", T.item(parseWire)),
+            P.collection("buses", "bus", T.item(parseBus)),
+            P.collection("bus_entries", "bus_entry", T.item(parseBusEntry)),
+            P.collection("bus_aliases", "bus_alias", T.item(parseBusAlias)),
+            P.collection("junctions", "junction", T.item(parseJunction)),
+            P.collection("no_connects", "no_connect", T.item(parseNoConnect)),
+            P.collection("net_labels", "label", T.item(parseNetLabel)),
+            P.collection(
+                "global_labels",
+                "global_label",
+                T.item(parseGlobalLabel),
+            ),
+            P.collection(
+                "hierarchical_labels",
+                "hierarchical_label",
+                T.item(parseHierarchicalLabel),
+            ),
+
+            P.collection("symbols", "symbol", T.item(parseSchematicSymbol)),
+
+            P.collection("drawings", "polyline", T.item(parsePolyline)),
+            P.collection("drawings", "rectangle", T.item(parseRectangle)),
+            P.collection("drawings", "arc", T.item(parseArc)),
+            P.collection("drawings", "text", T.item(parseText)),
+            P.collection("drawings", "bezier", T.item(parseBezier)),
+            P.collection("drawings", "text_box", T.item(parseTextBox)),
+            P.collection("drawings", "circle", T.item(parseCircle)),
+
+            P.collection("images", "image", T.item(parseImage)),
+            P.item("sheet_instances", parseSheetInstances),
+            P.item("symbol_instances", parseSymbolInstances),
+            P.collection("sheets", "sheet", T.item(parseSchematicSheet)),
+        ) as unknown as S.I_KicadSch;
     }
 
     public save(schematic: S.I_KicadSch): string {
