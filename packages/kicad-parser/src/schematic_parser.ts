@@ -14,7 +14,7 @@ import {
     parseTitleBlock,
 } from "./common";
 import { listify, type List } from "./tokenizer";
-import { serializeSchematic } from "./schematic_serializer";
+import { serializeSchematic, serializeLibSymbol } from "./schematic_serializer";
 
 function parseFill(expr: Parseable): S.I_Fill {
     const parsed = parse_expr(
@@ -652,5 +652,36 @@ export class SchematicParser {
 
     public save(schematic: S.I_KicadSch): string {
         return serializeSchematic(schematic);
+    }
+
+    public parseLibSymbols(text: string): S.I_LibSymbol[] { 
+        const expr = listify(text);
+        const root = expr.length === 1 && Array.isArray(expr[0]) ? expr[0] : expr;
+
+        const parsed = parse_expr(
+            root,
+            P.start("kicad_symbol_lib"),
+            P.pair("version", T.number),
+            P.pair("generator", T.string),
+            P.pair("generator_version", T.string),
+            P.collection("symbols", "symbol", T.item(parseLibSymbol)),
+        ) as any;
+
+        return parsed["symbols"] ?? [];
+    }
+    public saveLibSymbols(libSymbols: S.I_LibSymbol[]): string { 
+        let result = "(kicad_symbol_lib\n";
+        const indent = 1;
+        
+        result += `${"\t".repeat(indent)}(version 20251024)\n`;
+        result += `${"\t".repeat(indent)}(generator "kicad_symbol_editor")\n`;
+        result += `${"\t".repeat(indent)}(generator_version "10.0")\n`;
+        
+        for (const symbol of libSymbols) {
+            result += serializeLibSymbol(symbol, indent);
+        }
+        
+        result += `)\n`;
+        return result;
     }
 }
