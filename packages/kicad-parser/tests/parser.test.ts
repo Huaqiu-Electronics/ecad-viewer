@@ -1,8 +1,10 @@
-import { SchematicParser } from '../src/schematic_parser';
-import fs from 'fs';
-import path from 'path';
+import { SchematicParser } from "../src/schematic_parser";
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { execSync } from "child_process";
 
-const demosDir = path.join(__dirname, 'demos');
+const demosDir = path.join(__dirname, "demos");
 
 /**
  * Recursively collect every *.kicad_sch path under a directory.
@@ -13,7 +15,7 @@ function findSchematicFiles(dir: string): string[] {
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
             results.push(...findSchematicFiles(fullPath));
-        } else if (entry.isFile() && entry.name.endsWith('.kicad_sch')) {
+        } else if (entry.isFile() && entry.name.endsWith(".kicad_sch")) {
             results.push(fullPath);
         }
     }
@@ -22,7 +24,7 @@ function findSchematicFiles(dir: string): string[] {
 
 const schematicFiles = findSchematicFiles(demosDir);
 
-describe('KiCad Schematic Parser', () => {
+describe("KiCad Schematic Parser", () => {
     let parser: SchematicParser;
 
     beforeAll(() => {
@@ -30,28 +32,114 @@ describe('KiCad Schematic Parser', () => {
     });
 
     if (schematicFiles.length === 0) {
-        it('should find at least one .kicad_sch file in demos/', () => {
+        it("should find at least one .kicad_sch file in demos/", () => {
             expect(schematicFiles.length).toBeGreaterThan(0);
         });
     }
 
-    describe.each(schematicFiles)('%s', (filePath) => {
+    describe.each(schematicFiles)("%s", (filePath) => {
         const relPath = path.relative(demosDir, filePath);
 
         it(`[${relPath}] parse → save is idempotent (round-trip 1)`, () => {
-            const original = fs.readFileSync(filePath, 'utf8');
+            const original = fs.readFileSync(filePath, "utf8");
             const parsed = parser.parse(original);
             const serialized = parser.save(parsed);
             expect(serialized).toEqual(original);
         });
 
         it(`[${relPath}] parse → save → parse → save is stable (round-trip 2)`, () => {
-            const original = fs.readFileSync(filePath, 'utf8');
+            const original = fs.readFileSync(filePath, "utf8");
             const parsed1 = parser.parse(original);
             const serialized1 = parser.save(parsed1);
             const parsed2 = parser.parse(serialized1);
             const serialized2 = parser.save(parsed2);
             expect(serialized2).toEqual(serialized1);
+        });
+
+        it(`[${relPath}] passes KiCad CLI ERC after serialization`, () => {
+            const original = fs.readFileSync(filePath, "utf8");
+
+            const parsed = parser.parse(original);
+            const serialized = parser.save(parsed);
+
+            const baseName = path.basename(filePath);
+            const dirName = path.dirname(filePath);
+
+            const tempDir = fs.mkdtempSync(
+                path.join(os.tmpdir(), "kicad-test-"),
+            );
+            const keepTemp = process.env.KEEP_KICAD_TESTS === "1";
+
+            try {
+                // Copy full project context
+                const entries = fs.readdirSync(dirName, {
+                    withFileTypes: true,
+                });
+                for (const entry of entries) {
+                    const src = path.join(dirName, entry.name);
+                    const dest = path.join(tempDir, entry.name);
+
+                    if (entry.isDirectory()) {
+                        fs.cpSync(src, dest, { recursive: true });
+                    } else {
+                        fs.copyFileSync(src, dest);
+                    }
+                }
+
+                const serFile = path.join(tempDir, baseName);
+                fs.writeFileSync(serFile, serialized, "utf8");
+
+                // Round-trip stability check
+                const reparsed = parser.parse(serialized);
+                const reserialized = parser.save(reparsed);
+                expect(reserialized).toEqual(serialized);
+
+                // --- ERC EXECUTION ---
+                try {
+                    execSync(`kicad-cli sch erc "${serFile}"`, {
+                        stdio: "pipe",
+                        encoding: "utf8",
+                    });
+                } catch (err: any) {
+                    console.error(
+                        "\n================ ERC FAILURE ================",
+                    );
+                    console.error(`File: ${relPath}`);
+                    console.error(`Temp Dir: ${tempDir}`);
+                    console.error(
+                        `Repro command: kicad-cli sch erc "${serFile}"`,
+                    );
+
+                    if (err.stdout) {
+                        console.error("\n--- STDOUT ---");
+                        console.error(err.stdout.toString());
+                    }
+
+                    if (err.stderr) {
+                        console.error("\n--- STDERR ---");
+                        console.error(err.stderr.toString());
+                    }
+
+                    console.error(
+                        "=============================================\n",
+                    );
+
+                    // Keep temp dir for debugging
+                    if (!keepTemp) {
+                        console.error(
+                            `(Set KEEP_KICAD_TESTS=1 to preserve temp dirs)`,
+                        );
+                    }
+
+                    throw err; // fail test
+                }
+            } finally {
+                if (!keepTemp) {
+                    fs.rmSync(tempDir, { recursive: true, force: true });
+                } else {
+                    console.log(`⚠️  Preserved temp dir: ${tempDir}`);
+                }
+            }
         });
     });
 });
