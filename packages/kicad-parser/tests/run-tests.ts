@@ -49,7 +49,7 @@ function testSchematicFile(filePath: string): boolean {
         const reserialized = parser.save(reparsed);
         
         // Verify with KiCad CLI
-        const kicadCliPath = '/Users/admin/code/kicad-mac-builder/build/kicad-dest/KiCad.app/Contents/MacOS/kicad-cli';
+        const kicadCliPath = 'kicad-cli';
         try {
             execSync(`${kicadCliPath} sch erc "${serFile}"`, { encoding: 'utf8', stdio: 'pipe' });
         } catch {
