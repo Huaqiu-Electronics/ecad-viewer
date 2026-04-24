@@ -64,6 +64,9 @@ function serializeEffects(effects: C.I_Effects, level: number = 0): string {
     if (effects.hide) {
         result += `\n${indent2}(hide yes)`;
     }
+    if (effects.href) {
+        result += `\n${indent2}(href "${escapeString(effects.href)}")`;
+    }
     result += `\n${indent})`;
     return result;
 }
@@ -72,7 +75,8 @@ function formatDouble(value: number): string {
     if (Number.isInteger(value)) {
         return String(value);
     }
-    return value.toFixed(4).replace(/\.?0+$/, '');
+    // Use 6 decimal places to match KiCad's output
+    return value.toFixed(6).replace(/\.?0+$/, '');
 }
 
 function formatColorAlpha(alpha: number): string {
@@ -115,6 +119,9 @@ function serializeFill(fill: S.I_Fill, level: number = 0): string {
 }
 
 function serializePaper(paper: C.I_Paper, level: number = 0): string {
+    if (paper.portrait) {
+        return `(paper "${paper.size}" portrait)`;
+    }
     return `(paper "${paper.size}")`;
 }
 
@@ -415,7 +422,7 @@ function serializeLibSymbol(symbol: S.I_LibSymbol, level: number = 0): string {
                 const textbox = drawing as S.I_TextBox;
                 result += `${indentString(level + 1)}(text_box "${escapeString(textbox.text)}" ${serializeAt(textbox.at, 0, true)} (size ${textbox.size.x} ${textbox.size.y})
 `;
-                if (textbox.exclude_from_sim)
+                if (textbox.exclude_from_sim !== undefined)
                     result += `${indentString(level + 2)}(exclude_from_sim ${textbox.exclude_from_sim ? "yes" : "no"})
 `;
                 if (textbox.margins)
@@ -540,7 +547,7 @@ function serializeNoConnect(noConnect: S.I_NoConnect): string {
 
 function serializeNetLabel(label: S.I_NetLabel): string {
     let result = `(label "${escapeString(label.text)}" ${serializeAt(label.at, 0, true)} ${serializeEffects(label.effects)}`;
-    if (label.fields_autoplaced) result += " (fields_autoplaced yes)";
+    result += ` (fields_autoplaced ${label.fields_autoplaced ? "yes" : "no"})`;
     if (label.uuid) result += ` (uuid "${escapeString(label.uuid)}")`;
     result += ")";
     return result;
@@ -548,7 +555,7 @@ function serializeNetLabel(label: S.I_NetLabel): string {
 
 function serializeGlobalLabel(label: S.I_GlobalLabel): string {
     let result = `(global_label "${escapeString(label.text)}" ${serializeAt(label.at, 0, true)} ${serializeEffects(label.effects)}`;
-    if (label.fields_autoplaced) result += " (fields_autoplaced yes)";
+    result += ` (fields_autoplaced ${label.fields_autoplaced ? "yes" : "no"})`;
     if (label.uuid) result += ` (uuid "${escapeString(label.uuid)}")`;
     result += ` (shape ${label.shape})`;
     if (label.properties && label.properties.length > 0) {
@@ -562,7 +569,7 @@ function serializeGlobalLabel(label: S.I_GlobalLabel): string {
 
 function serializeHierarchicalLabel(label: S.I_HierarchicalLabel): string {
     let result = `(hierarchical_label "${escapeString(label.text)}" ${serializeAt(label.at, 0, true)} ${serializeEffects(label.effects)}`;
-    if (label.fields_autoplaced) result += " (fields_autoplaced yes)";
+    result += ` (fields_autoplaced ${label.fields_autoplaced ? "yes" : "no"})`;
     if (label.uuid) result += ` (uuid "${escapeString(label.uuid)}")`;
     result += ` (shape ${label.shape})`;
     result += ")";
@@ -573,11 +580,19 @@ export function serializePinInstance(pin: S.I_PinInstance): string {
     let result = "(pin ";
     // Check if the pin number is a pin type (like power_in) that shouldn't be quoted
     const pinTypes = ["input", "output", "bidirectional", "tri_state", "passive", "dot", "round", "diamond", "rectangle", "power_in", "power_out", "open_collector", "open_emitter"];
-    if (pin.number && pin.number.trim() !== "" && !pinTypes.includes(pin.number)) {
-        result += `"${escapeString(pin.number)}"`;
+    if (pin.number !== undefined && pin.number !== null) {
+        if (pin.number.trim() !== "" && !pinTypes.includes(pin.number)) {
+            result += `"${escapeString(pin.number)}"`;
+        } else if (pin.number.trim() !== "" && pinTypes.includes(pin.number)) {
+            // Use the pin number directly if it's a known type
+            result += pin.number;
+        } else {
+            // Empty pin number should be quoted
+            result += `""`;
+        }
     } else {
-        // Use the pin number directly if it's a known type, or default to power_in for empty
-        result += pin.number && pin.number.trim() !== "" ? pin.number : "power_in";
+        // Default to power_in only if the pin number is undefined or null
+        result += "power_in";
     }
     result += ` (uuid "${escapeString(pin.uuid)}")`;
     if (pin.alternate)
@@ -618,7 +633,7 @@ export function serializeSchematicSymbol(symbol: S.I_SchematicSymbol, level: num
         result += `${indentString(level + 1)}(convert ${symbol.convert})
 `;
     }
-    if (symbol.fields_autoplaced) result += `${indentString(level + 1)}(fields_autoplaced yes)
+    result += `${indentString(level + 1)}(fields_autoplaced ${symbol.fields_autoplaced ? "yes" : "no"})
 `;
     result += `${indentString(level + 1)}(uuid "${escapeString(symbol.uuid)}")
 `;
@@ -638,18 +653,35 @@ export function serializeSchematicSymbol(symbol: S.I_SchematicSymbol, level: num
     }
     
     if (symbol.default_instance) {
-        result += `${indentString(level + 1)}(default_instance
+        // Only serialize default_instance if it has at least one non-empty property
+        const hasReference = symbol.default_instance.reference && symbol.default_instance.reference.trim() !== "";
+        const hasUnit = symbol.default_instance.unit !== undefined && symbol.default_instance.unit !== null;
+        const hasValue = symbol.default_instance.value && symbol.default_instance.value.trim() !== "";
+        const hasFootprint = symbol.default_instance.footprint && symbol.default_instance.footprint.trim() !== "";
+        
+        if (hasReference || hasUnit || hasValue || hasFootprint) {
+            result += `${indentString(level + 1)}(default_instance
 `;
-        result += `${indentString(level + 2)}(reference "${escapeString(symbol.default_instance.reference)}")
+            if (hasReference) {
+                result += `${indentString(level + 2)}(reference "${escapeString(symbol.default_instance.reference)}")
 `;
-        result += `${indentString(level + 2)}(unit "${escapeString(symbol.default_instance.unit)}")
+            }
+            if (hasUnit) {
+                const unitValue = symbol.default_instance.unit !== undefined && symbol.default_instance.unit !== null ? symbol.default_instance.unit : 1;
+                result += `${indentString(level + 2)}(unit ${unitValue})
 `;
-        result += `${indentString(level + 2)}(value "${escapeString(symbol.default_instance.value)}")
+            }
+            if (hasValue) {
+                result += `${indentString(level + 2)}(value "${escapeString(symbol.default_instance.value)}")
 `;
-        result += `${indentString(level + 2)}(footprint "${escapeString(symbol.default_instance.footprint)}")
+            }
+            if (hasFootprint) {
+                result += `${indentString(level + 2)}(footprint "${escapeString(symbol.default_instance.footprint)}")
 `;
-        result += `${indentString(level + 1)})
+            }
+            result += `${indentString(level + 1)})
 `;
+        }
     }
     
     if (symbol.instances) {
@@ -726,7 +758,7 @@ function serializeSchematicSheet(sheet: S.I_SchematicSheet, level: number = 0): 
         result += `${indentString(level + 1)}(dnp ${sheet.dnp ? "yes" : "no"})
 `;
     }
-    if (sheet.fields_autoplaced) result += `${indentString(level + 1)}(fields_autoplaced yes)
+    result += `${indentString(level + 1)}(fields_autoplaced ${sheet.fields_autoplaced ? "yes" : "no"})
 `;
     
     result += `${indentString(level + 1)}${serializeStroke(sheet.stroke)}
@@ -795,7 +827,8 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
     result += `${indentString(indent)}(version ${schematic.version || 20231129})\n`;
     if (schematic.generator)
         result += `${indentString(indent)}(generator "${escapeString(schematic.generator)}")\n`;
-    result += `${indentString(indent)}(generator_version "${escapeString(schematic.generator_version || "")}")\n`;
+    if (schematic.generator_version)
+        result += `${indentString(indent)}(generator_version "${escapeString(schematic.generator_version)}")\n`;
     result += `${indentString(indent)}(uuid "${escapeString(schematic.uuid || "")}")\n`;
     if (schematic.paper) result += `${indentString(indent)}${serializePaper(schematic.paper)}\n`;
     if (schematic.title_block)
@@ -929,7 +962,7 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
             } else if (drawing.type === "text_box") {
                 const textbox = drawing as S.I_TextBox;
                 result += `${indentString(indent)}(text_box "${escapeString(textbox.text)}" ${serializeAt(textbox.at, 0, true)} (size ${formatDouble(textbox.size.x)} ${formatDouble(textbox.size.y)})`;
-                if (textbox.exclude_from_sim)
+                if (textbox.exclude_from_sim !== undefined)
                     result += ` (exclude_from_sim ${textbox.exclude_from_sim ? "yes" : "no"})`;
                 if (textbox.margins)
                     result += ` (margins ${formatDouble(textbox.margins.x)} ${formatDouble(textbox.margins.y)} ${formatDouble(textbox.margins.z)} ${formatDouble(textbox.margins.w)})`;
@@ -983,7 +1016,8 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
         result += `${indentString(indent)})\n`;
     }
     if (schematic.embedded_fonts !== undefined) {
-        result += `${indentString(indent)}(embedded_fonts ${schematic.embedded_fonts ? "yes" : "no"})\n`;
+        result += `${indentString(indent)}(embedded_fonts ${schematic.embedded_fonts ? "yes" : "no"})
+`;
     }
     result += `)\n`;
     return result;

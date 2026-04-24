@@ -25,6 +25,7 @@
     "license": "MIT",
     "devDependencies": {
         "@types/jest": "^30.0.0",
+        "@types/lodash": "^4.17.24",
         "@types/node": "^20.11.30",
         "esbuild": "^0.25.0",
         "jest": "^29.7.0",

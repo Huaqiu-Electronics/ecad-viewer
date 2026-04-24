@@ -256,15 +256,23 @@ function parseImage(expr: Parseable): S.I_Image {
 // Labels
 
 function parseNetLabel(expr: Parseable): S.I_NetLabel {
-    return parse_expr(
+    const parsed = parse_expr(
         expr,
         P.start("label"),
         P.positional("text", T.string),
         P.item("at", parseAt),
         P.item("effects", parseEffects),
-        P.atom("fields_autoplaced"),
+        P.pair("fields_autoplaced", T.boolean),
         P.pair("uuid", T.string),
-    ) as unknown as S.I_NetLabel;
+    );
+
+    return {
+        text: parsed["text"],
+        at: parsed["at"],
+        effects: parsed["effects"],
+        fields_autoplaced: parsed["fields_autoplaced"] || false,
+        uuid: parsed["uuid"],
+    } as unknown as S.I_NetLabel;
 }
 
 function parseProperty(expr: Parseable): S.I_Property {
@@ -293,30 +301,49 @@ function parseProperty(expr: Parseable): S.I_Property {
 }
 
 function parseGlobalLabel(expr: Parseable): S.I_GlobalLabel {
-    return parse_expr(
+    const parsed = parse_expr(
         expr,
         P.start("global_label"),
         P.positional("text", T.string),
         P.item("at", parseAt),
         P.item("effects", parseEffects),
-        P.atom("fields_autoplaced"),
+        P.pair("fields_autoplaced", T.boolean),
         P.pair("uuid", T.string),
         P.pair("shape", T.string),
         P.collection("properties", "property", T.item(parseProperty)),
-    ) as unknown as S.I_GlobalLabel;
+    );
+
+    return {
+        text: parsed["text"],
+        at: parsed["at"],
+        effects: parsed["effects"],
+        fields_autoplaced: parsed["fields_autoplaced"] || false,
+        uuid: parsed["uuid"],
+        shape: parsed["shape"],
+        properties: parsed["properties"] || [],
+    } as unknown as S.I_GlobalLabel;
 }
 
 function parseHierarchicalLabel(expr: Parseable): S.I_HierarchicalLabel {
-    return parse_expr(
+    const parsed = parse_expr(
         expr,
         P.start("hierarchical_label"),
         P.positional("text", T.string),
         P.item("at", parseAt),
         P.item("effects", parseEffects),
-        P.atom("fields_autoplaced"),
+        P.pair("fields_autoplaced", T.boolean),
         P.pair("uuid", T.string),
         P.pair("shape", T.string),
-    ) as unknown as S.I_HierarchicalLabel;
+    );
+
+    return {
+        text: parsed["text"],
+        at: parsed["at"],
+        effects: parsed["effects"],
+        fields_autoplaced: parsed["fields_autoplaced"] || false,
+        uuid: parsed["uuid"],
+        shape: parsed["shape"],
+    } as unknown as S.I_HierarchicalLabel;
 }
 
 // Pins
@@ -417,7 +444,7 @@ function parseSchematicSymbol(expr: Parseable): S.I_SchematicSymbol {
         P.pair("in_bom", T.boolean),
         P.pair("on_board", T.boolean),
         P.pair("dnp", T.boolean),
-        P.atom("fields_autoplaced"),
+        P.pair("fields_autoplaced", T.boolean),
         P.pair("uuid", T.string),
         P.collection("properties", "property", T.item(parseProperty)),
         P.collection("pins", "pin", T.item(parsePinInstance)),
@@ -426,7 +453,7 @@ function parseSchematicSymbol(expr: Parseable): S.I_SchematicSymbol {
             {},
             P.start("default_instance"),
             P.pair("reference", T.string),
-            P.pair("unit", T.string),
+            P.pair("unit", T.number),
             P.pair("value", T.string),
             P.pair("footprint", T.string),
         ),
@@ -459,7 +486,24 @@ function parseSchematicSymbol(expr: Parseable): S.I_SchematicSymbol {
         ),
     );
 
-    return parsed as unknown as S.I_SchematicSymbol;
+    return {
+        lib_name: parsed["lib_name"],
+        lib_id: parsed["lib_id"],
+        at: parsed["at"],
+        mirror: parsed["mirror"],
+        exclude_from_sim: parsed["exclude_from_sim"] || false,
+        unit: parsed["unit"] || 0,
+        convert: parsed["convert"] || 0,
+        in_bom: parsed["in_bom"] || false,
+        on_board: parsed["on_board"] || false,
+        dnp: parsed["dnp"] || false,
+        fields_autoplaced: parsed["fields_autoplaced"] || false,
+        uuid: parsed["uuid"],
+        properties: parsed["properties"] || [],
+        pins: parsed["pins"] || [],
+        default_instance: parsed["default_instance"] || {},
+        instances: parsed["instances"] || { projects: [] },
+    } as unknown as S.I_SchematicSymbol;
 }
 
 // Sheets
@@ -482,7 +526,7 @@ function parseSchematicSheet(expr: Parseable): S.I_SchematicSheet {
         P.start("sheet"),
         P.item("at", parseAt),
         P.vec2("size"),
-        P.atom("fields_autoplaced"),
+        P.pair("fields_autoplaced", T.boolean),
         P.pair("exclude_from_sim", T.boolean),
         P.pair("in_bom", T.boolean),
         P.pair("on_board", T.boolean),
