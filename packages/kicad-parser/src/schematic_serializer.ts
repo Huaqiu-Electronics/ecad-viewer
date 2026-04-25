@@ -829,7 +829,8 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
         result += `${indentString(indent)}(generator "${escapeString(schematic.generator)}")\n`;
     if (schematic.generator_version)
         result += `${indentString(indent)}(generator_version "${escapeString(schematic.generator_version)}")\n`;
-    result += `${indentString(indent)}(uuid "${escapeString(schematic.uuid || "")}")\n`;
+    if(schematic.uuid)
+        result += `${indentString(indent)}(uuid "${escapeString(schematic.uuid)}")\n`;
     if (schematic.paper) result += `${indentString(indent)}${serializePaper(schematic.paper)}\n`;
     if (schematic.title_block)
         result += `${serializeTitleBlock(schematic.title_block, indent)}\n`;

@@ -322,27 +322,27 @@ export interface I_SymbolInstance {
 }
 
 export interface I_KicadSch {
-    version: number;
+    version?: number;
     generator?: string;
-    generator_version: string;
-    uuid: string;
+    generator_version?: string;
+    uuid?: string;
     paper?: I_Paper;
-    title_block: I_TitleBlock;
-    lib_symbols: I_LibSymbol[];
-    wires: I_Wire[];
-    buses: I_Bus[];
-    bus_entries: I_BusEntry[];
-    bus_aliases: I_BusAlias[];
-    junctions: I_Junction[];
-    net_labels: I_NetLabel[];
-    global_labels: I_GlobalLabel[];
-    hierarchical_labels: I_HierarchicalLabel[];
-    symbols: I_SchematicSymbol[];
-    no_connects: I_NoConnect[];
-    drawings: (I_Polyline | I_Rectangle | I_Arc | I_Text | I_Bezier | I_TextBox | I_Circle)[];
-    images: I_Image[];
+    title_block?: I_TitleBlock;
+    lib_symbols?: I_LibSymbol[];
+    wires?: I_Wire[];
+    buses?: I_Bus[];
+    bus_entries?: I_BusEntry[];
+    bus_aliases?: I_BusAlias[];
+    junctions?: I_Junction[];
+    net_labels?: I_NetLabel[];
+    global_labels?: I_GlobalLabel[];
+    hierarchical_labels?: I_HierarchicalLabel[];
+    symbols?: I_SchematicSymbol[];
+    no_connects?: I_NoConnect[];
+    drawings?: (I_Polyline | I_Rectangle | I_Arc | I_Text | I_Bezier | I_TextBox | I_Circle)[];
+    images?: I_Image[];
     sheet_instances?: I_SheetInstance[];
     symbol_instances?: I_SymbolInstance[];
-    sheets: I_SchematicSheet[];
+    sheets?: I_SchematicSheet[];
     embedded_fonts?: boolean;
 }
