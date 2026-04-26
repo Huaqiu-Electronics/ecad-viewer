@@ -7,6 +7,16 @@ import type {
     I_Paper,
 } from "./common";
 
+export enum MANDATORY_FIELD_T {
+    INVALID_FIELD = -1,
+    REFERENCE_FIELD = 0,
+    VALUE_FIELD,
+    FOOTPRINT_FIELD,
+    DATASHEET_FIELD,
+    DESCRIPTION_FIELD,
+    MANDATORY_FIELD_COUNT
+}
+
 export interface I_Fill {
     type: "none" | "outline" | "background" | "color";
     color?: I_Color;
@@ -140,12 +150,13 @@ export type LabelShapes =
 export interface I_Property {
     name: string;
     text: string;
-    id: number;
+    id?: MANDATORY_FIELD_T | number;
     at: I_At;
     show_name: boolean;
     do_not_autoplace: boolean;
     hide: boolean;
     effects: I_Effects;
+    private?: boolean;
 }
 
 export interface I_GlobalLabel extends I_Label {
@@ -266,7 +277,7 @@ export interface I_SchematicSymbol {
     properties: I_Property[];
     pins: I_PinInstance[];
     exclude_from_sim: boolean;
-    default_instance: {
+    default_instance?: {
         reference: string;
         unit: string;
         value: string;

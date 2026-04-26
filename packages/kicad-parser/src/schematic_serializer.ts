@@ -153,10 +153,11 @@ function serializeTitleBlock(titleBlock: C.I_TitleBlock, level: number = 0): str
 function serializeProperty(property: S.I_Property, level: number = 0): string {
     const indent = indentString(level);
     const indent2 = indentString(level + 1);
-    let result = indent + "(property \"" + escapeString(property.name || "") + "\" \"" + escapeString(property.text || "") + "\"";
-    if (property.id) {
-        result += " " + property.id;
+    let result = indent + "(property";
+    if (property.private) {
+        result += " private";
     }
+    result += " \"" + escapeString(property.name || "") + "\" \"" + escapeString(property.text || "") + "\"";
     result += "\n" + indent2 + serializeAt(property.at, 0, true);
     result += "\n" + indent2 + serializeEffects(property.effects, level + 1);
     if (property.show_name) {

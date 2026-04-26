@@ -279,6 +279,7 @@ function parseProperty(expr: Parseable): S.I_Property {
     const parsed = parse_expr(
         expr,
         P.start("property"),
+        P.atom("private"),
         P.positional("name", T.string),
         P.positional("text", T.string),
         P.pair("id", T.number),
@@ -291,12 +292,13 @@ function parseProperty(expr: Parseable): S.I_Property {
     return {
         name: parsed.name,
         text: parsed.text,
-        id: parsed.id || 0,
+        id: parsed.id ?? 0,
         at: parsed.at,
         show_name: parsed.show_name || false,
         do_not_autoplace: parsed.do_not_autoplace || false,
         hide: parsed.hide || false,
         effects: parsed.effects,
+        private: parsed.private || false,
     } as S.I_Property;
 }
 
