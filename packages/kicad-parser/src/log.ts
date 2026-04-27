@@ -11,12 +11,12 @@ export class Logger {
     ) {}
 
     #log(method: CallableFunction, ...args: any[]) {
-        method(
-            `%c${this.name}:%c`,
-            `color: ButtonText`,
-            `color: inherit`,
-            ...args,
-        );
+        // method(
+        //     `%c${this.name}:%c`,
+        //     `color: ButtonText`,
+        //     `color: inherit`,
+        //     ...args,
+        // );
     }
 
     public debug(...args: any[]) {
