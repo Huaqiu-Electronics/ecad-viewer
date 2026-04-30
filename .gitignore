@@ -109,3 +109,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+ecad-viewer.js
+parser.worker.js
+ecad-viewer.js.*
+parser.worker.js.*
