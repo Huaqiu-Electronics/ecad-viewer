@@ -113,3 +113,4 @@ ecad-viewer.js
 parser.worker.js
 ecad-viewer.js.*
 parser.worker.js.*
+packages/ecad-viewer-app/static/ecad_viewer
