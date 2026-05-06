@@ -36,7 +36,7 @@ export class SchematicBomVisitor extends SchematicVisitorBase {
         const schematicSymbol: BomItem = {
             Reference: "",
             Name: node.value,
-            Description: node.description,
+            Description: node.get_property_text("Description") ?? "",
             Datasheet: node.datasheet,
             Footprint: node.footprint,
             DNP: node.dnp,
@@ -44,27 +44,25 @@ export class SchematicBomVisitor extends SchematicVisitorBase {
             Price: 0,
         };
 
-        for (const [, ins] of node.instances) {
-            const Reference = ins.reference ?? schematicSymbol.Reference;
+        const Reference = node.reference;
 
-            if (
-                Reference.endsWith("?") ||
-                this.#existing_designators.has(Reference)
-            )
-                continue;
+        if (
+            Reference.endsWith("?") ||
+            this.#existing_designators.has(Reference)
+        )
+            return;
 
-            this.#existing_designators.add(Reference);
+        this.#existing_designators.add(Reference);
 
-            this.#bom_list.push({
-                ...schematicSymbol,
-                Reference,
-                Name: ins.value ?? schematicSymbol.Name,
-                Footprint: ins.footprint ?? schematicSymbol.Footprint,
-            });
-            this.#designator_refs.set(Reference, {
-                uuid: node.uuid,
-                sheet_name: this.#current_sch_file,
-            });
-        }
+        this.#bom_list.push({
+            ...schematicSymbol,
+            Reference,
+            Name: node.value ?? schematicSymbol.Name,
+            Footprint: node.footprint ?? schematicSymbol.Footprint,
+        });
+        this.#designator_refs.set(Reference, {
+            uuid: node.uuid,
+            sheet_name: this.#current_sch_file,
+        });
     }
 }
