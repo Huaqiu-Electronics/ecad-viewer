@@ -816,6 +816,93 @@ function serializeSchematicSheet(sheet: S.I_SchematicSheet, level: number = 0): 
     return result;
 }
 
+function serializeTableCell(cell: S.I_TableCell, level: number): string {
+    const indent = indentString(level);
+    const indent2 = indentString(level + 1);
+    let result = `${indent}(table_cell "${escapeString(cell.text)}"`;
+    if (cell.exclude_from_sim !== undefined) {
+        result += ` (exclude_from_sim ${cell.exclude_from_sim ? "yes" : "no"})`;
+    }
+    result += `\n${indent2}${serializeAt(cell.at, 0, true)}`;
+    result += `\n${indent2}(size ${formatDouble(cell.size.x)} ${formatDouble(cell.size.y)})`;
+    if (cell.margins) {
+        result += `\n${indent2}(margins ${formatDouble(cell.margins.x)} ${formatDouble(cell.margins.y)} ${formatDouble(cell.margins.z)} ${formatDouble(cell.margins.w)})`;
+    }
+    if (cell.span) {
+        result += `\n${indent2}(span ${cell.span.rows} ${cell.span.cols})`;
+    }
+    if (cell.stroke) {
+        result += `\n${indent2}${serializeStroke(cell.stroke, level + 1)}`;
+    }
+    if (cell.fill) {
+        result += `\n${indent2}${serializeFill(cell.fill, level + 1)}`;
+    }
+    result += `\n${indent2}${serializeEffects(cell.effects, level + 1)}`;
+    if (cell.uuid) {
+        result += `\n${indent2}(uuid "${escapeString(cell.uuid)}")`;
+    }
+    result += `\n${indent})`;
+    return result;
+}
+
+function serializeTable(table: S.I_Table, level: number): string {
+    const indent = indentString(level);
+    const indent2 = indentString(level + 1);
+    let result = `${indent}(table\n`;
+    result += `${indent2}(column_count ${table.column_count})\n`;
+    
+    if (table.border) {
+        result += `${indent2}(border\n`;
+        if (table.border.external !== undefined) {
+            result += `${indentString(level + 2)}(external ${table.border.external ? "yes" : "no"})\n`;
+        }
+        if (table.border.header !== undefined) {
+            result += `${indentString(level + 2)}(header ${table.border.header ? "yes" : "no"})\n`;
+        }
+        if (table.border.stroke) {
+            result += `${indentString(level + 2)}${serializeStroke(table.border.stroke, level + 2)}\n`;
+        }
+        result += `${indent2})\n`;
+    }
+    
+    if (table.separators) {
+        result += `${indent2}(separators\n`;
+        if (table.separators.rows !== undefined) {
+            result += `${indentString(level + 2)}(rows ${table.separators.rows ? "yes" : "no"})\n`;
+        }
+        if (table.separators.cols !== undefined) {
+            result += `${indentString(level + 2)}(cols ${table.separators.cols ? "yes" : "no"})\n`;
+        }
+        if (table.separators.stroke) {
+            result += `${indentString(level + 2)}${serializeStroke(table.separators.stroke, level + 2)}\n`;
+        }
+        result += `${indent2})\n`;
+    }
+    
+    if (table.column_widths && table.column_widths.length > 0) {
+        result += `${indent2}(column_widths ${table.column_widths.map(w => formatDouble(w)).join(" ")})\n`;
+    }
+    
+    if (table.row_heights && table.row_heights.length > 0) {
+        result += `${indent2}(row_heights ${table.row_heights.map(h => formatDouble(h)).join(" ")})\n`;
+    }
+    
+    if (table.uuid) {
+        result += `${indent2}(uuid "${escapeString(table.uuid)}")\n`;
+    }
+    
+    if (table.cells && table.cells.length > 0) {
+        result += `${indent2}(cells\n`;
+        for (const cell of table.cells) {
+            result += `${serializeTableCell(cell, level + 2)}\n`;
+        }
+        result += `${indent2})\n`;
+    }
+    
+    result += `${indent})`;
+    return result;
+}
+
 export { serializeLibSymbol };
 function indentString(level: number): string {
     return '\t'.repeat(level);
@@ -993,6 +1080,11 @@ export function serializeSchematic(schematic: S.I_KicadSch): string {
                 result += `${indentString(indent + 1)}(uuid "${escapeString(image.uuid)}")\n`;
             }
             result += `${indentString(indent)})\n`;
+        }
+    }
+    if (schematic.tables && schematic.tables.length > 0) {
+        for (const table of schematic.tables) {
+            result += `${serializeTable(table, indent)}\n`;
         }
     }
     if (schematic.sheets && schematic.sheets.length > 0) {
