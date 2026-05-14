@@ -308,6 +308,37 @@ export interface I_SymbolInstance {
     footprint: string;
 }
 
+export interface I_TableCell {
+    text: string;
+    at: I_At;
+    size: { x: number; y: number };
+    margins?: { x: number; y: number; z: number; w: number };
+    span?: { rows: number; cols: number };
+    stroke?: I_Stroke;
+    fill?: I_Fill;
+    effects: I_Effects;
+    exclude_from_sim?: boolean;
+    uuid: string;
+}
+
+export interface I_Table {
+    column_count: number;
+    border?: {
+        external: boolean;
+        header: boolean;
+        stroke?: I_Stroke;
+    };
+    separators?: {
+        rows: boolean;
+        cols: boolean;
+        stroke?: I_Stroke;
+    };
+    column_widths: number[];
+    row_heights: number[];
+    cells: I_TableCell[];
+    uuid: string;
+}
+
 export interface I_KicadSch {
     version: number;
     generator?: string;
@@ -328,6 +359,7 @@ export interface I_KicadSch {
     no_connects: I_NoConnect[];
     drawings: (I_Polyline | I_Rectangle | I_Arc | I_Text)[];
     images: I_Image[];
+    tables?: I_Table[];
     sheet_instances?: I_SheetInstance[];
     symbol_instances?: I_SymbolInstance[];
     sheets: I_SchematicSheet[];

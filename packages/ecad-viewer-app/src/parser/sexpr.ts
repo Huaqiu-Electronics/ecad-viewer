@@ -86,6 +86,10 @@ export const T = {
         const el = e as number[];
         return { x: el[1], y: el[2] };
     },
+    vec4(obj: Obj, name: string, e: ListOrAtom): { x: number; y: number; z: number; w: number } {
+        const el = e as number[];
+        return { x: el[1], y: el[2], z: el[3], w: el[4] };
+    },
     color(obj: Obj, name: string, e: ListOrAtom): I_Color {
         const el = e as [string, number, number, number, number?];
         return {
@@ -233,6 +237,9 @@ export const P = {
     },
     vec2(name: string) {
         return P.expr(name, T.vec2);
+    },
+    vec4(name: string) {
+        return P.expr(name, T.vec4);
     },
     color(name = "color") {
         return P.expr(name, T.color);

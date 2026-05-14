@@ -17,6 +17,7 @@ import {
 } from "../../graphics";
 import { type SchematicTheme } from "../../kicad";
 import * as schematic_items from "../../kicad/schematic";
+import { TextAttributes } from "../../kicad/text";
 import { LibText, SchField, SchText, StrokeFont } from "../../kicad/text";
 import { LayerNames, LayerSet, ViewLayer } from "./layers";
 import { BaseSchematicPainter, SchematicItemPainter } from "./painters/base";
@@ -648,6 +649,133 @@ class SchematicSheetPainter extends SchematicItemPainter {
     }
 }
 
+class TablePainter extends SchematicItemPainter {
+    classes = [schematic_items.Table];
+
+    layers_for(item: schematic_items.Table) {
+        return [LayerNames.notes];
+    }
+
+    paint(layer: ViewLayer, table: schematic_items.Table) {
+        const strokeColor = table.border?.stroke?.color
+            ? new Color(
+                  table.border.stroke.color.r,
+                  table.border.stroke.color.g,
+                  table.border.stroke.color.b,
+                  table.border.stroke.color.a,
+              )
+            : this.theme.note;
+        const strokeWidth = table.border?.stroke?.width && table.border.stroke.width > 0 ? table.border.stroke.width : 0.1;
+
+        if (table.border?.external) {
+            const bbox = table.bbox;
+            this.gfx.line(
+                Polyline.from_BBox(bbox, strokeWidth, strokeColor),
+            );
+        }
+
+        if (table.separators?.rows || table.separators?.cols) {
+            const sepStrokeColor = table.separators.stroke?.color
+                ? new Color(
+                      table.separators.stroke.color.r,
+                      table.separators.stroke.color.g,
+                      table.separators.stroke.color.b,
+                      table.separators.stroke.color.a,
+                  )
+                : strokeColor;
+            const sepStrokeWidth = table.separators.stroke?.width && table.separators.stroke.width > 0 ? table.separators.stroke.width : strokeWidth;
+
+            if (table.separators.cols && table.column_widths.length > 0) {
+                const bbox = table.bbox;
+                let x = bbox.x;
+                for (const width of table.column_widths) {
+                    x += width;
+                    this.gfx.line(
+                        new Polyline(
+                            [
+                                new Vec2(x, bbox.y),
+                                new Vec2(x, bbox.y2),
+                            ],
+                            sepStrokeWidth,
+                            sepStrokeColor,
+                        ),
+                    );
+                }
+            }
+
+            if (table.separators.rows && table.row_heights.length > 0) {
+                const bbox = table.bbox;
+                let y = bbox.y;
+                for (const height of table.row_heights) {
+                    y += height;
+                    this.gfx.line(
+                        new Polyline(
+                            [
+                                new Vec2(bbox.x, y),
+                                new Vec2(bbox.x2, y),
+                            ],
+                            sepStrokeWidth,
+                            sepStrokeColor,
+                        ),
+                    );
+                }
+            }
+        }
+
+        for (const cell of table.cells) {
+            const cellBbox = cell.bbox;
+
+            if (cell.stroke) {
+                const cellStrokeColor = cell.stroke.color
+                    ? new Color(
+                          cell.stroke.color.r,
+                          cell.stroke.color.g,
+                          cell.stroke.color.b,
+                          cell.stroke.color.a,
+                      )
+                    : strokeColor;
+                const cellStrokeWidth = cell.stroke.width && cell.stroke.width > 0 ? cell.stroke.width : strokeWidth;
+                this.gfx.line(
+                    Polyline.from_BBox(cellBbox, cellStrokeWidth, cellStrokeColor),
+                );
+            }
+
+            if (cell.fill && cell.fill.type !== "none") {
+                const fillColor = cell.fill.color
+                    ? new Color(
+                          cell.fill.color.r,
+                          cell.fill.color.g,
+                          cell.fill.color.b,
+                          cell.fill.color.a,
+                      )
+                    : this.theme.note;
+                this.gfx.polygon(Polygon.from_BBox(cellBbox, fillColor));
+            }
+
+            if (cell.text && cell.text.trim()) {
+                const attrs = new TextAttributes();
+                attrs.size = new Vec2(1.27 * 10000, 1.27 * 10000);
+                attrs.stroke_width = 0.15 * 10000;
+                attrs.color = strokeColor;
+                attrs.h_align = "left";
+                attrs.v_align = "top";
+
+                const textX = (cellBbox.x + cell.margins.x) * 10000;
+                const textY = (cellBbox.y + cell.margins.y) * 10000;
+
+                this.gfx.state.push();
+                StrokeFont.default().draw(
+                    this.gfx,
+                    cell.text,
+                    new Vec2(textX, textY),
+                    attrs,
+                );
+                this.gfx.state.pop();
+            }
+        }
+    }
+}
+
 export class SchematicPainter extends BaseSchematicPainter {
     override theme: SchematicTheme;
 
@@ -679,6 +807,7 @@ export class SchematicPainter extends BaseSchematicPainter {
             new HierarchicalSheetPinPainter(this, gfx),
             new SchematicSheetPainter(this, gfx),
             new ImagePainter(this, gfx),
+            new TablePainter(this, gfx),
             new PaperPainter(this, gfx),
             new BezierPainter(this, gfx),
         ];
