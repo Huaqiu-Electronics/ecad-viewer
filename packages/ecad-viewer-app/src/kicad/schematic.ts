@@ -79,6 +79,7 @@ export class KicadSch {
     no_connects: NoConnect[] = [];
     drawings: Drawing[] = [];
     images: Image[] = [];
+    tables: Table[] = [];
     sheet_instances?: SheetInstances;
     symbol_instances?: SymbolInstances;
     sheets: SchematicSheet[] = [];
@@ -175,6 +176,8 @@ export class KicadSch {
 
         this.images =
             data.images?.map((i: schematicProto.I_Image) => new Image(i)) ?? [];
+        this.tables =
+            data.tables?.map((t: schematicProto.I_Table) => new Table(t)) ?? [];
         this.sheet_instances = data.sheet_instances
             ? new SheetInstances(data.sheet_instances)
             : undefined;
@@ -217,6 +220,7 @@ export class KicadSch {
         yield* this.symbols.values();
         yield* this.drawings;
         yield* this.images;
+        yield* this.tables;
         yield* this.sheets;
 
         for (const it of this.symbols) {
@@ -530,6 +534,99 @@ export class Image {
         this.#img = html` <img
             src="data:image/png;base64,  ${this
                 .data}  " />` as HTMLImageElement;
+    }
+}
+
+export class TableCell {
+    text: string;
+    at: At;
+    size: Vec2;
+    margins: Vec2;
+    span: { rows: number; cols: number };
+    stroke?: Stroke;
+    fill?: Fill;
+    effects: Effects;
+    exclude_from_sim: boolean;
+    uuid: string;
+
+    constructor(data: schematicProto.I_TableCell) {
+        this.text = data.text;
+        this.at = new At(data.at);
+        this.size = new Vec2(data.size.x, data.size.y);
+        this.margins = new Vec2(
+            data.margins?.x ?? 0,
+            data.margins?.y ?? 0,
+        );
+        this.span = {
+            rows: data.span?.rows ?? 1,
+            cols: data.span?.cols ?? 1,
+        };
+        this.stroke = data.stroke ? new Stroke(data.stroke) : undefined;
+        this.fill = data.fill ? new Fill(data.fill) : undefined;
+        this.effects = new Effects(data.effects);
+        this.exclude_from_sim = data.exclude_from_sim ?? false;
+        this.uuid = data.uuid;
+    }
+
+    get bbox() {
+        return new BBox(
+            this.at.position.x,
+            this.at.position.y,
+            this.size.x,
+            this.size.y,
+        );
+    }
+}
+
+export class Table {
+    column_count: number;
+    border?: {
+        external: boolean;
+        header: boolean;
+        stroke?: Stroke;
+    };
+    separators?: {
+        rows: boolean;
+        cols: boolean;
+        stroke?: Stroke;
+    };
+    column_widths: number[];
+    row_heights: number[];
+    cells: TableCell[];
+    uuid: string;
+
+    constructor(data: schematicProto.I_Table) {
+        this.column_count = data.column_count;
+        this.border = data.border
+            ? {
+                  external: data.border.external,
+                  header: data.border.header,
+                  stroke: data.border.stroke
+                      ? new Stroke(data.border.stroke)
+                      : undefined,
+              }
+            : undefined;
+        this.separators = data.separators
+            ? {
+                  rows: data.separators.rows,
+                  cols: data.separators.cols,
+                  stroke: data.separators.stroke
+                      ? new Stroke(data.separators.stroke)
+                      : undefined,
+              }
+            : undefined;
+        this.column_widths = data.column_widths ?? [];
+        this.row_heights = data.row_heights ?? [];
+        this.cells = data.cells?.map((c) => new TableCell(c)) ?? [];
+        this.uuid = data.uuid;
+    }
+
+    get bbox() {
+        if (this.cells.length === 0) {
+            return new BBox(0, 0, 10, 10);
+        }
+        const bboxes = this.cells.map((c) => c.bbox);
+        return BBox.combine(bboxes);
     }
 }
 
@@ -1666,6 +1763,8 @@ export type SchematicNode =
     | Polyline
     | Rectangle
     | Image
+    | Table
+    | TableCell
     | Text
     | LibText
     | TextBox

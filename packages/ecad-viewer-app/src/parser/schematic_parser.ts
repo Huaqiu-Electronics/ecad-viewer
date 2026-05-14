@@ -217,6 +217,86 @@ function parseImage(expr: Parseable): S.I_Image {
     } as unknown as S.I_Image;
 }
 
+// Tables
+
+function parseTableCell(expr: Parseable): S.I_TableCell {
+    const parsed = parse_expr(
+        expr,
+        P.start("table_cell"),
+        P.positional("text", T.string),
+        P.item("at", parseAt),
+        P.vec2("size"),
+        P.vec4("margins"),
+        P.item("effects", parseEffects),
+        P.item("fill", parseFill),
+        P.item("stroke", parseStroke),
+        P.pair("exclude_from_sim", T.boolean),
+        P.pair("uuid", T.string),
+        P.expr("span", (obj: any, name: string, e: any) => {
+            if (Array.isArray(e) && e[0] === "span") {
+                return { rows: e[1] as number, cols: e[2] as number };
+            }
+            return undefined;
+        }),
+    ) as any;
+    return {
+        text: parsed.text || "",
+        at: parsed.at,
+        size: parsed.size,
+        margins: parsed.margins,
+        span: parsed.span,
+        stroke: parsed.stroke,
+        fill: parsed.fill,
+        effects: parsed.effects,
+        exclude_from_sim: parsed.exclude_from_sim,
+        uuid: parsed.uuid,
+    } as S.I_TableCell;
+}
+
+function parseTable(expr: Parseable): S.I_Table {
+    const parsed = parse_expr(
+        expr,
+        P.start("table"),
+        P.pair("column_count", T.number),
+        P.object(
+            "border",
+            {},
+            P.start("border"),
+            P.pair("external", T.boolean),
+            P.pair("header", T.boolean),
+            P.item("stroke", parseStroke),
+        ),
+        P.object(
+            "separators",
+            {},
+            P.start("separators"),
+            P.pair("rows", T.boolean),
+            P.pair("cols", T.boolean),
+            P.item("stroke", parseStroke),
+        ),
+        P.list("column_widths", T.number),
+        P.list("row_heights", T.number),
+        P.pair("uuid", T.string),
+        P.item("cells", (e) => {
+            const parsedCells = parse_expr(
+                e,
+                P.start("cells"),
+                P.collection("items", "table_cell", T.item(parseTableCell)),
+            ) as any;
+            return parsedCells.items || [];
+        }),
+    ) as any;
+    return {
+        column_count: parsed.column_count,
+        border: parsed.border,
+        separators: parsed.separators,
+        column_widths: parsed.column_widths || [],
+        row_heights: parsed.row_heights || [],
+        cells: parsed.cells || [],
+        uuid: parsed.uuid,
+    } as S.I_Table;
+}
+
 // Labels
 
 function parseNetLabel(expr: Parseable): S.I_NetLabel {
@@ -567,6 +647,7 @@ export class SchematicParser {
             P.collection("drawings", "text", T.item(parseText)),
 
             P.collection("images", "image", T.item(parseImage)),
+            P.collection("tables", "table", T.item(parseTable)),
             P.item("sheet_instances", parseSheetInstances),
             P.item("symbol_instances", parseSymbolInstances),
             P.collection("sheets", "sheet", T.item(parseSchematicSheet)),
