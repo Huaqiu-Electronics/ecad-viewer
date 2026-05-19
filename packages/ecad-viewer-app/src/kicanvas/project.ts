@@ -53,7 +53,7 @@ export class Project extends EventTarget implements IDisposable {
     _bom_items: BomItem[] = [];
     _label_name_refs = new Map<string, NetRef[]>();
     _net_item_refs = new Map<string, NetRef>();
-    _designator_refs = new Map<string, DesignatorRef>();
+    _designator_refs = new Map<string, DesignatorRef[]>();
     _project_name?: string;
     active_sch_file_name?: string;
     _found_cjk = false;
@@ -68,6 +68,36 @@ export class Project extends EventTarget implements IDisposable {
 
     find_designator(d: string) {
         return this._designator_refs.get(d);
+    }
+
+    find_designator_by_pin(d: string, pin_num: string): DesignatorRef | undefined {
+        const refs = this._designator_refs.get(d);
+        if (!refs || refs.length === 0) {
+            return undefined;
+        }
+
+        if (refs.length === 1) {
+            return refs[0];
+        }
+        
+        for (const ref of refs) {
+            const sch = this.file_by_name(ref.sheet_name);
+            if (sch instanceof KicadSch) {
+                const symbol = sch.symbols.get(ref.uuid);
+                if (symbol) {
+                    const lib_symbol = symbol.lib_symbol;
+                    if (lib_symbol) {
+                        for (const child of lib_symbol.children) {
+                            if (child.unit === ref.unit && child.has_pin(pin_num)) {
+                                return ref;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return refs[0];
     }
 
     get bom_items() {
