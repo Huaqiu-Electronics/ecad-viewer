@@ -5,7 +5,7 @@ import { SchematicVisitorBase } from "./schematic_visitor_base";
 
 export class SchematicBomVisitor extends SchematicVisitorBase {
     #bom_list: BomItem[] = [];
-    #designator_refs = new Map<string, DesignatorRef>();
+    #designator_refs = new Map<string, DesignatorRef[]>();
     #current_sch_file: string;
     #existing_designators = new Set<string>();
 
@@ -28,8 +28,7 @@ export class SchematicBomVisitor extends SchematicVisitorBase {
     visitSchematicSymbol(node: SchematicSymbol) {
         if (
             node.footprint.length == 0 ||
-            !node.in_bom ||
-            (node.unit && node.unit != 1) // Check if the symbol has multiple parts , count only the part 1
+            !node.in_bom
         )
             return;
 
@@ -46,23 +45,26 @@ export class SchematicBomVisitor extends SchematicVisitorBase {
 
         const Reference = node.reference;
 
-        if (
-            Reference.endsWith("?") ||
-            this.#existing_designators.has(Reference)
-        )
+        if (Reference.endsWith("?"))
             return;
 
-        this.#existing_designators.add(Reference);
+        if (!this.#existing_designators.has(Reference)) {
+            this.#existing_designators.add(Reference);
 
-        this.#bom_list.push({
-            ...schematicSymbol,
-            Reference,
-            Name: node.value ?? schematicSymbol.Name,
-            Footprint: node.footprint ?? schematicSymbol.Footprint,
-        });
-        this.#designator_refs.set(Reference, {
+            this.#bom_list.push({
+                ...schematicSymbol,
+                Reference,
+                Name: node.value ?? schematicSymbol.Name,
+                Footprint: node.footprint ?? schematicSymbol.Footprint,
+            });
+        }
+
+        const existing_refs = this.#designator_refs.get(Reference) ?? [];
+        existing_refs.push({
             uuid: node.uuid,
             sheet_name: this.#current_sch_file,
+            unit: node.unit,
         });
+        this.#designator_refs.set(Reference, existing_refs);
     }
 }

@@ -86,16 +86,17 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
         );
 
         window.addEventListener(SelectDesignatorEvent.type, (e) => {
-            const uuid = this.project.find_designator(
+            const refs = this.project.find_designator(
                 e.detail.designator,
-            )?.uuid;
+            );
 
-            if (uuid)
+            if (refs && refs.length > 0) {
+                const ref = refs[0];
                 this.#select_item({
-                    sheet: e.detail.sheet,
-                    uuid,
+                    sheet: ref.sheet_name,
+                    uuid: ref.uuid,
                 });
-            else {
+            } else {
                 console.log(`cannot find designator ${e.detail.designator}`);
             }
         });
@@ -103,34 +104,59 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
         window.addEventListener(ComponentERCResultEvent.type, (e) => {
             Project.import_cjk_glyphs();
             const component_erc_result: ComponentERCResult = e.detail;
-            const sch_symbol = this.project.find_designator(
-                component_erc_result.designator,
+            
+            if (component_erc_result.pins.length === 0) {
+                console.warn(`ERC: No pins specified for designator ${component_erc_result.designator}`);
+                return;
+            }
+
+            const designator = component_erc_result.designator;
+            const pins_by_uuid = new Map<string, PinCheckResult[]>();
+
+            for (const pin of component_erc_result.pins) {
+                const sch_symbol = this.project.find_designator_by_pin(
+                    designator,
+                    pin.pin_num,
+                );
+                
+                if (sch_symbol) {
+                    const existing_pins = pins_by_uuid.get(sch_symbol.uuid) ?? [];
+                    existing_pins.push(pin);
+                    pins_by_uuid.set(sch_symbol.uuid, existing_pins);
+                }
+            }
+
+            if (pins_by_uuid.size === 0) {
+                console.warn(`ERC: Cannot find any symbol instances for designator ${designator}`);
+                return;
+            }
+
+            const erc_items = Array.from(pins_by_uuid.entries()).map(
+                ([uuid, pins]) => ({ uuid, pins })
             );
 
-            if (sch_symbol) {
-                // Switch sheet if necessary
-                if (sch_symbol.sheet_name !== this.sch_viewer.sch_name) {
-                    const sch = this.project.file_by_name(
-                        sch_symbol.sheet_name,
-                    );
+            const first_ref = this.project.find_designator_by_pin(
+                designator,
+                component_erc_result.pins[0].pin_num
+            );
+            
+            if (first_ref) {
+                if (first_ref.sheet_name !== this.sch_viewer.sch_name) {
+                    const sch = this.project.file_by_name(first_ref.sheet_name);
                     if (sch instanceof KicadSch) {
                         this.viewer.load(sch);
                     }
                 }
-                // FIXME : Hacky timeout to allow time for sheet to load before showing ERC results.
-                setTimeout(() => {
-                    this.sch_viewer.show_erc(
-                        sch_symbol.uuid,
-                        component_erc_result.pins,
-                    );
-                }, 500);
 
-                // Defer slightly to ensure load/render cycle?
-                // Or just call it. show_erc calls zoom_fit_item which calls draw.
+                setTimeout(() => {
+                    if (erc_items.length === 1) {
+                        this.sch_viewer.show_erc(erc_items[0].uuid, erc_items[0].pins);
+                    } else {
+                        this.sch_viewer.show_erc_multi(erc_items);
+                    }
+                }, 500);
             } else {
-                console.warn(
-                    `ERC: Cannot find designator ${component_erc_result.designator}`,
-                );
+                console.warn(`ERC: Cannot find first pin's symbol instance for designator ${designator}`);
             }
         });
 
@@ -145,25 +171,58 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
 
         this.renderRoot.addEventListener("erc-jump", (e: any) => {
             const { designator, pins } = e.detail;
-            const sch_symbol = this.project.find_designator(designator);
+            
+            if (!pins || pins.length === 0) {
+                console.warn(`ERC: No pins specified for designator ${designator}`);
+                return;
+            }
 
-            if (sch_symbol) {
-                // Switch sheet if necessary
-                if (sch_symbol.sheet_name !== this.sch_viewer.sch_name) {
-                    const sch = this.project.file_by_name(
-                        sch_symbol.sheet_name,
-                    );
+            const pins_by_uuid = new Map<string, PinCheckResult[]>();
+
+            for (const pin of pins) {
+                const sch_symbol = this.project.find_designator_by_pin(
+                    designator,
+                    pin.pin_num,
+                );
+                
+                if (sch_symbol) {
+                    const existing_pins = pins_by_uuid.get(sch_symbol.uuid) ?? [];
+                    existing_pins.push(pin);
+                    pins_by_uuid.set(sch_symbol.uuid, existing_pins);
+                }
+            }
+
+            if (pins_by_uuid.size === 0) {
+                console.warn(`ERC: Cannot find any symbol instances for designator ${designator}`);
+                return;
+            }
+
+            const erc_items = Array.from(pins_by_uuid.entries()).map(
+                ([uuid, pins]) => ({ uuid, pins })
+            );
+
+            const first_ref = this.project.find_designator_by_pin(
+                designator,
+                pins[0].pin_num
+            );
+            
+            if (first_ref) {
+                if (first_ref.sheet_name !== this.sch_viewer.sch_name) {
+                    const sch = this.project.file_by_name(first_ref.sheet_name);
                     if (sch instanceof KicadSch) {
                         this.viewer.load(sch);
                     }
                 }
 
-                // Allow time for sheet load if needed, then highlight
                 setTimeout(() => {
-                    this.sch_viewer.show_erc(sch_symbol.uuid, pins);
+                    if (erc_items.length === 1) {
+                        this.sch_viewer.show_erc(erc_items[0].uuid, erc_items[0].pins);
+                    } else {
+                        this.sch_viewer.show_erc_multi(erc_items);
+                    }
                 }, 100);
             } else {
-                console.warn(`ERC: Cannot find designator ${designator}`);
+                console.warn(`ERC: Cannot find first pin's symbol instance for designator ${designator}`);
             }
         });
 

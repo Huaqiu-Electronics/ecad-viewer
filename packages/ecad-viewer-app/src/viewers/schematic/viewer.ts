@@ -277,44 +277,67 @@ export class SchematicViewer extends DocumentViewer<
         this.draw();
     }
 
-    #erc_data?: { uuid: string; pins: PinCheckResult[] };
+    #erc_data?: Array<{ uuid: string; pins: PinCheckResult[] }>;
 
     public show_erc(uuid: string, pins: PinCheckResult[]) {
-        this.#erc_data = { uuid, pins };
+        this.#erc_data = [{ uuid, pins }];
         this.zoom_fit_item(uuid);
         // zoom_fit_item calls paint_selected, which now calls paint_erc
+    }
+
+    public show_erc_multi(erc_items: Array<{ uuid: string; pins: PinCheckResult[] }>) {
+        if (erc_items.length === 0) {
+            return;
+        }
+        this.#erc_data = erc_items;
+        
+        const bboxes: BBox[] = [];
+        for (const erc_item of erc_items) {
+            const bbox = this.schematic_renderer.get_item_bbox(erc_item.uuid);
+            if (bbox) {
+                bboxes.push(bbox);
+            }
+        }
+        
+        if (bboxes.length > 0) {
+            const combined_bbox = BBox.combine(bboxes);
+            this.viewport.camera.bbox = combined_bbox.grow(20);
+            this.draw();
+            this.paint_selected(combined_bbox);
+        }
     }
 
     protected paint_erc() {
         const layer = this.layers.by_name(LayerNames.erc)!;
         layer.clear();
 
-        if (!this.#erc_data) {
+        if (!this.#erc_data || this.#erc_data.length === 0) {
             return;
         }
-
-        const { uuid, pins } = this.#erc_data;
-        // Verify the item is still in the document
-        const symbol = this.document.find_symbol(uuid);
-        if (!symbol) {
-            return;
-        }
-
-        const transform = get_symbol_transform(symbol);
-        const matrix = transform.matrix;
-        const symbol_pos = symbol.at.position;
 
         this.renderer.start_layer(layer.name);
 
         const font = StrokeFont.default();
 
-        for (const pin_err of pins) {
-            // Find pin in symbol
-            // symbol.pins contains PinInstance
-            const pin_inst = symbol.pins.find(
-                (p) => p.number == pin_err.pin_num,
-            );
-            if (!pin_inst) continue;
+        for (const erc_item of this.#erc_data) {
+            const { uuid, pins } = erc_item;
+            // Verify the item is still in the document
+            const symbol = this.document.find_symbol(uuid);
+            if (!symbol) {
+                continue;
+            }
+
+            const transform = get_symbol_transform(symbol);
+            const matrix = transform.matrix;
+            const symbol_pos = symbol.at.position;
+
+            for (const pin_err of pins) {
+                // Find pin in symbol
+                // symbol.pins contains PinInstance
+                const pin_inst = symbol.pins.find(
+                    (p) => p.number == pin_err.pin_num,
+                );
+                if (!pin_inst) continue;
 
             // pin_inst.definition returns PinDefinition directly (from LibSymbol.pin_by_number)
             const pin_def = pin_inst.definition;
@@ -351,28 +374,29 @@ export class SchematicViewer extends DocumentViewer<
             this.renderer.polygon(new Polygon(markerPoints, severity_color));
 
             if (pin_err.message) {
-                // Draw text
-                this.renderer.state.push();
-                // Position text slightly offset from pin
-                const text_pos = pin_pos.add(new Vec2(1, -1));
+                    // Draw text
+                    this.renderer.state.push();
+                    // Position text slightly offset from pin
+                    const text_pos = pin_pos.add(new Vec2(1, -1));
 
-                const attrs = new TextAttributes();
-                // KiCad StrokeFont expects units in 10000 scale (1mm = 10000IU approx for these internal calcs)
-                // StrokeFont.draw applies a 0.0001 scale transform.
-                // So 1.27mm should be passed as 12700.
-                attrs.size = new Vec2(1.27 * 10000, 1.27 * 10000);
-                attrs.stroke_width = 0.15 * 10000;
-                attrs.color = severity_color;
-                attrs.h_align = "left";
-                attrs.v_align = "bottom";
+                    const attrs = new TextAttributes();
+                    // KiCad StrokeFont expects units in 10000 scale (1mm = 10000IU approx for these internal calcs)
+                    // StrokeFont.draw applies a 0.0001 scale transform.
+                    // So 1.27mm should be passed as 12700.
+                    attrs.size = new Vec2(1.27 * 10000, 1.27 * 10000);
+                    attrs.stroke_width = 0.15 * 10000;
+                    attrs.color = severity_color;
+                    attrs.h_align = "left";
+                    attrs.v_align = "bottom";
 
-                font.draw(
-                    this.renderer,
-                    pin_err.message,
-                    new Vec2(text_pos.x * 10000, text_pos.y * 10000),
-                    attrs,
-                );
-                this.renderer.state.pop();
+                    font.draw(
+                        this.renderer,
+                        pin_err.message,
+                        new Vec2(text_pos.x * 10000, text_pos.y * 10000),
+                        attrs,
+                    );
+                    this.renderer.state.pop();
+                }
             }
         }
 
