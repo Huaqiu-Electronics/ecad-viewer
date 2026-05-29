@@ -14,6 +14,7 @@ declare global {
         default_page?: PAGES;
         design_urls?: DesignURLs;
         hide_header?: boolean;
+        white_bg?: boolean;
     }
 }
 
@@ -36,6 +37,11 @@ export const load_ecad_viewer_conf = () => {
             // @ts-expect-error 7015
             window[var_name] = value;
         }
+    }
+
+    const whiteBg = urlParams.get("whitebg");
+    if (whiteBg !== null) {
+        window.white_bg = whiteBg === "true" || whiteBg === "";
     }
 
     const base64_encoded_design_urls = urlParams.get("design_urls");
