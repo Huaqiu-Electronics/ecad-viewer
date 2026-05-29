@@ -319,6 +319,18 @@ export interface CommentClickDetails {
     element?: unknown;
 }
 
+export interface ImageExportRequestDetails {
+    viewType?: 'SCH' | 'PCB' | '3D' | 'BOM';
+}
+
+export interface ImageExportDetails {
+    viewType: 'SCH' | 'PCB' | '3D' | 'BOM';
+    imageData: string;
+    width: number;
+    height: number;
+    timestamp: number;
+}
+
 export class CommentClickEvent extends KiCanvasEvent<CommentClickDetails> {
     static readonly type = "ecad-viewer:comment:click";
 
@@ -327,7 +339,21 @@ export class CommentClickEvent extends KiCanvasEvent<CommentClickDetails> {
     }
 }
 
-// Event maps for type safe addEventListener.
+export class ImageExportRequestEvent extends CustomEvent<ImageExportRequestDetails | 'SCH' | 'PCB' | '3D' | 'BOM'> {
+    static readonly type = "ecad-viewer:image:export-request";
+
+    constructor(detail: ImageExportRequestDetails | 'SCH' | 'PCB' | '3D' | 'BOM') {
+        super(ImageExportRequestEvent.type, { detail });
+    }
+}
+
+export class ImageExportResultEvent extends CustomEvent<ImageExportDetails> {
+    static readonly type = "ecad-viewer:image:export-result";
+
+    constructor(detail: ImageExportDetails) {
+        super(ImageExportResultEvent.type, { detail });
+    }
+}
 
 export interface KiCanvasEventMap {
     [KiCanvasLoadEvent.type]: KiCanvasLoadEvent;

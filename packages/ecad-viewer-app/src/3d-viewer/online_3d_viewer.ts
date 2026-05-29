@@ -14,6 +14,14 @@ export class Online3dViewer extends KCUIElement {
     _viewer_container: Viewer;
     project: Project;
 
+    get renderer_element() {
+        return this._viewer_container?.renderer_element;
+    }
+
+    get canvas() {
+        return this._canvas;
+    }
+
     static override styles = [
         ...KCUIElement.styles,
         css`

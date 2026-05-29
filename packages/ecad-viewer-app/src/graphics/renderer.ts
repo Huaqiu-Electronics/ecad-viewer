@@ -44,8 +44,9 @@ export abstract class Renderer implements IDisposable {
     }
 
     set background_color(color: Color) {
-        this.#background_color = color;
-        this.canvas.style.backgroundColor = this.background_color.to_css();
+        const effectiveColor = (window as any).white_bg ? Color.white : color;
+        this.#background_color = effectiveColor;
+        this.canvas.style.backgroundColor = this.#background_color.to_css();
     }
 
     abstract setup(): Promise<void>;

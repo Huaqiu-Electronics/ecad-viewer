@@ -14,11 +14,14 @@ import { type EcadBlob, type EcadSources } from "../kicanvas/services/vfs";
 import { KCBoardAppElement } from "../kicanvas/elements/kc-board/app";
 import { KCSchematicAppElement } from "../kicanvas/elements/kc-schematic/app";
 import { BomApp } from "../kicanvas/elements/bom/app";
+import { KicadSch } from "../kicad";
 
 import { is_3d_model, is_kicad, TabHeaderElement } from "./tab_header";
 import {
     BoardContentReady,
     CommentClickEvent,
+    ImageExportRequestEvent,
+    ImageExportResultEvent,
     Online3dViewerLoaded,
     OpenBarrierEvent,
     SheetLoadEvent,
@@ -276,6 +279,262 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         return null;
     }
 
+    public async exportImage(
+        viewType: 'SCH' | 'PCB' | '3D' | 'BOM' = this.#active_tab as 'SCH' | 'PCB' | '3D' | 'BOM',
+    ): Promise<{ image: string; width: number; height: number } | null> {
+        await this.loaded;
+
+        const tabKind = this.#viewTypeToTabKind(viewType);
+        const currentTab = this.#active_tab;
+        const needSwitch = currentTab !== tabKind;
+
+        if (needSwitch) {
+            await this.#switchToTab(tabKind);
+        }
+
+        let result: { image: string; width: number; height: number } | null = null;
+
+        switch (viewType) {
+            case 'PCB': {
+                const boardViewer = this.#board_app?.viewer;
+                if (boardViewer?.canvas) {
+                    const canvas = boardViewer.canvas as HTMLCanvasElement;
+                    
+                    if (canvas.width === 0 || canvas.height === 0) {
+                        return null;
+                    }
+                    
+                    if (typeof boardViewer.draw === 'function') {
+                        boardViewer.draw();
+                    }
+                    
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                    
+                    result = {
+                        image: canvas.toDataURL('image/png'),
+                        width: canvas.width,
+                        height: canvas.height,
+                    };
+                }
+                break;
+            }
+            case 'SCH': {
+                const schViewer = this.#schematic_app?.viewer;
+                if (schViewer?.canvas) {
+                    const schematics = Array.from(this.#project?.schematics() || []);
+                    
+                    if (schematics.length > 1) {
+                        const images: Array<{ image: string; width: number; height: number; name: string }> = [];
+                        const originalSheet = (schViewer as any).sch_name;
+                        
+                        for (const sch of schematics) {
+                            if (sch instanceof KicadSch) {
+                                await this.#schematic_app.viewer.load(sch);
+                                await new Promise(resolve => requestAnimationFrame(resolve));
+                                
+                                const canvas = schViewer.canvas as HTMLCanvasElement;
+                                images.push({
+                                    image: canvas.toDataURL('image/png'),
+                                    width: canvas.width,
+                                    height: canvas.height,
+                                    name: sch.filename,
+                                });
+                            }
+                        }
+                        
+                        if (originalSheet) {
+                            const originalSch = this.#project.file_by_name(originalSheet);
+                            if (originalSch instanceof KicadSch) {
+                                await this.#schematic_app.viewer.load(originalSch);
+                            }
+                        }
+                        
+                        result = {
+                            image: JSON.stringify(images),
+                            width: 0,
+                            height: 0,
+                        };
+                    } else {
+                        const canvas = schViewer.canvas as HTMLCanvasElement;
+                        result = {
+                            image: canvas.toDataURL('image/png'),
+                            width: canvas.width,
+                            height: canvas.height,
+                        };
+                    }
+                }
+                break;
+            }
+            case '3D': {
+                const viewer3d = this.#ov_d_app;
+                if (viewer3d?._viewer_container) {
+                    const renderer = viewer3d._viewer_container.renderer;
+                    if (renderer) {
+                        renderer.render(
+                            viewer3d._viewer_container.scene,
+                            viewer3d._viewer_container.activeCamera
+                        );
+                        
+                        const canvas = renderer.domElement;
+                        result = {
+                            image: canvas.toDataURL('image/png'),
+                            width: canvas.width,
+                            height: canvas.height,
+                        };
+                    }
+                }
+                break;
+            }
+            case 'BOM': {
+                const bomItems = this.#project?.bom_items;
+                if (bomItems && bomItems.length > 0) {
+                    const padding = 20;
+                    const rowHeight = 28;
+                    const headerHeight = 32;
+                    const colWidths = [50, 140, 350, 160, 200, 70];
+                    const totalWidth = colWidths.reduce((a, b) => a + b, 0) + padding * 2;
+                    const totalHeight = headerHeight + (bomItems.length + 1) * rowHeight + padding * 2;
+                    
+                    const canvas = document.createElement('canvas');
+                    const dpr = window.devicePixelRatio || 1;
+                    canvas.width = totalWidth * dpr;
+                    canvas.height = totalHeight * dpr;
+                    const ctx = canvas.getContext('2d');
+                    
+                    if (ctx) {
+                        ctx.scale(dpr, dpr);
+                        
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, totalWidth, totalHeight);
+                        
+                        ctx.fillStyle = '#666';
+                        ctx.fillRect(padding, padding, totalWidth - padding * 2, headerHeight);
+                        
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 12px sans-serif';
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'middle';
+                        
+                        const headers = ['No', 'Value', 'Description', 'Footprint', 'Designator', 'Quantity'];
+                        let x = padding + 8;
+                        headers.forEach((header, index) => {
+                            ctx.fillText(header, x, padding + headerHeight / 2);
+                            x += colWidths[index] ?? 0;
+                        });
+                        
+                        ctx.fillStyle = '#333';
+                        ctx.font = '11px sans-serif';
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'middle';
+                        
+                        let y = padding + headerHeight;
+                        bomItems.forEach((item, index) => {
+                            if (index % 2 === 0) {
+                                ctx.fillStyle = '#f9f9f9';
+                                ctx.fillRect(padding, y, totalWidth - padding * 2, rowHeight);
+                            }
+                            
+                            ctx.fillStyle = '#333';
+                            let x = padding + 8;
+                            
+                            ctx.fillText(String(index + 1), x, y + rowHeight / 2);
+                            x += colWidths[0] ?? 0;
+                            
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(x - 8, y, colWidths[1] ?? 0, rowHeight);
+                            ctx.clip();
+                            ctx.fillText(item.Name || '', x, y + rowHeight / 2);
+                            ctx.restore();
+                            x += colWidths[1] ?? 0;
+                            
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(x - 8, y, colWidths[2] ?? 0, rowHeight);
+                            ctx.clip();
+                            ctx.fillText(item.Description || '', x, y + rowHeight / 2);
+                            ctx.restore();
+                            x += colWidths[2] ?? 0;
+                            
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(x - 8, y, colWidths[3] ?? 0, rowHeight);
+                            ctx.clip();
+                            ctx.fillText(item.Footprint || '', x, y + rowHeight / 2);
+                            ctx.restore();
+                            x += colWidths[3] ?? 0;
+                            
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(x - 8, y, colWidths[4] ?? 0, rowHeight);
+                            ctx.clip();
+                            ctx.fillText(item.Reference || '', x, y + rowHeight / 2);
+                            ctx.restore();
+                            x += colWidths[4] ?? 0;
+                            
+                            ctx.fillText(String(item.Qty), x, y + rowHeight / 2);
+                            
+                            y += rowHeight;
+                        });
+                        
+                        const totalQty = bomItems.reduce((sum, item) => sum + item.Qty, 0);
+                        ctx.fillStyle = '#666';
+                        ctx.fillRect(padding, y, totalWidth - padding * 2, rowHeight);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 12px sans-serif';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(`Total: ${totalQty} Price: N/A`, totalWidth - padding - 8, y + rowHeight / 2);
+                        
+                        result = {
+                            image: canvas.toDataURL('image/png'),
+                            width: canvas.width,
+                            height: canvas.height,
+                        };
+                    }
+                }
+                break;
+            }
+        }
+
+        if (needSwitch && currentTab !== tabKind) {
+            await this.#switchToTab(currentTab);
+        }
+
+        return result;
+    }
+
+    #viewTypeToTabKind(viewType: 'SCH' | 'PCB' | '3D' | 'BOM'): TabKind {
+        switch (viewType) {
+            case 'PCB': return TabKind.pcb;
+            case 'SCH': return TabKind.sch;
+            case '3D': return TabKind.step;
+            case 'BOM': return TabKind.bom;
+            default: return TabKind.pcb;
+        }
+    }
+
+    async #switchToTab(tabKind: TabKind): Promise<void> {
+        return new Promise((resolve) => {
+            const tabButtons = this.#tab_header?.shadowRoot?.querySelectorAll('tab-button');
+            if (tabButtons) {
+                tabButtons.forEach((btn) => {
+                    if (btn.textContent?.trim().toUpperCase() === tabKind) {
+                        (btn as HTMLElement).click();
+                    }
+                });
+            }
+            
+            const checkTab = () => {
+                if (this.#active_tab === tabKind) {
+                    resolve();
+                } else {
+                    setTimeout(checkTab, 50);
+                }
+            };
+            setTimeout(checkTab, 100);
+        });
+    }
+
     attributeChangedCallback(
         name: string,
         old_value: string,
@@ -296,7 +555,35 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         });
     }
 
-    async #setup_events() {}
+    async #setup_events() {
+        window.addEventListener(ImageExportRequestEvent.type, async (e) => {
+            const event = e as ImageExportRequestEvent;
+            let viewType: 'SCH' | 'PCB' | '3D' | 'BOM' = this.#active_tab as 'SCH' | 'PCB' | '3D' | 'BOM';
+            
+            if (typeof event.detail === 'string') {
+                viewType = event.detail as 'SCH' | 'PCB' | '3D' | 'BOM';
+            } else if (event.detail && typeof event.detail === 'object' && 'viewType' in event.detail && event.detail.viewType) {
+                viewType = event.detail.viewType;
+            }
+        
+            const result = await this.exportImage(viewType);
+            if (result) {
+                window.parent.postMessage(
+                    {
+                        type: ImageExportResultEvent.type,
+                        detail: {
+                            viewType: viewType,
+                            imageData: result.image,
+                            width: result.width,
+                            height: result.height,
+                            timestamp: Date.now(),
+                        },
+                    },
+                    '*',
+                );
+            }
+        });
+    }
 
     async load_zip(file: Blob) {
         const files = await ZipUtils.unzipFile(file);
