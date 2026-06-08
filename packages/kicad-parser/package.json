@@ -3,13 +3,12 @@
     "version": "1.5.2",
     "description": "KiCad sexpr file parser",
     "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js"
+            "require": "./dist/index.js",
+            "import": "./dist/index.mjs"
         }
     },
     "files": [
