@@ -22,6 +22,8 @@ import {
     CommentClickEvent,
     ImageExportRequestEvent,
     ImageExportResultEvent,
+    LoadZipEvent,
+    LoadZipErrorEvent,
     Online3dViewerLoaded,
     OpenBarrierEvent,
     SheetLoadEvent,
@@ -556,6 +558,14 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     }
 
     async #setup_events() {
+        // Listen for ZIP blob received via postMessage
+        window.addEventListener(LoadZipEvent.type, async (e) => {
+            const event = e as LoadZipEvent;
+            const blob = event.detail;
+            // Dispose current project and load new one
+            await this.load_zip(blob);
+        });
+
         window.addEventListener(ImageExportRequestEvent.type, async (e) => {
             const event = e as ImageExportRequestEvent;
             let viewType: 'SCH' | 'PCB' | '3D' | 'BOM' = this.#active_tab as 'SCH' | 'PCB' | '3D' | 'BOM';
@@ -586,12 +596,15 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     }
 
     async load_zip(file: Blob) {
-        const files = await ZipUtils.unzipFile(file);
-        const readFilePromises = Array.from(files).map((file) =>
-            this.readFile(file),
-        );
+        // Dispose current project (queueing: newest wins)
+        this.#project.dispose();
 
         try {
+            const files = await ZipUtils.unzipFile(file);
+            const readFilePromises = Array.from(files).map((file) =>
+                this.readFile(file),
+            );
+
             const blobs: EcadBlob[] = [];
 
             const results = await Promise.all(readFilePromises);
@@ -612,6 +625,9 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             await this.#setup_project({ urls: [], blobs });
         } catch (error) {
             console.error("Error while loading ZIP:", error);
+            // Dispatch error event for iframe bridge to handle
+            const errorMessage = error instanceof Error ? error.message : "Unknown error while loading ZIP";
+            window.dispatchEvent(new LoadZipErrorEvent(errorMessage));
         }
     }
 
@@ -710,6 +726,11 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             this.loaded = true;
             await this.update();
             this.#project.on_loaded();
+        } catch (error) {
+            console.error("Error while setting up project:", error);
+            // Dispatch error event for iframe bridge to handle
+            const errorMessage = error instanceof Error ? error.message : "Unknown error while setting up project";
+            window.dispatchEvent(new LoadZipErrorEvent(errorMessage));
         } finally {
             this.loading = false;
         }

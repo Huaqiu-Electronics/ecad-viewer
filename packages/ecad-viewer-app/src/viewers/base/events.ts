@@ -355,6 +355,43 @@ export class ImageExportResultEvent extends CustomEvent<ImageExportDetails> {
     }
 }
 
+/**
+ * Message type for loading ZIP via postMessage
+ */
+export const LOAD_ZIP_MESSAGE_TYPE = "ecad-viewer/load-zip";
+
+/**
+ * Message type for ready notification
+ */
+export const READY_MESSAGE_TYPE = "ecad-viewer/ready";
+
+/**
+ * Message type for error reporting
+ */
+export const ERROR_MESSAGE_TYPE = "ecad-viewer/error";
+
+/**
+ * Event dispatched when a ZIP is loaded via postMessage
+ */
+export class LoadZipEvent extends CustomEvent<Blob> {
+    static readonly type = "ecad-viewer:zip:loaded";
+
+    constructor(blob: Blob) {
+        super(LoadZipEvent.type, { detail: blob });
+    }
+}
+
+/**
+ * Event dispatched when ZIP loading via postMessage fails
+ */
+export class LoadZipErrorEvent extends CustomEvent<string> {
+    static readonly type = "ecad-viewer:zip:error";
+
+    constructor(message: string) {
+        super(LoadZipErrorEvent.type, { detail: message });
+    }
+}
+
 export interface KiCanvasEventMap {
     [KiCanvasLoadEvent.type]: KiCanvasLoadEvent;
     [KiCanvasSelectEvent.type]: KiCanvasSelectEvent;
