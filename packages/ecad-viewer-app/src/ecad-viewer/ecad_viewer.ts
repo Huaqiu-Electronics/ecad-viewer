@@ -25,6 +25,7 @@ import {
     LoadZipEvent,
     LoadZipErrorEvent,
     Online3dViewerLoaded,
+    Online3dViewerUrlReady,
     OpenBarrierEvent,
     SheetLoadEvent,
     TabActivateEvent,
@@ -674,6 +675,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                         blobs.push({ filename: name, content });
                     } else if (is_3d_model(name)) {
                         this.#project.ov_3d_url = URL.createObjectURL(files[idx]!);
+                        console.log("[ECadViewer] 3D model found in zip:", name);
                     }
                 });
                 console.log("[ECadViewer]", label, "loaded,", blobs.length, "kicad files");
@@ -706,8 +708,10 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                 } else if (glb_blobs.length > 0) {
                     await this.#add_files_to_project(glb_blobs);
                 }
-                // GLB-only (no kicad files) just sets ov_3d_url which is
-                // already picked up by has_3d; no re-render needed.
+                if (this.#project.ov_3d_url) {
+                    console.log("[ECadViewer] GLB URL ready, dispatching Online3dViewerUrlReady");
+                    window.dispatchEvent(new Online3dViewerUrlReady(this.#project.ov_3d_url));
+                }
             }
 
             return;
@@ -873,8 +877,12 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             this.#tab_contents[tab.current]?.classList.add("active");
 
             if (tab.current === TabKind.step) {
-                if (this.#ov_d_app) this.#ov_d_app.on_show();
-                else {
+                if (this.#ov_d_app) {
+                    // Only resize if the viewer is actually visible (model loaded)
+                    if (this.#ov_d_app.style.display !== "none") {
+                        this.#ov_d_app.on_show();
+                    }
+                } else {
                     (async () => {
                         // @ts-expect-error its imported from map
                         await import("3d-viewer");
@@ -884,6 +892,20 @@ export class ECadViewer extends KCUIElement implements InputContainer {
                         const page = embed_to_tab(this.#ov_d_app, TabKind.step);
                         page.classList.add("active");
                         page.style.display = "none";
+                        const onLoaded = () => {
+                            console.log("[ECadViewer] Online3dViewerLoaded received, showing 3D viewer");
+                            this.#step_viewer_placeholder.hidden = true;
+                            this.#ov_d_app.style.display = "";
+                            this.#ov_d_app.on_show();
+                            this.project.removeEventListener(
+                                Online3dViewerLoaded.type,
+                                onLoaded,
+                            );
+                        };
+                        this.project.addEventListener(
+                            Online3dViewerLoaded.type,
+                            onLoaded,
+                        );
                     })();
                 }
             }
@@ -959,10 +981,6 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             this.#step_viewer_placeholder =
                 html`<ecad-spinner></ecad-spinner>` as HTMLElement;
             embed_to_tab(this.#step_viewer_placeholder, TabKind.step);
-            this.project.addEventListener(Online3dViewerLoaded.type, () => {
-                this.#step_viewer_placeholder.hidden = true;
-                this.#ov_d_app.style.display = "";
-            });
         }
         if (this.has_bom) {
             this.#bom_app = new BomApp();

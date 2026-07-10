@@ -13,6 +13,8 @@ export class Online3dViewer extends KCUIElement {
     _canvas: HTMLElement;
     _viewer_container: Viewer;
     project: Project;
+    _pending_3d_url: string | null = null;
+    _loaded = false;
 
     get renderer_element() {
         return this._viewer_container?.renderer_element;
@@ -38,7 +40,12 @@ export class Online3dViewer extends KCUIElement {
         window.addEventListener(
             Online3dViewerUrlReady.type,
             (evt: Online3dViewerUrlReady) => {
-                this._load_src(evt.detail);
+                console.log("[3DViewer] Online3dViewerUrlReady received, viewer_container ready:", !!this._viewer_container);
+                if (this._viewer_container) {
+                    this._load_src(evt.detail);
+                } else {
+                    this._pending_3d_url = evt.detail;
+                }
             },
         );
     }
@@ -53,14 +60,41 @@ export class Online3dViewer extends KCUIElement {
 
     override initialContentCallback() {
         later(() => {
-            if (this.project.ov_3d_url) this._load_src(this.project.ov_3d_url);
+            const url = this._pending_3d_url || this.project.ov_3d_url;
+            console.log("[3DViewer] initialContentCallback, url:", url ? "found" : "not found");
+            if (url) this._load_src(url);
         });
     }
+
     public on_show() {
-        this._viewer_container.resize();
+        if (!this._viewer_container) {
+            console.log("[3DViewer] on_show skipped: viewer not initialized");
+            return;
+        }
+        requestAnimationFrame(() => {
+            const w = this.clientWidth;
+            const h = this.clientHeight;
+            console.log("[3DViewer] on_show resize:", w, "x", h);
+            if (w === 0 || h === 0) {
+                console.log("[3DViewer] on_show skipped: element not visible");
+                return;
+            }
+            this._viewer_container.resize();
+        });
     }
 
     async _load_src(url: string) {
+        if (this._loaded) {
+            console.log("[3DViewer] _load_src skipped: already loaded");
+            return;
+        }
+        if (!this._viewer_container) {
+            console.log("[3DViewer] _load_src deferred: viewer not ready, storing URL");
+            this._pending_3d_url = url;
+            return;
+        }
+        this._loaded = true;
+        console.log("[3DViewer] _load_src loading model from URL");
         await this._viewer_container.load(url, new Map());
         URL.revokeObjectURL(url);
         this.project.dispatchEvent(new Online3dViewerLoaded());
