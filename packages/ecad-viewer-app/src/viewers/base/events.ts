@@ -115,6 +115,7 @@ export class KicadSyncHoverEvent extends KiCanvasEvent<string | null> {
 export interface TabIndexChange {
     current: TabKind;
     previous?: TabKind;
+    userInitiated?: boolean;
 }
 
 export class TabActivateEvent extends CustomEvent<TabIndexChange> {

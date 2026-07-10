@@ -41,8 +41,9 @@ export class TabHeaderElement extends KCUIElement {
         public option: {
             has_3d: boolean;
             has_pcb: boolean;
-            sch_count: number;
             has_bom: boolean;
+            sch_count: number;
+            active_tab?: TabKind;
         },
     ) {
         super();
@@ -314,7 +315,7 @@ export class TabHeaderElement extends KCUIElement {
             case Sections.beginning:
                 if (this.option.has_pcb)
                     section.appendChild(make_beginning(TabKind.pcb));
-                if (this.option.sch_count > 1)
+                if (this.option.sch_count > 0)
                     section.appendChild(make_beginning(TabKind.sch));
 
                 break;
@@ -346,17 +347,29 @@ export class TabHeaderElement extends KCUIElement {
     }
 
     override renderedCallback(): void | undefined {
+        console.log("[TabHeader] renderedCallback() called, option:", this.option, "current_tab:", this.#current_tab);
+        if (this.option.active_tab !== undefined) {
+            console.log("[TabHeader] Activating tab from option.active_tab:", this.option.active_tab);
+            this.activateTab(this.option.active_tab);
+            return;
+        }
+
         if (!window.app || window.app === "full") {
             if (window.default_page) {
+                console.log("[TabHeader] Activating tab from default_page:", window.default_page);
                 this.activateTab(window.default_page.toUpperCase() as TabKind);
             } else {
                 if (this.option.sch_count) {
+                    console.log("[TabHeader] Activating SCH tab (sch_count:", this.option.sch_count + ")");
                     this.activateTab(TabKind.sch);
                 } else if (this.option.has_pcb) {
+                    console.log("[TabHeader] Activating PCB tab");
                     this.activateTab(TabKind.pcb);
                 } else if (this.option.has_3d) {
+                    console.log("[TabHeader] Activating 3D tab");
                     this.activateTab(TabKind.step);
                 } else if (this.option.has_bom) {
+                    console.log("[TabHeader] Activating BOM tab");
                     this.activateTab(TabKind.bom);
                 }
             }
@@ -379,7 +392,7 @@ export class TabHeaderElement extends KCUIElement {
         }
     }
 
-    private activateTab(kind: TabKind) {
+    private activateTab(kind: TabKind, userInitiated = false) {
         if (this.#current_tab === kind) return;
 
         for (const [section, elements] of this.#elements) {
@@ -401,6 +414,7 @@ export class TabHeaderElement extends KCUIElement {
             new TabActivateEvent({
                 previous: this.#current_tab,
                 current: kind,
+                userInitiated,
             }),
         );
         this.#current_tab = kind;
@@ -428,7 +442,7 @@ export class TabHeaderElement extends KCUIElement {
                         break;
                     case Sections.middle:
                         element.addEventListener("click", () => {
-                            this.activateTab(kind);
+                            this.activateTab(kind, true);
                         });
                         break;
                 }

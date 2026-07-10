@@ -136,6 +136,8 @@ export class ECadViewer extends KCUIElement implements InputContainer {
 
     #tab_contents: Record<string, HTMLElement> = {};
     #active_tab: TabKind = TabKind.pcb;
+    #user_selected_tab = false;
+    #initial_tab_set = false;
     #project: Project = new Project();
     #schematic_app: KCSchematicAppElement;
     #ov_d_app: Online3dViewer;
@@ -649,39 +651,66 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     }
 
     async load_src() {
+        console.log("[ECadViewer] load_src() called, design_urls:", window.design_urls);
         if (window.zip_url) {
             return this.load_window_zip_url(window.zip_url);
         }
         if (window.design_urls) {
-            const do_load_glb = () => {
-                if (window.design_urls?.glb_url) {
-                    this.load_window_zip_url(window.design_urls.glb_url);
-                }
+            const extract_zip_blobs = async (url: string, label: string): Promise<EcadBlob[]> => {
+                console.log("[ECadViewer] Loading", label + ":", url);
+                const blob = await (await fetch(url)).blob();
+                const files = await ZipUtils.unzipFile(blob);
+                const readFilePromises = Array.from(files).map((file) =>
+                    this.readFile(file),
+                );
+                const results = await Promise.all(readFilePromises);
+                const blobs: EcadBlob[] = [];
+                let idx = -1;
+                results.forEach(({ name, content }) => {
+                    idx = idx + 1;
+                    const names = name.split("/");
+                    name = names[names.length - 1]!;
+                    if (is_kicad(name)) {
+                        blobs.push({ filename: name, content });
+                    } else if (is_3d_model(name)) {
+                        this.#project.ov_3d_url = URL.createObjectURL(files[idx]!);
+                    }
+                });
+                console.log("[ECadViewer]", label, "loaded,", blobs.length, "kicad files");
+                return blobs;
             };
 
-            const do_load_pcb = () => {
-                if (window.design_urls?.pcb_url) {
-                    this.load_window_zip_url(window.design_urls.pcb_url).then(
-                        () => {
-                            do_load_glb();
-                        },
-                    );
-                }
-            };
+            let initial_loaded = false;
 
             if (window.design_urls.sch_url) {
-                await this.load_window_zip_url(window.design_urls.sch_url);
-                if (window.design_urls.pcb_url) return do_load_pcb();
-                if (window.design_urls.glb_url) return do_load_glb();
+                const sch_blobs = await extract_zip_blobs(window.design_urls.sch_url, "SCH");
+                await this.#setup_project({ urls: [], blobs: sch_blobs });
+                initial_loaded = true;
             }
 
             if (window.design_urls.pcb_url) {
-                return do_load_pcb();
+                const pcb_blobs = await extract_zip_blobs(window.design_urls.pcb_url, "PCB");
+                if (!initial_loaded) {
+                    await this.#setup_project({ urls: [], blobs: pcb_blobs });
+                    initial_loaded = true;
+                } else {
+                    await this.#add_files_to_project(pcb_blobs);
+                }
             }
 
             if (window.design_urls.glb_url) {
-                return do_load_glb();
+                const glb_blobs = await extract_zip_blobs(window.design_urls.glb_url, "GLB");
+                if (!initial_loaded) {
+                    await this.#setup_project({ urls: [], blobs: glb_blobs });
+                    initial_loaded = true;
+                } else if (glb_blobs.length > 0) {
+                    await this.#add_files_to_project(glb_blobs);
+                }
+                // GLB-only (no kicad files) just sets ov_3d_url which is
+                // already picked up by has_3d; no re-render needed.
             }
+
+            return;
         }
 
         const urls = [];
@@ -717,6 +746,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
     }
 
     async #setup_project(sources: EcadSources) {
+        console.log("[ECadViewer] #setup_project() called, has_sch:", this.has_sch, "has_pcb:", this.has_pcb);
         this.loaded = false;
         this.loading = true;
 
@@ -724,13 +754,29 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             await this.#project.load(sources);
 
             this.loaded = true;
+            console.log("[ECadViewer] Project loaded, has_sch:", this.has_sch, "has_pcb:", this.has_pcb, "active_tab:", this.#active_tab);
             await this.update();
             this.#project.on_loaded();
         } catch (error) {
-            console.error("Error while setting up project:", error);
+            console.error("[ECadViewer] Error while setting up project:", error);
             // Dispatch error event for iframe bridge to handle
             const errorMessage = error instanceof Error ? error.message : "Unknown error while setting up project";
             window.dispatchEvent(new LoadZipErrorEvent(errorMessage));
+        } finally {
+            this.loading = false;
+        }
+    }
+
+    async #add_files_to_project(blobs: EcadBlob[]) {
+        console.log("[ECadViewer] #add_files_to_project() called, adding", blobs.length, "files");
+        this.loading = true;
+        try {
+            await this.#project.load({ urls: [], blobs });
+            console.log("[ECadViewer] Files added, has_sch:", this.has_sch, "has_pcb:", this.has_pcb);
+            // Notify existing viewers of the updated project without re-rendering
+            this.#project.on_loaded();
+        } catch (error) {
+            console.error("[ECadViewer] Error while adding files to project:", error);
         } finally {
             this.loading = false;
         }
@@ -783,6 +829,7 @@ export class ECadViewer extends KCUIElement implements InputContainer {
             has_pcb: this.has_pcb,
             sch_count: this.sch_count,
             has_bom: this.has_bom,
+            active_tab: this.#user_selected_tab ? this.#active_tab : undefined,
         });
 
         if (window.hide_header) {
@@ -792,6 +839,15 @@ export class ECadViewer extends KCUIElement implements InputContainer {
         this.#tab_header.input_container = this;
         this.#tab_header.addEventListener(TabActivateEvent.type, (event) => {
             const tab = (event as TabActivateEvent).detail;
+            console.log("[ECadViewer] TabActivateEvent received: previous=", tab.previous, "current=", tab.current, "userInitiated=", tab.userInitiated, "initial_tab_set=", this.#initial_tab_set);
+            if (tab.userInitiated) {
+                this.#user_selected_tab = true;
+                this.#initial_tab_set = true;
+            } else if (!this.#initial_tab_set) {
+                this.#initial_tab_set = true;
+                this.#user_selected_tab = true;
+                console.log("[ECadViewer] First automatic tab activation recorded - future renders will preserve tab:", tab.current);
+            }
             this.#active_tab = tab.current;
             this.dispatchEvent(new TabActivateEvent(tab));
             if (tab.previous) {
