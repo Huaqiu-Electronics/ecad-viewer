@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Load ZIP via postMessage Demo</title>
+
+        <style>
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                height: 100%;
+                font-family: sans-serif;
+            }
+
+            iframe {
+                width: 100%;
+                height: 100%;
+                border: none;
+            }
+
+            .control-panel {
+                position: fixed;
+                top: 12px;
+                left: 12px;
+                z-index: 1000;
+                background: #fff;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                padding: 12px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                min-width: 260px;
+            }
+
+            .control-panel h3 {
+                margin: 0 0 4px 0;
+                font-size: 14px;
+                color: #333;
+            }
+
+            .control-panel .status {
+                font-size: 12px;
+                color: #666;
+                margin-bottom: 4px;
+            }
+
+            .control-panel .status.ready {
+                color: #2e7d32;
+            }
+
+            .control-panel .status.error {
+                color: #c62828;
+            }
+
+            button {
+                padding: 8px 12px;
+                font-size: 14px;
+                cursor: pointer;
+                background-color: #fff;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
+
+            button:hover {
+                background-color: #f0f0f0;
+            }
+
+            button:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            .file-input-row {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .file-input-row label {
+                font-size: 13px;
+                color: #555;
+            }
+
+            .file-input-row input[type="file"] {
+                font-size: 12px;
+            }
+
+            .divider {
+                height: 1px;
+                background: #e0e0e0;
+                margin: 4px 0;
+            }
+        </style>
+    </head>
+    <body>
+
+        <iframe
+            id="viewerFrame"
+            src="http://localhost:8081/?design_urls=ewogICAgInNjaF91cmwiOiAiLi9zZXBhcmF0ZWQtc2NoLXBjYi1nbGIvc2NoLnppcCIsCiAgICAicGNiX3VybCI6ICIuL3NlcGFyYXRlZC1zY2gtcGNiLWdsYi9wY2IuemlwIiwKICAgICJnbGJfdXJsIjogIi4vc2VwYXJhdGVkLXNjaC1wY2ItZ2xiL2dsYi56aXAiCn0="
+            allow="clipboard-read; clipboard-write"></iframe>
+    </body>
+</html>
