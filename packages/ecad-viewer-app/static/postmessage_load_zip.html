@@ -117,7 +117,7 @@
 
         <iframe
             id="viewerFrame"
-            src="http://localhost:8081?app=sch"
+            src="http://localhost:8012?app=sch"
             allow="clipboard-read; clipboard-write"></iframe>
 
         <script>
@@ -205,7 +205,7 @@
             });
 
             window.addEventListener("message", (event) => {
-                if (event.origin !== "http://localhost:8081") return;
+                if (event.origin !== "http://localhost:8012") return;
 
                 const data = event.data;
                 if (!data || typeof data.type !== "string") return;

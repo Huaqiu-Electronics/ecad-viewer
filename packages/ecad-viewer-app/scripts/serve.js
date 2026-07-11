@@ -34,7 +34,7 @@ await context.watch();
 let { host, port } = await context.serve({
     servedir: resolve(APP_DIR, "static"),
     host: "127.0.0.1",
-    port: 8081,
+    port: 8012,
 });
 
 console.log(`[serve] listening at http://${host}:${port}`);
