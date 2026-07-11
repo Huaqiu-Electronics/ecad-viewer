@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ECAD Viewer 图片导出演示</title>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                margin: 0;
+                padding: 20px;
+                background-color: #f5f5f5;
+            }
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+            }
+            .header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+            .controls {
+                display: flex;
+                gap: 10px;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 14px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                background-color: #4285f4;
+                color: white;
+                transition: background-color 0.2s;
+            }
+            button:hover {
+                background-color: #3367d6;
+            }
+            button:active {
+                background-color: #2c56b4;
+            }
+            .iframe-container {
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                overflow: hidden;
+            }
+            iframe {
+                width: 100%;
+                height: 600px;
+                border: none;
+            }
+            .preview-section {
+                margin-top: 20px;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                padding: 20px;
+            }
+            .preview-section h3 {
+                margin: 0 0 15px 0;
+                color: #333;
+            }
+            .preview-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+            }
+            .preview-item {
+                flex: 1;
+                min-width: 300px;
+            }
+            .preview-item img {
+                max-width: 100%;
+                border-radius: 4px;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            }
+            .preview-item p {
+                margin: 10px 0 0 0;
+                font-size: 14px;
+                color: #666;
+            }
+            .status {
+                margin-top: 10px;
+                padding: 10px;
+                background-color: #e8f0fe;
+                border-radius: 4px;
+                font-size: 14px;
+                color: #1967d2;
+            }
+            .status.success {
+                background-color: #e8f5e9;
+                color: #2e7d32;
+            }
+            .status.error {
+                background-color: #ffebee;
+                color: #c62828;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>ECAD Viewer 图片导出演示</h1>
+                <div class="controls">
+                    <button id="exportPCB">导出 PCB 图片</button>
+                    <button id="exportSCH">导出 原理图 图片</button>
+                    <button id="export3D">导出 3D 图片</button>
+                    <button id="exportBOM">导出 BOM 图片</button>
+                    <button id="exportAll">导出全部</button>
+                </div>
+            </div>
+            
+            <div class="iframe-container">
+                <iframe id="ecadViewer" src="http://localhost:8081/?zip-url=./video.zip&amp;app=full"></iframe>
+            </div>
+            
+            <div class="preview-section">
+                <h3>导出预览</h3>
+                <div id="previewContainer" class="preview-container">
+                    <p style="color: #999;">点击上方按钮导出图片</p>
+                </div>
+            </div>
+            
+            <div id="status" class="status"></div>
+        </div>
+
+        <script>
+            const iframe = document.getElementById('ecadViewer');
+            const previewContainer = document.getElementById('previewContainer');
+            const status = document.getElementById('status');
+
+            const viewTypeLabels = {
+                PCB: 'PCB',
+                SCH: '原理图',
+                '3D': '3D视图',
+                BOM: 'BOM清单'
+            };
+
+            function showStatus(message, type = 'info') {
+                status.textContent = message;
+                status.className = `status ${type}`;
+            }
+
+            function addPreview(imageData, viewType) {
+                const existingPreview = document.querySelector(`.preview-item[data-viewtype="${viewType}"]`);
+                if (existingPreview) {
+                    existingPreview.remove();
+                }
+
+                try {
+                    const parsedData = JSON.parse(imageData);
+                    if (Array.isArray(parsedData)) {
+                        parsedData.forEach((item, index) => {
+                            const previewItem = document.createElement('div');
+                            previewItem.className = 'preview-item';
+                            previewItem.setAttribute('data-viewtype', viewType);
+
+                            const img = document.createElement('img');
+                            img.src = item.image;
+                            img.alt = `${viewTypeLabels[viewType]} ${item.name || `页面 ${index + 1}`} 预览`;
+
+                            const p = document.createElement('p');
+                            p.textContent = `${viewTypeLabels[viewType]} - ${item.name || `页面 ${index + 1}`} - ${(item.image.length / 1024).toFixed(1)} KB`;
+
+                            previewItem.appendChild(img);
+                            previewItem.appendChild(p);
+                            previewContainer.appendChild(previewItem);
+                        });
+                    } else {
+                        throw new Error('Not an array');
+                    }
+                } catch {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'preview-item';
+                    previewItem.setAttribute('data-viewtype', viewType);
+
+                    const img = document.createElement('img');
+                    img.src = imageData;
+                    img.alt = `${viewTypeLabels[viewType]} 预览`;
+
+                    const p = document.createElement('p');
+                    p.textContent = `${viewTypeLabels[viewType]} - ${(imageData.length / 1024).toFixed(1)} KB`;
+
+                    previewItem.appendChild(img);
+                    previewItem.appendChild(p);
+                    previewContainer.appendChild(previewItem);
+                }
+            }
+
+            async function exportImage(viewType) {
+                showStatus(`正在导出 ${viewTypeLabels[viewType]}...`, 'info');
+                
+                const timeoutMs = viewType === 'SCH' ? 30000 : 10000;
+                
+                return new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        showStatus(`导出 ${viewTypeLabels[viewType]} 超时`, 'error');
+                        reject(new Error('Timeout'));
+                    }, timeoutMs);
+
+                    const messageHandler = (event) => {
+                        if (event.source !== iframe.contentWindow) return;
+                        if (event.data.type !== 'ecad-viewer:image:export-result') return;
+
+                        clearTimeout(timeout);
+                        window.removeEventListener('message', messageHandler);
+
+                        const detail = event.data.detail;
+                        if (detail.viewType === viewType) {
+                            showStatus(`成功导出 ${viewTypeLabels[viewType]}`, 'success');
+                            addPreview(detail.imageData, viewType);
+                            resolve(detail);
+                        }
+                    };
+
+                    window.addEventListener('message', messageHandler);
+
+                    iframe.contentWindow.postMessage({
+                        type: 'ecad-viewer:image:export-request',
+                        detail: viewType
+                    }, '*');
+                });
+            }
+
+            document.getElementById('exportPCB').addEventListener('click', () => exportImage('PCB'));
+            document.getElementById('exportSCH').addEventListener('click', () => exportImage('SCH'));
+            document.getElementById('export3D').addEventListener('click', () => exportImage('3D'));
+            document.getElementById('exportBOM').addEventListener('click', () => exportImage('BOM'));
+
+            document.getElementById('exportAll').addEventListener('click', async () => {
+                const types = ['PCB', 'SCH', '3D', 'BOM'];
+                for (const type of types) {
+                    try {
+                        await exportImage(type);
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    } catch (e) {
+                        console.warn(`导出 ${type} 失败:`, e);
+                    }
+                }
+            });
+
+            showStatus('点击按钮开始导出图片', 'info');
+        </script>
+    </body>
+</html>
