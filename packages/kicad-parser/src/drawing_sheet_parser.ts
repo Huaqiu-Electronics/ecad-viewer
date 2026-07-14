@@ -63,61 +63,89 @@ const common_defs = [
 ];
 
 function parse_line(expr: Parseable): DS.I_Line {
-    return parse_expr(
-        expr,
-        P.start("line"),
-        P.item("start", parse_coordinate),
-        P.item("end", parse_coordinate),
-        ...common_defs,
-    ) as unknown as DS.I_Line;
+    return {
+        kind: "line",
+        ...parse_expr(
+            expr,
+            P.start("line"),
+            P.item("start", parse_coordinate),
+            P.item("end", parse_coordinate),
+            ...common_defs,
+        ),
+    } as unknown as DS.I_Line;
 }
 
 function parse_rect(expr: Parseable): DS.I_Rect {
-    return parse_expr(
-        expr,
-        P.start("rect"),
-        P.item("start", parse_coordinate),
-        P.item("end", parse_coordinate),
-        ...common_defs,
-    ) as unknown as DS.I_Rect;
+    return {
+        kind: "rect",
+        ...parse_expr(
+            expr,
+            P.start("rect"),
+            P.item("start", parse_coordinate),
+            P.item("end", parse_coordinate),
+            ...common_defs,
+        ),
+    } as unknown as DS.I_Rect;
 }
 
 function parse_polygon(expr: Parseable): DS.I_Polygon {
-    return parse_expr(
-        expr,
-        P.start("polygon"),
-        P.item("pos", parse_coordinate),
-        P.pair("rotate", T.number),
-        P.list("pts", T.vec2),
-        ...common_defs,
-    ) as unknown as DS.I_Polygon;
+    const parsed = {
+        kind: "polygon",
+        ...parse_expr(
+            expr,
+            P.start("polygon"),
+            P.item("pos", parse_coordinate),
+            P.pair("rotate", T.number),
+            P.collection(
+                "contours",
+                "pts",
+                (obj, name, value) =>
+                    parse_expr(
+                        value as any,
+                        P.start("pts"),
+                        P.collection("points", "xy", T.vec2),
+                    )["points"] ?? [],
+            ),
+            ...common_defs,
+        ),
+    } as unknown as DS.I_Polygon;
+    parsed.pts = parsed.contours?.[0] ?? [];
+    return parsed;
 }
 
 function parse_bitmap(expr: Parseable): DS.I_Bitmap {
-    return parse_expr(
+    const parsed = parse_expr(
         expr,
         P.start("bitmap"),
         P.item("pos", parse_coordinate),
         P.pair("scale", T.number),
-        P.pair("pngdata", T.string),
+        P.list("data", T.string),
         ...common_defs,
-    ) as unknown as DS.I_Bitmap;
+    ) as unknown as DS.I_Bitmap & { data?: string[] };
+    return {
+        ...parsed,
+        kind: "bitmap",
+        pngdata: parsed.data?.join("") ?? "",
+    } as DS.I_Bitmap;
 }
 
 function parse_tbtext(expr: Parseable): DS.I_TbText {
-    return parse_expr(
-        expr,
-        P.start("tbtext"),
-        P.positional("text"),
-        P.item("pos", parse_coordinate),
-        P.pair("incrlabel", T.number),
-        P.pair("maxlen", T.number),
-        P.pair("maxheight", T.number),
-        P.item("font", parse_font),
-        P.pair("rotate", T.number),
-        P.pair("justify", T.string),
-        ...common_defs,
-    ) as unknown as DS.I_TbText;
+    return {
+        kind: "tbtext",
+        ...parse_expr(
+            expr,
+            P.start("tbtext"),
+            P.positional("text"),
+            P.item("pos", parse_coordinate),
+            P.pair("incrlabel", T.number),
+            P.pair("maxlen", T.number),
+            P.pair("maxheight", T.number),
+            P.item("font", parse_font),
+            P.pair("rotate", T.number),
+            P.pair("justify", T.string),
+            ...common_defs,
+        ),
+    } as unknown as DS.I_TbText;
 }
 
 function parse_font(expr: Parseable): DS.I_Font {

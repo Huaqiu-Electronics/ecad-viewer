@@ -10,7 +10,8 @@ import { type IDisposable } from "../base/disposable";
 import { first, length, map } from "../base/iterator";
 import { Logger } from "../base/log";
 
-import { KicadPCB, KicadSch, ProjectSettings } from "../kicad";
+import { DrawingSheet, KicadPCB, KicadSch, ProjectSettings } from "../kicad";
+import { parse_drawing_sheet } from "kicad-parser";
 import * as Comlink from "comlink";
 import {
     BoardBomItemVisitor,
@@ -32,7 +33,12 @@ import {
     type EcadSources,
 } from "./services/vfs";
 import "../ecad-viewer/ecad_viewer_global";
-import { KICAD_PCB_EXT, KICAD_PRO_EXT, KICAD_SCH_EXT } from "./file_ext";
+import {
+    KICAD_PCB_EXT,
+    KICAD_PRO_EXT,
+    KICAD_SCH_EXT,
+    KICAD_WKS_EXT,
+} from "./file_ext";
 import { WorkerPool } from "./worker_pool";
 
 const log = new Logger("kicanvas:project");
@@ -46,6 +52,7 @@ export class Project extends EventTarget implements IDisposable {
     _fs = new FetchFileSystem();
     _files_by_name: Map<string, KicadPCB | KicadSch> = new Map();
     _file_content: Map<string, string> = new Map();
+    _drawing_sheet_sources: Map<string, string> = new Map();
     _pool = new WorkerPool(Math.min(navigator.hardwareConcurrency ?? 4, 6));
     _pcb: KicadPCB[] = [];
     _sch: KicadSch[] = [];
@@ -70,7 +77,10 @@ export class Project extends EventTarget implements IDisposable {
         return this._designator_refs.get(d);
     }
 
-    find_designator_by_pin(d: string, pin_num: string): DesignatorRef | undefined {
+    find_designator_by_pin(
+        d: string,
+        pin_num: string,
+    ): DesignatorRef | undefined {
         const refs = this._designator_refs.get(d);
         if (!refs || refs.length === 0) {
             return undefined;
@@ -79,7 +89,7 @@ export class Project extends EventTarget implements IDisposable {
         if (refs.length === 1) {
             return refs[0];
         }
-        
+
         for (const ref of refs) {
             const sch = this.file_by_name(ref.sheet_name);
             if (sch instanceof KicadSch) {
@@ -88,7 +98,10 @@ export class Project extends EventTarget implements IDisposable {
                     const lib_symbol = symbol.lib_symbol;
                     if (lib_symbol) {
                         for (const child of lib_symbol.children) {
-                            if (child.unit === ref.unit && child.has_pin(pin_num)) {
+                            if (
+                                child.unit === ref.unit &&
+                                child.has_pin(pin_num)
+                            ) {
                                 return ref;
                             }
                         }
@@ -134,13 +147,34 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     public dispose() {
+        this._pool.dispose();
         for (const i of [this._pcb, this._sch]) i.length = 0;
         this._files_by_name.clear();
         this._pages_by_path.clear();
         this._file_content.clear();
+        this._drawing_sheet_sources.clear();
         this._label_name_refs.clear();
         this._net_item_refs.clear();
         this._designator_refs.clear();
+    }
+
+    public reset() {
+        this.dispose();
+        this._pool = new WorkerPool(
+            Math.min(navigator.hardwareConcurrency ?? 4, 6),
+        );
+        this._fs = new FetchFileSystem();
+        this._pcb = [];
+        this._sch = [];
+        this._bom_items = [];
+        this._drawing_sheet_sources = new Map();
+        this._project_name = undefined;
+        this._root_schematic_page = undefined;
+        this.active_sch_file_name = undefined;
+        this.active_sch_name = undefined;
+        this._found_cjk = false;
+        this.settings = new ProjectSettings();
+        this.loaded = new Barrier();
     }
 
     public static async import_cjk_glyphs() {
@@ -203,6 +237,8 @@ export class Project extends EventTarget implements IDisposable {
                 );
                 const data = JSON.parse(blob.content);
                 this.settings = ProjectSettings.load(data);
+            } else if (blob.filename.endsWith(KICAD_WKS_EXT)) {
+                this._drawing_sheet_sources.set(blob.filename, blob.content);
             }
         }
 
@@ -294,6 +330,11 @@ export class Project extends EventTarget implements IDisposable {
         if (filename.endsWith(".kicad_pro")) {
             return this._load_meta(filename);
         }
+        if (filename.endsWith(".kicad_wks")) {
+            const text = await this.get_file_text(filename);
+            this._drawing_sheet_sources.set(filename, text!);
+            return;
+        }
 
         log.warn(`Couldn't load ${filename}: unknown file type`);
     }
@@ -374,6 +415,85 @@ export class Project extends EventTarget implements IDisposable {
         const text = await this.get_file_text(filename);
         const data = JSON.parse(text!);
         this.settings = ProjectSettings.load(data);
+    }
+
+    public drawing_sheet_for(
+        kind: AssertType,
+        document?: KicadPCB | KicadSch,
+    ): DrawingSheet {
+        const configured =
+            kind === AssertType.SCH
+                ? String(
+                      (this.settings.schematic as Record<string, unknown>)[
+                          "page_layout_descr_file"
+                      ] ?? "",
+                  )
+                : this.settings.pcbnew.page_layout_descr_file;
+        const requested = configured
+            .replace(/^kicad-embed:\/\//, "")
+            .replace(/\\/g, "/");
+        let content = requested
+            ? this._drawing_sheet_sources.get(requested)
+            : undefined;
+        if (!content && requested) {
+            const basename = requested.split("/").pop();
+            for (const [name, source] of this._drawing_sheet_sources) {
+                if (name === basename || name.endsWith(`/${basename}`)) {
+                    content = source;
+                    break;
+                }
+            }
+        }
+        // A project with one supplied worksheet commonly relies on KiCad's
+        // embedded-path indirection.  Use it when the configured basename was
+        // flattened by an embedding host.
+        if (!content && requested && this._drawing_sheet_sources.size === 1) {
+            content = this._drawing_sheet_sources.values().next().value;
+        }
+        let drawing_sheet: DrawingSheet;
+        if (!content) {
+            drawing_sheet = DrawingSheet.default();
+        } else {
+            try {
+                drawing_sheet = new DrawingSheet(parse_drawing_sheet(content));
+            } catch (error) {
+                log.warn(`Couldn't parse drawing sheet ${requested}: ${error}`);
+                drawing_sheet = DrawingSheet.default();
+            }
+        }
+        const page =
+            kind === AssertType.SCH
+                ? this.#page_for_drawing_sheet(document)
+                : undefined;
+        drawing_sheet.sheet_number = page?.page || "1";
+        const numbered_pages = this.pages
+            .map((candidate) => Number.parseInt(candidate.page ?? "", 10))
+            .filter(Number.isFinite);
+        drawing_sheet.sheet_count = String(
+            Math.max(1, ...numbered_pages, this.pages.length),
+        );
+        drawing_sheet.sheet_path = page?.sheet_path || "/";
+        drawing_sheet.sheet_name = page?.name || "";
+        drawing_sheet.kicad_version =
+            document instanceof KicadSch
+                ? document.generator_version || document.generator || "KiCad"
+                : document?.generator || "KiCad";
+        return drawing_sheet;
+    }
+
+    #page_for_drawing_sheet(document?: KicadPCB | KicadSch) {
+        const active = this.active_sch_name ?? "";
+        const exact = this._pages_by_path.get(active);
+        if (exact) return exact;
+
+        // Hosts may activate by filename while the internal project uses a
+        // filename + instance-path key. Prefer the active filename before the
+        // document fallback so reused hierarchical sheets keep their page ID.
+        const by_filename = this.pages.find(
+            (candidate) => candidate.filename === active,
+        );
+        if (by_filename) return by_filename;
+        return this.pages.find((candidate) => candidate.document === document);
     }
 
     async get_file_text(filename: string) {
@@ -457,6 +577,17 @@ export class Project extends EventTarget implements IDisposable {
     public get_first_page(kind: AssertType) {
         switch (kind) {
             case AssertType.SCH:
+                if (this.active_sch_name) {
+                    const active_page = this._pages_by_path.get(
+                        this.active_sch_name,
+                    );
+                    if (active_page?.document instanceof KicadSch)
+                        return active_page.document;
+                    const active_file = this._files_by_name.get(
+                        this.active_sch_name,
+                    );
+                    if (active_file instanceof KicadSch) return active_file;
+                }
                 return (
                     (this._files_by_name.get(
                         `${this._project_name}.kicad_sch`,
@@ -470,7 +601,7 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     public page_by_path(project_path: string) {
-        return this._files_by_name.get(project_path);
+        return this._pages_by_path.get(project_path)?.document;
     }
 
     public get is_empty() {
@@ -495,6 +626,10 @@ export class Project extends EventTarget implements IDisposable {
     }
 
     _determine_schematic_hierarchy() {
+        // This method is also called after appendSources(). Rebuild the page
+        // projection from the complete set of parsed schematics so stale
+        // root-only/orphan entries cannot break host page navigation.
+        this._pages_by_path.clear();
         const paths_to_schematics = new Map<string, KicadSch>();
         const paths_to_sheet_instances = new Map<
             string,
@@ -596,10 +731,10 @@ export class Project extends EventTarget implements IDisposable {
             if (!seen_schematic_files.has(schematic.filename)) {
                 const page = new ProjectPage(
                     this,
-                    "schematic",
                     schematic.filename,
                     `/${schematic.uuid}`,
                     schematic.filename,
+                    undefined,
                 );
                 this._pages_by_path.set(page.project_path, page);
             }

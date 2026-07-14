@@ -152,6 +152,10 @@ export class KicadSch {
                     this.drawings.push(
                         new Polyline(d as schematicProto.I_Polyline, this),
                     );
+                } else if ("center" in d) {
+                    this.drawings.push(
+                        new Circle(d as schematicProto.I_Circle, this),
+                    );
                 } else if ("mid" in d || "radius" in d) {
                     this.drawings.push(
                         new Arc(d as schematicProto.I_Arc, this),
@@ -163,10 +167,6 @@ export class KicadSch {
                 } else if ("text" in d) {
                     this.drawings.push(
                         new Text(d as schematicProto.I_Text, this),
-                    );
-                } else if ("center" in d) {
-                    this.drawings.push(
-                        new Circle(d as schematicProto.I_Circle, this),
                     );
                 } else if ("size" in d) {
                     this.drawings.push(new TextBox(d as any, this));
@@ -532,8 +532,9 @@ export class Image {
         }
 
         this.#img = html` <img
-            src="data:image/png;base64,  ${this
-                .data}  " />` as HTMLImageElement;
+            src="data:image/png;base64,  ${
+                this.data
+            }  " />` as HTMLImageElement;
     }
 }
 
@@ -553,10 +554,7 @@ export class TableCell {
         this.text = data.text;
         this.at = new At(data.at);
         this.size = new Vec2(data.size.x, data.size.y);
-        this.margins = new Vec2(
-            data.margins?.x ?? 0,
-            data.margins?.y ?? 0,
-        );
+        this.margins = new Vec2(data.margins?.x ?? 0, data.margins?.y ?? 0);
         this.span = {
             rows: data.span?.rows ?? 1,
             cols: data.span?.cols ?? 1,
@@ -873,6 +871,13 @@ export class LibSymbol {
                         new Polyline(d as schematicProto.I_Polyline, this),
                     );
                 } else if (
+                    "center" in d &&
+                    (d as schematicProto.I_Circle).center
+                ) {
+                    this.drawings.push(
+                        new Circle(d as schematicProto.I_Circle, this),
+                    );
+                } else if (
                     ("mid" in d && (d as schematicProto.I_Arc).mid) ||
                     ("radius" in d && (d as schematicProto.I_Arc).radius)
                 ) {
@@ -885,13 +890,6 @@ export class LibSymbol {
                 ) {
                     this.drawings.push(
                         new Rectangle(d as schematicProto.I_Rectangle, this),
-                    );
-                } else if (
-                    "center" in d &&
-                    (d as schematicProto.I_Circle).center
-                ) {
-                    this.drawings.push(
-                        new Circle(d as schematicProto.I_Circle, this),
                     );
                 } else if ("text" in d && (d as schematicProto.I_Text).text) {
                     this.drawings.push(

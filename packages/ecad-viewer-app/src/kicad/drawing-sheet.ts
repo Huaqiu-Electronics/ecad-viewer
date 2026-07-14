@@ -8,7 +8,15 @@ import { Color } from "../base/color";
 import { BBox, Vec2 } from "../base/math";
 import { Paper, expand_text_vars } from "./common";
 import default_sheet from "./default_drawing_sheet.kicad_wks";
-import { parse_drawing_sheet, I_DrawingSheet, I_TbText, I_Bitmap, I_Polygon, I_Rect, I_Line } from "kicad-parser";
+import {
+    parse_drawing_sheet,
+    I_DrawingSheet,
+    I_TbText,
+    I_Bitmap,
+    I_Polygon,
+    I_Rect,
+    I_Line,
+} from "kicad-parser";
 
 export type DrawingSheetDocument = {
     paper?: Paper;
@@ -21,6 +29,11 @@ export class DrawingSheet {
     setup: Setup = new Setup();
     drawings: DrawingSheetItem[] = [];
     document?: DrawingSheetDocument;
+    sheet_number = "1";
+    sheet_count = "1";
+    sheet_path = "/";
+    sheet_name = "";
+    kicad_version = "";
 
     constructor(data: I_DrawingSheet) {
         this.version = data.version;
@@ -29,19 +42,16 @@ export class DrawingSheet {
         this.drawings = [];
         if (data.drawings) {
             for (const d of data.drawings) {
-                if ("text" in d) {
+                if (d.kind === "tbtext") {
                     this.drawings.push(new TbText(d as I_TbText, this));
-                } else if ("pngdata" in d) {
+                } else if (d.kind === "bitmap") {
                     this.drawings.push(new Bitmap(d as I_Bitmap, this));
-                } else if ("pts" in d) {
+                } else if (d.kind === "polygon") {
                     this.drawings.push(new Polygon(d as I_Polygon, this));
-                } else if ("start" in d) {
-                    // Line or Rect
-                    if ("name" in d) {
-                        this.drawings.push(new Rect(d as I_Rect, this));
-                    } else {
-                        this.drawings.push(new Line(d as I_Line, this));
-                    }
+                } else if (d.kind === "rect") {
+                    this.drawings.push(new Rect(d as I_Rect, this));
+                } else if (d.kind === "line") {
+                    this.drawings.push(new Line(d as I_Line, this));
                 }
             }
         }
@@ -55,6 +65,7 @@ export class DrawingSheet {
         // Yield a rect to draw the page outline
         yield new Rect(
             {
+                kind: "rect",
                 name: "",
                 comment: "page outline",
                 option: null,
@@ -134,17 +145,15 @@ export class DrawingSheet {
             // TODO: Mock values for now, should be provided by the project
             // when that's implemented.
             case "#":
-                // Sheet number
-                return "1";
+                return this.sheet_number;
             case "##":
-                // Sheet count
-                return "1";
+                return this.sheet_count;
             case "SHEETPATH":
-                // Sheet path (hierarchical path)
-                return "/";
+                return this.sheet_path;
+            case "SHEETNAME":
+                return this.sheet_name;
             case "KICAD_VERSION":
-                // KiCAD Version
-                return "Ecad Viewer inspired by KiCanvas";
+                return this.kicad_version || "KiCad";
         }
         return this.document?.resolve_text_var(name);
     }
@@ -235,13 +244,20 @@ export class Rect extends DrawingSheetItem {
 export class Polygon extends DrawingSheetItem {
     rotate: number;
     pos: Coordinate;
-    pts: Vec2[];
+    contours: Vec2[][];
 
     constructor(data: DS.I_Polygon, parent: DrawingSheet) {
         super(parent, data);
         this.rotate = data.rotate ?? 0;
         this.pos = new Coordinate(data.pos);
-        this.pts = data.pts?.map((p) => new Vec2(p.x, p.y)) ?? [];
+        const contours = data.contours?.length
+            ? data.contours
+            : data.pts?.length
+              ? [data.pts]
+              : [];
+        this.contours = contours.map((points) =>
+            points.map((point) => new Vec2(point.x, point.y)),
+        );
     }
 }
 

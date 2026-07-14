@@ -11,7 +11,7 @@
  */
 
 import { Angle, BBox, Vec2 } from "../../base/math";
-import { Polyline, Renderer } from "../../graphics";
+import { Polygon as GraphicPolygon, Polyline, Renderer } from "../../graphics";
 import type { BaseTheme } from "../../kicad";
 import * as drawing_sheet from "../../kicad/drawing-sheet";
 import { EDAText, StrokeFont } from "../../kicad/text";
@@ -52,6 +52,13 @@ function offset_point(
     return point;
 }
 
+function is_visible_on_page(item: drawing_sheet.DrawingSheetItem) {
+    const page = Number.parseInt(item.parent.sheet_number, 10) || 1;
+    if (item.option === "page1only") return page === 1;
+    if (item.option === "notonpage1") return page !== 1;
+    return true;
+}
+
 class LinePainter extends ItemPainter {
     classes = [drawing_sheet.Line];
 
@@ -60,6 +67,7 @@ class LinePainter extends ItemPainter {
     }
 
     paint(layer: ViewLayer, l: drawing_sheet.Line) {
+        if (!is_visible_on_page(l)) return;
         const sheet = l.parent;
         const [incrx, incry] = [l.incrx ?? 0, l.incry ?? 0];
 
@@ -71,7 +79,7 @@ class LinePainter extends ItemPainter {
                     l.start.position.add(offset),
                     l.start.anchor,
                 ),
-                offset_point(sheet, l.end.position.add(offset), l.start.anchor),
+                offset_point(sheet, l.end.position.add(offset), l.end.anchor),
             ];
 
             if (!start || !end) {
@@ -97,6 +105,7 @@ class RectPainter extends ItemPainter {
     }
 
     paint(layer: ViewLayer, r: drawing_sheet.Rect) {
+        if (!is_visible_on_page(r)) return;
         const sheet = r.parent;
         const [incrx, incry] = [r.incrx ?? 0, r.incry ?? 0];
 
@@ -142,6 +151,7 @@ class TbTextPainter extends ItemPainter {
     }
 
     paint(layer: ViewLayer, t: drawing_sheet.TbText) {
+        if (!is_visible_on_page(t)) return;
         const edatext = new EDAText(t.shown_text);
 
         edatext.h_align = "left";
@@ -169,12 +179,19 @@ class TbTextPainter extends ItemPainter {
 
         edatext.attributes.bold = t.font?.bold ?? false;
         edatext.attributes.italic = t.font?.italic ?? false;
-        edatext.attributes.color = layer.color;
+        edatext.attributes.color = t.font?.color?.is_transparent_black
+            ? layer.color
+            : (t.font?.color ?? layer.color);
         edatext.attributes.size = (
             t.font?.size ?? t.parent.setup.textsize
         ).multiply(10000);
-        edatext.attributes.stroke_width =
+        const configured_stroke =
             (t.font?.linewidth ?? t.parent.setup.textlinewidth) * 10000;
+        // KiCad's stroke font expresses bold by increasing pen width. The
+        // generic font renderer deliberately does not synthesize bold glyphs.
+        edatext.attributes.stroke_width = t.font?.bold
+            ? Math.max(configured_stroke, edatext.attributes.size.x * 0.2)
+            : configured_stroke;
 
         const [incrx, incry] = [t.incrx ?? 0, t.incry ?? 0];
 
@@ -218,12 +235,44 @@ class TbTextPainter extends ItemPainter {
     }
 }
 
+class PolygonPainter extends ItemPainter {
+    classes = [drawing_sheet.Polygon];
+
+    override layers_for(item: unknown): string[] {
+        return [ViewLayerNames.drawing_sheet];
+    }
+
+    paint(layer: ViewLayer, polygon: drawing_sheet.Polygon) {
+        if (!is_visible_on_page(polygon)) return;
+        const angle = Angle.from_degrees(polygon.rotate);
+        for (let i = 0; i < polygon.repeat; i++) {
+            const offset = new Vec2(polygon.incrx * i, polygon.incry * i);
+            const origin = offset_point(
+                polygon.parent,
+                polygon.pos.position.add(offset),
+                polygon.pos.anchor,
+                i > 0,
+            );
+            if (!origin) break;
+            for (const contour of polygon.contours) {
+                const points = contour.map((point) =>
+                    origin.add(point.rotate(angle)),
+                );
+                if (points.length >= 3) {
+                    this.gfx.polygon(new GraphicPolygon(points, layer.color));
+                }
+            }
+        }
+    }
+}
+
 export class DrawingSheetPainter extends DocumentPainter {
     constructor(gfx: Renderer, layers: ViewLayerSet, theme: BaseTheme) {
         super(gfx, layers, theme);
         this.painter_list = [
             new LinePainter(this, gfx),
             new RectPainter(this, gfx),
+            new PolygonPainter(this, gfx),
             new TbTextPainter(this, gfx),
         ];
     }

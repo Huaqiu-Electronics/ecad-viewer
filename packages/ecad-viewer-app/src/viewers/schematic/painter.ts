@@ -418,7 +418,11 @@ class PropertyPainter extends SchematicItemPainter {
     }
 
     paint(layer: ViewLayer, p: schematic_items.Property) {
-        if (p.effects.hide || !p.text) {
+        // KiCad stores property visibility on the property itself.  The text
+        // effects object has its own hide flag for other text primitives, but
+        // checking only that flag makes hidden symbol fields (notably #PWR
+        // references) visible.
+        if (p.hide || p.effects.hide || !p.text) {
             return;
         }
 
@@ -665,13 +669,14 @@ class TablePainter extends SchematicItemPainter {
                   table.border.stroke.color.a,
               )
             : this.theme.note;
-        const strokeWidth = table.border?.stroke?.width && table.border.stroke.width > 0 ? table.border.stroke.width : 0.1;
+        const strokeWidth =
+            table.border?.stroke?.width && table.border.stroke.width > 0
+                ? table.border.stroke.width
+                : 0.1;
 
         if (table.border?.external) {
             const bbox = table.bbox;
-            this.gfx.line(
-                Polyline.from_BBox(bbox, strokeWidth, strokeColor),
-            );
+            this.gfx.line(Polyline.from_BBox(bbox, strokeWidth, strokeColor));
         }
 
         if (table.separators?.rows || table.separators?.cols) {
@@ -683,7 +688,11 @@ class TablePainter extends SchematicItemPainter {
                       table.separators.stroke.color.a,
                   )
                 : strokeColor;
-            const sepStrokeWidth = table.separators.stroke?.width && table.separators.stroke.width > 0 ? table.separators.stroke.width : strokeWidth;
+            const sepStrokeWidth =
+                table.separators.stroke?.width &&
+                table.separators.stroke.width > 0
+                    ? table.separators.stroke.width
+                    : strokeWidth;
 
             if (table.separators.cols && table.column_widths.length > 0) {
                 const bbox = table.bbox;
@@ -692,10 +701,7 @@ class TablePainter extends SchematicItemPainter {
                     x += width;
                     this.gfx.line(
                         new Polyline(
-                            [
-                                new Vec2(x, bbox.y),
-                                new Vec2(x, bbox.y2),
-                            ],
+                            [new Vec2(x, bbox.y), new Vec2(x, bbox.y2)],
                             sepStrokeWidth,
                             sepStrokeColor,
                         ),
@@ -710,10 +716,7 @@ class TablePainter extends SchematicItemPainter {
                     y += height;
                     this.gfx.line(
                         new Polyline(
-                            [
-                                new Vec2(bbox.x, y),
-                                new Vec2(bbox.x2, y),
-                            ],
+                            [new Vec2(bbox.x, y), new Vec2(bbox.x2, y)],
                             sepStrokeWidth,
                             sepStrokeColor,
                         ),
@@ -734,9 +737,16 @@ class TablePainter extends SchematicItemPainter {
                           cell.stroke.color.a,
                       )
                     : strokeColor;
-                const cellStrokeWidth = cell.stroke.width && cell.stroke.width > 0 ? cell.stroke.width : strokeWidth;
+                const cellStrokeWidth =
+                    cell.stroke.width && cell.stroke.width > 0
+                        ? cell.stroke.width
+                        : strokeWidth;
                 this.gfx.line(
-                    Polyline.from_BBox(cellBbox, cellStrokeWidth, cellStrokeColor),
+                    Polyline.from_BBox(
+                        cellBbox,
+                        cellStrokeWidth,
+                        cellStrokeColor,
+                    ),
                 );
             }
 
