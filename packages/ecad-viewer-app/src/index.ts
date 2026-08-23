@@ -32,6 +32,14 @@ import { html } from "./base/web-components/html";
 import { load_ecad_viewer_conf } from "./ecad-viewer/ecad_viewer_global";
 import { setup_iframe_bridge } from "./ecad-viewer/iframe_bridge";
 
+// The interactive app and external consumers use the same reusable renderer API.
+export {
+    renderSymbol,
+    renderFootprint,
+    renderSchematic,
+    renderPcb,
+} from "@huaqiu/ecad-renderer";
+
 export {
     html,
     KCSchematicAppElement,

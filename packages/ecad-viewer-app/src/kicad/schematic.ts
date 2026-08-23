@@ -10,7 +10,6 @@ import type { CrossHightAble } from "../base/cross_highlight_able";
 import type { HighlightAble } from "../base/highlightable";
 import type { IndexAble } from "../base/index_able";
 import { Arc as MathArc, BBox, Matrix3, Vec2 } from "../base/math";
-import { html } from "../base/web-components";
 import {
     At,
     Effects,
@@ -531,9 +530,10 @@ export class Image {
             this.ppi = get_image_ppi(this.data);
         }
 
-        this.#img = html` <img
-            src="data:image/png;base64,  ${this
-                .data}  " />` as HTMLImageElement;
+        // Keep the model/rendering layer independent from the application's
+        // custom-element helper so it can be bundled by the renderer package.
+        this.#img = document.createElement("img");
+        this.#img.src = `data:image/png;base64,${this.data}`;
     }
 }
 

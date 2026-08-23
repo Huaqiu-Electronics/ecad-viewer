@@ -1,0 +1,19 @@
+name: Renderer CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run lint --workspace=@huaqiu/ecad-renderer
+      - run: npm run build --workspace=@huaqiu/ecad-renderer
+      - run: npm test --workspace=@huaqiu/ecad-renderer
+      - run: mkdir -p artifacts && npm pack --workspace=@huaqiu/ecad-renderer --pack-destination ./artifacts
