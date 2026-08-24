@@ -100,7 +100,7 @@ export class SchematicSymbolPainter extends SchematicItemPainter {
             LayerNames.symbol_foreground,
             LayerNames.symbol_background,
             LayerNames.symbol_field,
-            // LayerNames.symbol_pin,
+            LayerNames.symbol_pin,
         ];
 
         if (item.dnp) {

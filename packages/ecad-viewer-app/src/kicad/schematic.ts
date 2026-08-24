@@ -1179,6 +1179,30 @@ export class PinDefinition {
     get unit() {
         return this.parent.unit;
     }
+
+    /**
+     * Bounding box of this pin in library (untransformed) coordinates.
+     * Computed from the pin's position, length, and rotation, matching
+     * the LibSymbolPin.bbox logic so callers (e.g. SchematicSymbol.bbox)
+     * can include pin extents without a LibSymbolPin indirection.
+     */
+    get bbox(): BBox {
+        const defaultLen = 1;
+        const orientation = angle_to_orientation(this.at.rotation);
+        const x = this.at.position.x;
+        const y = this.at.position.y;
+        const len = this.length;
+        switch (orientation) {
+            case "up":
+                return new BBox(x - defaultLen / 2, y - len, defaultLen, len);
+            case "down":
+                return new BBox(x - defaultLen / 2, y, defaultLen, len);
+            case "left":
+                return new BBox(x - len, y - defaultLen / 2, len, defaultLen);
+            case "right":
+                return new BBox(x, y - defaultLen / 2, len, defaultLen);
+        }
+    }
 }
 
 export class PinAlternate {
@@ -1408,11 +1432,19 @@ export class SchematicSymbol {
 
     get bbox() {
         const trans = this.get_symbol_transform();
-        const boxes = [this.lib_symbol.bbox.transform(trans)];
+        const boxes: BBox[] = [this.lib_symbol.bbox.transform(trans)];
         for (const it of this.properties.values()) {
             if (!it.hide) {
                 boxes.push(it.bbox);
             }
+        }
+        // Include pin definitions (pins extend beyond the lib symbol body,
+        // so omitting them causes bbox-based zoom/clipping to cut pins off).
+        for (const pin of this.unit_pins) {
+            const def = pin.definition;
+            if (!def || def.hide) continue;
+            const pin_bbox = def.bbox;
+            if (pin_bbox?.valid) boxes.push(pin_bbox.transform(trans));
         }
         return BBox.combine(boxes);
     }
@@ -1446,7 +1478,25 @@ export class PinInstance implements HighlightAble, IndexAble {
         this.uuid = data.uuid;
         this.alternate = data.alternate;
     }
-    bbox: BBox;
+
+    /**
+     * Transformed bounding box for this pin in document coordinates.
+     * Uses the parent SchematicSymbol's transform to convert the library
+     * pin's bbox (in lib space) into placed schematic space.
+     */
+    get bbox(): BBox {
+        const def = this.definition;
+        if (!def || !def.bbox?.valid) {
+            // Fall back to a 1x1 dot at the symbol's position so callers
+            // never see an undefined bbox.
+            const pos = this.parent.at.position;
+            return new BBox(pos.x - 0.5, pos.y - 0.5, 1, 1, this);
+        }
+        const trans = this.parent.get_symbol_transform();
+        const transformed = def.bbox.transform(trans);
+        transformed.context = this;
+        return transformed;
+    }
 
     get definition() {
         return this.parent.lib_symbol.pin_by_number(

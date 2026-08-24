@@ -33,6 +33,40 @@ export type Drawing =
     | GrText
     | Dimension;
 
+/**
+ * Normalize a parser layer value to a canonical name string.
+ * The parser may emit plain strings or layer objects; both are supported
+ * so GraphicItem.layer and Pad.layers arrays always hold simple names
+ * that match LayerSet keys (e.g. "F.Cu", "F.SilkS").
+ */
+function normalize_layer_name(layer: unknown): string {
+    if (typeof layer === "string") return layer;
+    if (layer && typeof layer === "object") {
+        const l = layer as { canonical_name?: string; name?: string };
+        if (typeof l.canonical_name === "string") return l.canonical_name;
+        if (typeof l.name === "string") return l.name;
+    }
+    return String(layer ?? "");
+}
+
+/**
+ * Normalize a parser text-layer value to the { name, knockout } shape
+ * expected by Text/FpText. The parser may emit a layer object, a plain
+ * string, or partial objects.
+ */
+function normalize_text_layer(layer: unknown): { name: string; knockout: boolean } {
+    if (layer && typeof layer === "object") {
+        const l = layer as { name?: string; canonical_name?: string; knockout?: boolean };
+        const name = typeof l.name === "string"
+            ? l.name
+            : typeof l.canonical_name === "string"
+            ? l.canonical_name
+            : "";
+        return { name, knockout: typeof l.knockout === "boolean" ? l.knockout : false };
+    }
+    return { name: typeof layer === "string" ? layer : "", knockout: false };
+}
+
 const DEFAULT_LAYERS: Partial<B.I_Layer>[] = [
     { canonical_name: LayerNames.f_cu, type: "signal" },
     { canonical_name: LayerNames.b_cu, type: "signal" },
@@ -225,10 +259,22 @@ export class KicadPCB implements BoardNode {
             return bbox;
         }
 
-        // Fallback: combine all item bboxes
-        const bboxes = [];
+        // Fallback: combine all item bboxes. Also descend into footprint
+        // children so standalone footprint rendering (no Edge.Cuts, no
+        // traces) always gets a populated combined box even if the
+        // top-level Footprint.bbox cache is stale or not computed.
+        const bboxes: BBox[] = [];
         for (const item of this.items()) {
-            bboxes.push(item.bbox);
+            if (item && (item.bbox as BBox | undefined)?.valid) {
+                bboxes.push(item.bbox);
+            }
+            if (item instanceof Footprint) {
+                for (const child of item.items()) {
+                    if (child && (child.bbox as BBox | undefined)?.valid) {
+                        bboxes.push(child.bbox);
+                    }
+                }
+            }
         }
         return BBox.combine(bboxes);
     }
@@ -289,7 +335,7 @@ export class LineSegment implements BoardNode {
         this.start = new Vec2(data.start.x, data.start.y);
         this.end = new Vec2(data.end.x, data.end.y);
         this.width = data.width;
-        this.layer = data.layer;
+        this.layer = normalize_layer_name(data.layer);
         this.net = data.net;
         this.locked = data.locked;
         this.tstamp = data.tstamp ?? "";
@@ -313,7 +359,7 @@ export class ArcSegment implements BoardNode {
         this.mid = new Vec2(data.mid.x, data.mid.y);
         this.end = new Vec2(data.end.x, data.end.y);
         this.width = data.width;
-        this.layer = data.layer;
+        this.layer = normalize_layer_name(data.layer);
         this.net = data.net;
         this.locked = data.locked;
         this.tstamp = data.tstamp ?? "";
@@ -359,7 +405,7 @@ export class Via implements BoardNode {
         this.at = new At(data.at);
         this.size = data.size;
         this.drill = data.drill;
-        this.layers = data.layers;
+        this.layers = (data.layers ?? []).map(l => normalize_layer_name(l));
         this.remove_unused_layers = data.remove_unused_layers;
         this.keep_end_layers = data.keep_end_layers;
         this.locked = data.locked;
@@ -421,8 +467,8 @@ export class Zone implements BoardNode {
         this.net = data.net;
         this.net_name = data.net_name;
         this.name = data.name;
-        this.layer = data.layer;
-        this.layers = data.layers;
+        this.layer = normalize_layer_name(data.layer);
+        this.layers = (data.layers ?? []).map(l => normalize_layer_name(l));
         this.hatch = data.hatch;
         this.priority = data.priority;
         this.connect_pads = data.connect_pads;
@@ -691,7 +737,7 @@ export class Dimension implements BoardNode {
     ) {
         this.locked = data.locked;
         this.type = data.type;
-        this.layer = data.layer;
+        this.layer = normalize_layer_name(data.layer);
         this.tstamp = data.tstamp ?? "";
         this.pts = data.pts?.map((p) => new Vec2(p.x, p.y)) ?? [];
         this.height = data.height;
@@ -860,7 +906,7 @@ export class Footprint implements BoardNode {
         this.generator = data.generator;
         this.locked = data.locked;
         this.placed = data.placed;
-        this.layer = data.layer;
+        this.layer = normalize_layer_name(data.layer);
         this.tedit = data.tedit;
         this.tstamp = data.tstamp ?? "";
         this.at = new At(data.at);
@@ -1113,7 +1159,7 @@ export class Line extends GraphicItem {
     ) {
         super();
         this.locked = data.locked;
-        this.layer = data.layer;
+        this.layer = normalize_layer_name(data.layer);
         this.start = new Vec2(data.start.x, data.start.y);
         this.end = new Vec2(data.end.x, data.end.y);
         this.uuid = data.uuid;
@@ -1156,7 +1202,7 @@ export class Circle extends GraphicItem {
         this.uuid = data.uuid;
         this.width = data.width;
         this.fill = data.fill;
-        this.layer = data.layer;
+        this.layer = normalize_layer_name(data.layer);
         this.tstamp = data.tstamp ?? "";
         this.stroke = new Stroke(data.stroke);
         this.width ??= this.stroke?.width || 0;
@@ -1197,7 +1243,7 @@ export class Arc extends GraphicItem {
         super();
 
         this.locked = data.locked;
-        this.layer = data.layer;
+        this.layer = normalize_layer_name(data.layer);
         this.uuid = data.uuid;
         this.width = data.width;
         this.tstamp = data.tstamp ?? "";
@@ -1280,7 +1326,7 @@ export class Poly extends GraphicItem {
     ) {
         super();
         this.locked = data.locked;
-        this.layer = data.layer;
+        this.layer = normalize_layer_name(data.layer);
         this.island = data.island;
         this.uuid = data.uuid;
         this.width = data.width;
@@ -1355,7 +1401,7 @@ export class Rect extends GraphicItem {
         this.start = new Vec2(data.start.x, data.start.y);
         this.end = new Vec2(data.end.x, data.end.y);
         this.uuid = data.uuid;
-        this.layer = data.layer;
+        this.layer = normalize_layer_name(data.layer);
         this.width = data.width;
         this.fill = data.fill;
         this.tstamp = data.tstamp ?? "";
@@ -1441,7 +1487,7 @@ export class FpText extends Text {
         this.hide = data.hide;
         this.unlocked = data.unlocked;
         this.uuid = data.uuid;
-        this.layer = data.layer;
+        this.layer = normalize_text_layer(data.layer);
         this.tstamp = data.tstamp ?? "";
         this.effects = new Effects(data.effects);
         this.render_cache = data.render_cache
@@ -1469,7 +1515,7 @@ export class Property_Kicad_8 {
     ) {
         this.name = data.name;
         this.value = data.value;
-        this.layer = data.layer;
+        this.layer = normalize_layer_name(data.layer);
         this.at = new At(data.at);
         this.hide = data.hide;
         this.unlocked = data.unlocked;
@@ -1514,7 +1560,7 @@ export class GrText extends Text {
         this.hide = data.hide;
         this.unlocked = data.unlocked;
         this.uuid = data.uuid;
-        this.layer = data.layer;
+        this.layer = normalize_text_layer(data.layer);
         this.tstamp = data.tstamp ?? "";
         this.effects = new Effects(data.effects);
         this.render_cache = data.render_cache
@@ -1651,7 +1697,7 @@ export class Pad implements CrossHightAble, BoardNode {
         this.rect_delta = data.rect_delta
             ? new Vec2(data.rect_delta.x, data.rect_delta.y)
             : new Vec2(0, 0);
-        this.layers = data.layers;
+        this.layers = (data.layers ?? []).map(l => normalize_layer_name(l));
         this.roundrect_rratio = data.roundrect_rratio;
         this.chamfer_ratio = data.chamfer_ratio;
         this.chamfer = data.chamfer;
