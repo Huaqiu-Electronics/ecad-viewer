@@ -4,18 +4,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ECAD renderer mini integration</title>
   <style>
-    body { margin: 24px; background: #101d2d; color: #eef4ff; font: 14px system-ui, sans-serif; }
-    main { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; }
-    section { background: #182b42; border-radius: 8px; padding: 12px; }
-    canvas { display: block; width: 100%; height: 480px; background: #001023; }
+    html, body { height: 100%; }
+    body { margin: 0; padding: 16px; background: #101d2d; color: #eef4ff; font: 14px system-ui, sans-serif; box-sizing: border-box; display: flex; flex-direction: column; }
+    h1 { flex: 0 0 auto; margin: 0 0 4px; }
+    p  { flex: 0 0 auto; margin: 0 0 12px; }
+    main {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    section {
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: #182b42;
+      border-radius: 8px;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+    section h2 { flex: 0 0 auto; margin: 0 0 8px; }
+    canvas {
+      display: block;
+      flex: 1 1 auto;
+      min-width: 0;
+      min-height: 0;
+      width: 100%;
+      height: 100%;
+      background: #001023;
+    }
   </style>
   <h1>ECAD renderer mini integration</h1>
-  <p>These canvases are rendered from parser PODs—no viewer application or HTTP API is involved.</p>
+  <p>These canvases are rendered from parser PODs—no viewer application or HTTP API is involved. The host controls each canvas&rsquo;s CSS size; the renderer sets backing resolution from CSS dimensions &times; DPR and redraws on resize.</p>
   <main>
-    <section><h2>Symbol (LMV761MAX)</h2><canvas id="symbol" width="640" height="320"></canvas></section>
-    <section><h2>Footprint (LMV761MAX)</h2><canvas id="footprint" width="640" height="320"></canvas></section>
-    <section><h2>Schematic (M5Pi)</h2><canvas id="schematic" width="640" height="480"></canvas></section>
-    <section><h2>PCB (M5Pi)</h2><canvas id="pcb" width="640" height="480"></canvas></section>
+    <section><h2>Symbol (LMV761MAX)</h2><canvas id="symbol"></canvas></section>
+    <section><h2>Footprint (LMV761MAX)</h2><canvas id="footprint"></canvas></section>
+    <section><h2>Schematic (M5Pi)</h2><canvas id="schematic"></canvas></section>
+    <section><h2>PCB (M5Pi)</h2><canvas id="pcb"></canvas></section>
   </main>
   <script type="module" src="./main.js"></script>
 </html>

@@ -6,12 +6,18 @@ import { SchematicViewer } from "../../ecad-viewer-app/src/viewers/schematic/vie
 import type { boardProto, schematicProto } from "@huaqiu/kicad-sexpr-parser";
 import type { RenderOptions, RenderResult } from "./types";
 
+/**
+ * Resolve the canvas the renderer will paint into.
+ *
+ * The host controls the canvas's CSS size (via stylesheet or inline style);
+ * the renderer controls the backing resolution (canvas.width/height) and
+ * keeps it in sync with CSS dimensions × DPR via the renderer's
+ * update_canvas_size() on every clear_canvas() call. The viewer's Viewport
+ * additionally observes CSS size changes via ResizeObserver to update the
+ * camera viewport_size and trigger a redraw.
+ */
 function target(options: RenderOptions) {
     const canvas = options.canvas ?? document.createElement("canvas");
-    canvas.width = options.width ?? 800;
-    canvas.height = options.height ?? 600;
-    canvas.style.width ||= `${canvas.width}px`;
-    canvas.style.height ||= `${canvas.height}px`;
     if (!canvas.parentElement) (options.container ?? document.body).append(canvas);
     return canvas;
 }
