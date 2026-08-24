@@ -34,6 +34,8 @@ export abstract class DocumentViewer<
     ViewLayerSetT extends ViewLayerSet,
     ThemeT extends BaseTheme,
 > extends Viewer {
+    /** Standalone asset renderers do not have a document page to display. */
+    public show_drawing_sheet = true;
     public document: DocumentT;
     public drawing_sheet: DrawingSheet;
     declare public layers: ViewLayerSetT;
@@ -111,7 +113,11 @@ export abstract class DocumentViewer<
         this.painter.paint(this.document);
 
         // Paint the drawing sheet
-        if (!this.document.is_converted_from_ad && !is_showing_design_block())
+        if (
+            this.show_drawing_sheet &&
+            !this.document.is_converted_from_ad &&
+            !is_showing_design_block()
+        )
             new DrawingSheetPainter(
                 this.renderer,
                 this.layers,

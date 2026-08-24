@@ -16,13 +16,25 @@ function target(options: RenderOptions) {
     return canvas;
 }
 
-async function mount<T extends { setup(): Promise<void>; load(value: never): Promise<void>; dispose(): void }>(
+async function mount<T extends {
+    setup(): Promise<void>;
+    load(value: never): Promise<void>;
+    dispose(): void;
+    loaded: PromiseLike<boolean>;
+    show_drawing_sheet: boolean;
+}>(
     viewer: T,
     document: never,
     canvas: HTMLCanvasElement,
 ): Promise<RenderResult<T>> {
+    // Public renderer calls are for the supplied POD only. The worksheet is an
+    // application/document concern and would distort standalone asset fitting.
+    viewer.show_drawing_sheet = false;
     await viewer.setup();
     await viewer.load(document);
+    // DocumentViewer finishes painting and calls zoom_fit_top_item on its next
+    // layout turn. A direct renderer API must not resolve before that fit.
+    await viewer.loaded;
     return { canvas, viewer, dispose: () => viewer.dispose() };
 }
 

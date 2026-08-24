@@ -48,6 +48,15 @@ export class LibSymbolPainter extends SchematicItemPainter {
         if (symbol_unit) {
             this.#paint_unit(layer, symbol_unit, body_style);
         }
+
+        // Simple library symbols (e.g. those parsed from a .kicad_sym lib via
+        // the standalone symbol renderer entrypoint) may store drawings on
+        // the root symbol rather than inside children/units. When both unit
+        // buckets are empty, fall back to the root symbol's drawings so the
+        // symbol body is not invisible.
+        if (!common_unit && !symbol_unit) {
+            this.#paint_root(layer, s, body_style);
+        }
     }
 
     #paint_unit(
@@ -63,6 +72,19 @@ export class LibSymbolPainter extends SchematicItemPainter {
             for (const g of sym.drawings) {
                 this.view_painter.paint_item(layer, g);
             }
+        }
+    }
+
+    #paint_root(
+        layer: ViewLayer,
+        s: schematic_items.LibSymbol,
+        body_style = 1,
+    ) {
+        if (s.style > 0 && body_style != s.style) {
+            return;
+        }
+        for (const g of s.drawings) {
+            this.view_painter.paint_item(layer, g);
         }
     }
 }

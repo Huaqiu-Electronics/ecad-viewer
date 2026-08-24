@@ -40,9 +40,20 @@ const DEFAULT_LAYERS: Partial<B.I_Layer>[] = [
     { canonical_name: LayerNames.b_silks, type: "user" },
     { canonical_name: LayerNames.f_mask, type: "user" },
     { canonical_name: LayerNames.b_mask, type: "user" },
-    { canonical_name: LayerNames.edge_cuts, type: "user" },
+    { canonical_name: LayerNames.f_paste, type: "user" },
+    { canonical_name: LayerNames.b_paste, type: "user" },
+    { canonical_name: LayerNames.f_adhes, type: "user" },
+    { canonical_name: LayerNames.b_adhes, type: "user" },
+    { canonical_name: LayerNames.f_crtyd, type: "user" },
+    { canonical_name: LayerNames.b_crtyd, type: "user" },
     { canonical_name: LayerNames.f_fab, type: "user" },
     { canonical_name: LayerNames.b_fab, type: "user" },
+    { canonical_name: LayerNames.edge_cuts, type: "user" },
+    { canonical_name: LayerNames.margin, type: "user" },
+    { canonical_name: LayerNames.dwgs_user, type: "user" },
+    { canonical_name: LayerNames.cmts_user, type: "user" },
+    { canonical_name: LayerNames.eco1_user, type: "user" },
+    { canonical_name: LayerNames.eco2_user, type: "user" },
 ];
 
 export class KicadPCB implements BoardNode {
@@ -1047,7 +1058,10 @@ export class Footprint implements BoardNode {
                 this.at.position.y,
             ).rotate_self(Angle.deg_to_rad(this.at.rotation));
 
-            for (const item of this.drawings) {
+            // Pads are part of a footprint's visible geometry. Including them
+            // here lets a standalone footprint viewer fit the complete asset,
+            // rather than clipping pads beyond the fabrication outline.
+            for (const item of [...this.drawings, ...this.pads]) {
                 if (item instanceof FpText) {
                     continue;
                 }

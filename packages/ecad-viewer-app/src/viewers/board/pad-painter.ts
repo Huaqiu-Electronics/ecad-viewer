@@ -26,6 +26,24 @@ export class PadPainter extends BoardItemPainter {
             } else if (layer == "*.Paste") {
                 layers.push(LayerNames.f_paste);
                 layers.push(LayerNames.b_paste);
+            } else if (layer == LayerNames.f_mask || layer == LayerNames.b_mask) {
+                layers.push(layer);
+            } else if (layer == LayerNames.f_paste || layer == LayerNames.b_paste) {
+                layers.push(layer);
+            } else if (
+                layer == LayerNames.f_silks ||
+                layer == LayerNames.b_silks ||
+                layer == LayerNames.f_fab ||
+                layer == LayerNames.b_fab ||
+                layer == LayerNames.edge_cuts ||
+                layer == LayerNames.dwgs_user ||
+                layer == LayerNames.cmts_user ||
+                layer == LayerNames.f_crtyd ||
+                layer == LayerNames.b_crtyd ||
+                layer == LayerNames.f_adhes ||
+                layer == LayerNames.b_adhes
+            ) {
+                layers.push(layer);
             } else {
                 layers.push(
                     virtual_layer_for(layer, CopperVirtualLayerNames.pads),

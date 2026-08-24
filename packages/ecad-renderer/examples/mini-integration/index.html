@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ECAD renderer mini integration</title>
+  <style>
+    body { margin: 24px; background: #101d2d; color: #eef4ff; font: 14px system-ui, sans-serif; }
+    main { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; }
+    section { background: #182b42; border-radius: 8px; padding: 12px; }
+    canvas { display: block; width: 100%; height: 320px; background: #001023; }
+  </style>
+  <h1>ECAD renderer mini integration</h1>
+  <p>These canvases are rendered from parser PODs created from the fixture assets—no viewer application or HTTP API is involved.</p>
+  <main>
+    <section><h2>Symbol</h2><canvas id="symbol" width="640" height="320"></canvas></section>
+    <section><h2>Footprint</h2><canvas id="footprint" width="640" height="320"></canvas></section>
+  </main>
+  <script type="module" src="./main.js"></script>
+</html>
