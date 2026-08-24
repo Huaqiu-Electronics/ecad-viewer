@@ -22,6 +22,9 @@ export class MoveAndZoom {
     #startDistance: number | null = null;
     #startPosition: TouchList | null = null;
 
+    #dragging = false;
+    #dragLastPos: Vec2 | null = null;
+
     /**
      * Create an interactive pan and zoom helper
      * @param {HTMLElement} target - the element to attach to and listen for mouse events
@@ -86,6 +89,39 @@ export class MoveAndZoom {
             this.#startDistance = null;
             this.#startPosition = null;
         });
+
+        // Mouse drag panning (right-click or middle-click drag)
+        this.target.addEventListener("mousedown", (e: MouseEvent) => {
+            // Right-click (button 2) or middle-click (button 1) to pan
+            if (e.button !== 1 && e.button !== 2) return;
+            e.preventDefault();
+            this.#dragging = true;
+            this.#dragLastPos = new Vec2(e.clientX, e.clientY);
+        });
+
+        this.target.addEventListener("mousemove", (e: MouseEvent) => {
+            if (!this.#dragging || !this.#dragLastPos) return;
+            const dx = this.#dragLastPos.x - e.clientX;
+            const dy = this.#dragLastPos.y - e.clientY;
+            this.#dragLastPos = new Vec2(e.clientX, e.clientY);
+            this.#handle_pan(dx, dy);
+
+            this.target.dispatchEvent(
+                new MouseEvent("panzoom", {
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                }),
+            );
+        });
+
+        const stopDrag = () => {
+            this.#dragging = false;
+            this.#dragLastPos = null;
+        };
+        this.target.addEventListener("mouseup", stopDrag);
+        this.target.addEventListener("mouseleave", stopDrag);
+        // Release drag even if the mouseup happens outside the target
+        window.addEventListener("mouseup", stopDrag);
     }
 
     #getDistanceBetweenTouches(touches: TouchList) {

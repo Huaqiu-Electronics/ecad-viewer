@@ -33,21 +33,33 @@ async function main() {
     const schematic = new SchematicParser().parse(schematicSource);
     const pcb = new BoardParser().parse(pcbSource);
 
+    const interactive = { interactive: true };
+
     await Promise.all([
         renderSymbol(symbol, {
             canvas: document.querySelector<HTMLCanvasElement>("#symbol")!,
+            ...interactive,
         }),
         renderFootprint(footprint, {
             canvas: document.querySelector<HTMLCanvasElement>("#footprint")!,
+            ...interactive,
         }),
         renderSchematic(schematic, {
             canvas: document.querySelector<HTMLCanvasElement>("#schematic")!,
+            ...interactive,
         }),
         renderPcb(pcb, {
             canvas: document.querySelector<HTMLCanvasElement>("#pcb")!,
+            ...interactive,
         }),
     ]);
 }
+
+// Right-click drag is used for panning; suppress the browser context menu
+// on all canvases so it doesn't interrupt interaction.
+document.addEventListener("contextmenu", (e) => {
+    if (e.target instanceof HTMLCanvasElement) e.preventDefault();
+});
 
 main().catch((error: unknown) => {
     document.body.insertAdjacentHTML("beforeend", `<pre>${String(error)}</pre>`);
