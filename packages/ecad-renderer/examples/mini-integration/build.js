@@ -19,5 +19,5 @@ await build({
     },
 });
 await cp(new URL("./index.html", import.meta.url), new URL("./index.html", outdir));
-await cp(new URL("../../tests/assets", import.meta.url), new URL("./assets", outdir), { recursive: true });
+await cp(new URL("./assets", import.meta.url), new URL("./assets", outdir), { recursive: true });
 console.log(`Mini integration built at ${outdir.pathname}`);
