@@ -13,13 +13,32 @@ await build({
     format: "esm",
     platform: "browser",
     target: "es2022",
-    loader: { ".glsl": "text", ".css": "text", ".svg": "text", ".kicad_wks": "text", ".js": "ts" },
+    loader: {
+        ".glsl": "text",
+        ".css": "text",
+        ".svg": "text",
+        ".kicad_wks": "text",
+        ".js": "ts",
+    },
     alias: {
-        "@huaqiu/ecad-renderer": fileURLToPath(new URL("../../src/index.ts", import.meta.url)),
-        "@huaqiu/kicad-sexpr-parser": fileURLToPath(new URL("../../../kicad-parser/src/index.ts", import.meta.url)),
-        "kicad-parser": fileURLToPath(new URL("../../../kicad-parser/src/index.ts", import.meta.url)),
+        "@huaqiu/ecad-renderer": fileURLToPath(
+            new URL("../../src/index.ts", import.meta.url),
+        ),
+        "kicad-parser": fileURLToPath(
+            new URL("../../../kicad-parser/src/index.ts", import.meta.url),
+        ),
+        "kicad-parser": fileURLToPath(
+            new URL("../../../kicad-parser/src/index.ts", import.meta.url),
+        ),
     },
 });
-await cp(fileURLToPath(new URL("./index.html", import.meta.url)), fileURLToPath(new URL("./index.html", outdir)));
-await cp(fileURLToPath(new URL("./assets", import.meta.url)), fileURLToPath(new URL("./assets", outdir)), { recursive: true });
+await cp(
+    fileURLToPath(new URL("./index.html", import.meta.url)),
+    fileURLToPath(new URL("./index.html", outdir)),
+);
+await cp(
+    fileURLToPath(new URL("./assets", import.meta.url)),
+    fileURLToPath(new URL("./assets", outdir)),
+    { recursive: true },
+);
 console.log(`Mini integration built at ${outdirPath}`);

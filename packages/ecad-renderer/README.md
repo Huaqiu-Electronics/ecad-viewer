@@ -1,13 +1,18 @@
 # @huaqiu/ecad-renderer
 
 Browser rendering entrypoints for the PODs emitted by
-`@huaqiu/kicad-sexpr-parser`. This package bundles the ECAD Viewer canvas,
+`kicad-parser`. This package bundles the ECAD Viewer canvas,
 WebGL, viewport, symbol, footprint, schematic, PCB, and stroke/CJK glyph
 implementations. It does not parse KiCad files and does not define another
 model layer.
 
 ```ts
-import { renderSymbol, renderFootprint, renderSchematic, renderPcb } from "@huaqiu/ecad-renderer";
+import {
+    renderSymbol,
+    renderFootprint,
+    renderSchematic,
+    renderPcb,
+} from "@huaqiu/ecad-renderer";
 
 const result = await renderSymbol(symbolPod, { width: 320, height: 240 });
 document.body.append(result.canvas);

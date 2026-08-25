@@ -1,4 +1,4 @@
-import type { boardProto, schematicProto } from "@huaqiu/kicad-sexpr-parser";
+import type { boardProto, schematicProto } from "kicad-parser";
 
 /** Existing parser POD types; no renderer-specific model is introduced. */
 export type Pcb = boardProto.I_KicadPCB;

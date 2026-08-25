@@ -1,4 +1,4 @@
-import { BoardParser, SchematicParser } from "@huaqiu/kicad-sexpr-parser";
+import { BoardParser, SchematicParser } from "kicad-parser";
 import {
     renderFootprint,
     renderPcb,
@@ -62,6 +62,9 @@ document.addEventListener("contextmenu", (e) => {
 });
 
 main().catch((error: unknown) => {
-    document.body.insertAdjacentHTML("beforeend", `<pre>${String(error)}</pre>`);
+    document.body.insertAdjacentHTML(
+        "beforeend",
+        `<pre>${String(error)}</pre>`,
+    );
     console.error(error);
 });
