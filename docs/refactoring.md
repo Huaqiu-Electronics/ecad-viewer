@@ -15,7 +15,7 @@ Do NOT create a new parser package or a new EDA/POD model package.
 The repository already publishes:
 
 ```text
-kicad-parser
+@huaqiu/kicad-sexpr-parser
 ```
 
 which contains:
@@ -30,7 +30,7 @@ Those existing POD models are the input contract for the new renderer.
 The target architecture is:
 
 ```text
-kicad-parser
+@huaqiu/kicad-sexpr-parser
           │
           │ existing POD models
           ▼
@@ -100,7 +100,7 @@ The goal is to expose it as a reusable package.
 The new renderer MUST consume the existing models from:
 
 ```text
-kicad-parser
+@huaqiu/kicad-sexpr-parser
 ```
 
 Do not introduce:
@@ -137,7 +137,7 @@ The dependency should be:
 ```text
 @huaqiu/ecad-renderer
         ↓
-kicad-parser
+@huaqiu/kicad-sexpr-parser
 ```
 
 The renderer may import the existing POD types as TypeScript types and/or runtime values where required.
@@ -260,13 +260,18 @@ The APIs must accept the existing POD models.
 Conceptually:
 
 ```ts
-import type { Symbol, Footprint, Schematic, Pcb } from "kicad-parser";
+import type {
+  Symbol,
+  Footprint,
+  Schematic,
+  Pcb,
+} from "@huaqiu/kicad-sexpr-parser";
 
 import {
-    renderSymbol,
-    renderFootprint,
-    renderSchematic,
-    renderPcb,
+  renderSymbol,
+  renderFootprint,
+  renderSchematic,
+  renderPcb,
 } from "@huaqiu/ecad-renderer";
 ```
 
@@ -468,8 +473,8 @@ Extract it into the package.
 Conceptually:
 
 ```ts
-createRendererWorker();
-createRendererClient();
+createRendererWorker()
+createRendererClient()
 ```
 
 or equivalent names based on the actual implementation.
@@ -575,7 +580,7 @@ Because rendering may occur in a Web Worker, explicitly verify how fonts are mad
 Do not assume a normal document-level:
 
 ```css
-@font-face;
+@font-face
 ```
 
 is sufficient.
@@ -706,15 +711,15 @@ Add package metadata:
 
 ```json
 {
-    "name": "@huaqiu/ecad-renderer",
-    "version": "...",
-    "type": "module",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.js"
-        }
+  "name": "@huaqiu/ecad-renderer",
+  "version": "...",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
+  }
 }
 ```
 
@@ -843,7 +848,7 @@ Only publish:
 The existing:
 
 ```text
-kicad-parser
+@huaqiu/kicad-sexpr-parser
 ```
 
 remains the source of:
@@ -858,7 +863,7 @@ This keeps the dependency graph simple:
 ```text
 @huaqiu/ecad-renderer
         ↓
-kicad-parser
+@huaqiu/kicad-sexpr-parser
 ```
 
 ---
@@ -1018,7 +1023,7 @@ renderer
 The intended path is:
 
 ```text
-kicad-parser
+@huaqiu/kicad-sexpr-parser
         ↓
 existing POD model
         ↓
@@ -1110,7 +1115,7 @@ Integrate the package into a DSH prototype.
 The final dependency graph should be approximately:
 
 ```text
-                 kicad-parser
+                 @huaqiu/kicad-sexpr-parser
                     │
                     │ POD models
                     ▼
@@ -1150,7 +1155,7 @@ The existing parser remains untouched as the parser/model source of truth.
 The implementation is complete when:
 
 - [ ] `@huaqiu/ecad-renderer` exists as the only new package.
-- [ ] It depends on the existing `kicad-parser`.
+- [ ] It depends on the existing `@huaqiu/kicad-sexpr-parser`.
 - [ ] No duplicate POD/model layer has been introduced.
 - [ ] Existing renderer implementation has been extracted/reused.
 - [ ] Existing Web Worker rendering architecture remains intact.

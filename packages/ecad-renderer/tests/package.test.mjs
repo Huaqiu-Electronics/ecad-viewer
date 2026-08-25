@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { BoardParser, SchematicParser } from "kicad-parser";
+import { BoardParser, SchematicParser } from "@huaqiu/kicad-sexpr-parser";
 
 test("published package exposes the four POD rendering entrypoints", async () => {
     const manifest = JSON.parse(await readFile(new URL("../package.json", import.meta.url)));

@@ -37,7 +37,7 @@
     ],
     "sideEffects": false,
     "dependencies": {
-        "kicad-parser": "file:../kicad-parser",
+        "@huaqiu/kicad-sexpr-parser": "^1.5.3",
         "immutable": "^5.0.0-beta.5"
     },
     "devDependencies": {
