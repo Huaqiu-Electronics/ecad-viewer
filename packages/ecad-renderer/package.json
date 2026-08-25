@@ -1,33 +1,54 @@
 {
-  "name": "@huaqiu/ecad-renderer",
-  "version": "0.1.0",
-  "description": "Reusable KiCad POD renderer extracted from ECAD Viewer",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./symbol": { "types": "./dist/symbol.d.ts", "import": "./dist/symbol.js" },
-    "./footprint": { "types": "./dist/footprint.d.ts", "import": "./dist/footprint.js" },
-    "./schematic": { "types": "./dist/schematic.d.ts", "import": "./dist/schematic.js" },
-    "./pcb": { "types": "./dist/pcb.d.ts", "import": "./dist/pcb.js" },
-    "./worker": { "types": "./dist/worker.d.ts", "import": "./dist/worker.js" }
-  },
-  "files": ["dist", "README.md"],
-  "sideEffects": false,
-  "dependencies": {
-    "@huaqiu/kicad-sexpr-parser": "^1.5.3",
-    "immutable": "^5.0.0-beta.5"
-  },
-  "devDependencies": {
-    "esbuild": "^0.27.2",
-    "typescript": "^5.2.2"
-  },
-  "scripts": {
-    "build": "node ./scripts/build.js",
-    "lint": "tsc --noEmit --strict --skipLibCheck --module es2022 --target es2022 --moduleResolution bundler src/types.ts src/worker.ts",
-    "test": "node --test tests/*.test.mjs",
-    "example:mini": "node ./examples/mini-integration/build.js",
-    "pack:check": "npm pack --dry-run"
-  }
+    "name": "@huaqiu/ecad-renderer",
+    "version": "0.1.1",
+    "description": "Reusable KiCad POD renderer extracted from ECAD Viewer",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        },
+        "./symbol": {
+            "types": "./dist/symbol.d.ts",
+            "import": "./dist/symbol.js"
+        },
+        "./footprint": {
+            "types": "./dist/footprint.d.ts",
+            "import": "./dist/footprint.js"
+        },
+        "./schematic": {
+            "types": "./dist/schematic.d.ts",
+            "import": "./dist/schematic.js"
+        },
+        "./pcb": {
+            "types": "./dist/pcb.d.ts",
+            "import": "./dist/pcb.js"
+        },
+        "./worker": {
+            "types": "./dist/worker.d.ts",
+            "import": "./dist/worker.js"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md"
+    ],
+    "sideEffects": false,
+    "dependencies": {
+        "@huaqiu/kicad-sexpr-parser": "^1.5.3",
+        "immutable": "^5.0.0-beta.5"
+    },
+    "devDependencies": {
+        "esbuild": "^0.27.2",
+        "typescript": "^5.2.2"
+    },
+    "scripts": {
+        "build": "node ./scripts/build.js",
+        "lint": "tsc --noEmit --strict --skipLibCheck --module es2022 --target es2022 --moduleResolution bundler src/types.ts src/worker.ts",
+        "test": "node --test tests/*.test.mjs",
+        "example:mini": "node ./examples/mini-integration/build.js",
+        "pack:check": "npm pack --dry-run"
+    }
 }

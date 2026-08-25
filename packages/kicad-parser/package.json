@@ -1,6 +1,6 @@
 {
     "name": "@huaqiu/kicad-sexpr-parser",
-    "version": "1.5.3",
+    "version": "0.1.1",
     "description": "KiCad sexpr file parser",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
