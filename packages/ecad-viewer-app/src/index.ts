@@ -38,6 +38,8 @@ export {
     renderFootprint,
     renderSchematic,
     renderPcb,
+    renderProjectFromZip,
+    loadProjectZip,
 } from "@huaqiu/ecad-renderer";
 
 export {

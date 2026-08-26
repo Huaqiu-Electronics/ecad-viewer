@@ -1,6 +1,6 @@
 {
     "name": "@huaqiu/ecad-renderer",
-    "version": "0.1.2",
+    "version": "0.2.0",
     "description": "Reusable KiCad POD renderer extracted from ECAD Viewer",
     "type": "module",
     "main": "./dist/index.js",
@@ -26,6 +26,10 @@
             "types": "./dist/pcb.d.ts",
             "import": "./dist/pcb.js"
         },
+        "./project": {
+            "types": "./dist/project.d.ts",
+            "import": "./dist/project.js"
+        },
         "./worker": {
             "types": "./dist/worker.d.ts",
             "import": "./dist/worker.js"
@@ -38,7 +42,8 @@
     "sideEffects": false,
     "dependencies": {
         "@huaqiu/kicad-sexpr-parser": "^0.1.1",
-        "immutable": "^5.0.0-beta.5"
+        "immutable": "^5.0.0-beta.5",
+        "jszip": "^3.10.1"
     },
     "devDependencies": {
         "esbuild": "^0.27.2",
