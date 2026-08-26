@@ -1,10 +1,21 @@
 import { KicadPCB } from "../../ecad-viewer-app/src/kicad/board";
 import { KicadSch } from "../../ecad-viewer-app/src/kicad/schematic";
+import { NewStrokeGlyph } from "../../ecad-viewer-app/src/kicad/text/newstroke-glyphs";
 import themes from "../../ecad-viewer-app/src/kicanvas/themes";
 import { BoardViewer } from "../../ecad-viewer-app/src/viewers/board/viewer";
 import { SchematicViewer } from "../../ecad-viewer-app/src/viewers/schematic/viewer";
+import { glyph_data } from "../../ecad-viewer-app/src/glyph";
 import type { boardProto, schematicProto } from "@huaqiu/kicad-sexpr-parser";
 import type { RenderOptions, RenderResult } from "./types";
+
+/**
+ * The standalone renderer always bundles the full NewStroke glyph table
+ * (including CJK ideographs) so it has no runtime font dependency. The full
+ * ecad-viewer-app defers this to Project.import_cjk_glyphs(); the renderer
+ * does it eagerly at module load, before StrokeFont.default() creates its
+ * singleton and caches the first 256 glyphs.
+ */
+NewStrokeGlyph.glyph_data = glyph_data;
 
 /**
  * Resolve the canvas the renderer will paint into.
