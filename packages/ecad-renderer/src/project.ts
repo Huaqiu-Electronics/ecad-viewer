@@ -27,7 +27,9 @@ async function toBlob(source: ProjectZipSource): Promise<Blob> {
     if (typeof Blob !== "undefined" && source instanceof Blob) return source;
     if (source instanceof Response) {
         if (!source.ok) {
-            throw new Error(`Failed to fetch project zip (HTTP ${source.status})`);
+            throw new Error(
+                `Failed to fetch project zip (HTTP ${source.status})`,
+            );
         }
         return source.blob();
     }
@@ -56,6 +58,23 @@ async function toArrayBuffer(source: ProjectZipSource): Promise<ArrayBuffer> {
     });
 }
 
+function findProjectRootSchematic(blobs: Record<string, string>) {
+    const filenames = Object.keys(blobs);
+
+    const projectFile = filenames.find((name) => name.endsWith(".kicad_pro"));
+
+    if (projectFile) {
+        const basename = projectFile.slice(0, -".kicad_pro".length);
+        const projectSchematic = `${basename}.kicad_sch`;
+
+        if (blobs[projectSchematic] !== undefined) {
+            return projectSchematic;
+        }
+    }
+
+    return find_root_sch_from_content(blobs);
+}
+
 /**
  * Unpack a KiCad project ZIP into its schematic/PCB sources and identify the
  * root schematic. Returns only `.kicad_sch` / `.kicad_pcb` files (by basename).
@@ -65,17 +84,25 @@ export async function loadProjectZip(
 ): Promise<LoadedProjectZip> {
     const buffer = await toArrayBuffer(source);
     const zip = await JSZip.loadAsync(buffer);
+
     const files: ProjectZipFile[] = [];
     const blobs: Record<string, string> = {};
+
     for (const name in zip.files) {
         const entry = zip.files[name];
         if (!entry || entry.dir) continue;
+
         const parts = name.split("/");
         const basename = parts[parts.length - 1] ?? name;
+
         if (!isKicad(basename)) continue;
+
         const content = await entry.async("text");
         files.push({ filename: basename, content });
         blobs[basename] = content;
     }
-    return { files, rootSchematic: find_root_sch_from_content(blobs) };
+
+    const rootSchematic = findProjectRootSchematic(blobs);
+
+    return { files, rootSchematic };
 }
