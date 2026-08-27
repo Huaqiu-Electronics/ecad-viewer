@@ -19,6 +19,30 @@ import type { RenderOptions, RenderResult } from "./types";
 NewStrokeGlyph.glyph_data = glyph_data;
 
 /**
+ * Canvases the renderer has already wired for context-menu suppression —
+ * idempotent across repeated renders into the same canvas.
+ */
+const contextMenuWired = new WeakSet<HTMLCanvasElement>();
+
+/**
+ * Suppress the browser's default context menu on the renderer's canvas.
+ *
+ * Interactive viewers pan with right-drag, so the OS/browser context menu
+ * would interrupt interaction. The renderer opts the canvas out by default —
+ * hosts no longer need to add their own `document`/`canvas` contextmenu
+ * handler. The listener only calls `preventDefault()` (it does not stop
+ * propagation), so a host can still attach its own `contextmenu` listener to
+ * show a custom menu if it wants one.
+ */
+function suppressDefaultContextMenu(canvas: HTMLCanvasElement) {
+    if (contextMenuWired.has(canvas)) return;
+    contextMenuWired.add(canvas);
+    canvas.addEventListener("contextmenu", (e) => {
+        if (e.target === canvas) e.preventDefault();
+    });
+}
+
+/**
  * Resolve the canvas the renderer will paint into.
  *
  * The host controls the canvas's CSS size (via stylesheet or inline style);
@@ -32,6 +56,7 @@ function target(options: RenderOptions) {
     const canvas = options.canvas ?? document.createElement("canvas");
     if (!canvas.parentElement)
         (options.container ?? document.body).append(canvas);
+    suppressDefaultContextMenu(canvas);
     return canvas;
 }
 

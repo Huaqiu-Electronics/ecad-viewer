@@ -55,11 +55,8 @@ async function main() {
     ]);
 }
 
-// Right-click drag is used for panning; suppress the browser context menu
-// on all canvases so it doesn't interrupt interaction.
-document.addEventListener("contextmenu", (e) => {
-    if (e.target instanceof HTMLCanvasElement) e.preventDefault();
-});
+// The renderer suppresses the browser's default context menu on its canvases
+// by default (right-drag pans), so hosts don't need their own handler here.
 
 main().catch((error: unknown) => {
     document.body.insertAdjacentHTML("beforeend", `<pre>${String(error)}</pre>`);
