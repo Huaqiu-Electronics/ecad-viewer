@@ -58,12 +58,15 @@ async function toArrayBuffer(source: ProjectZipSource): Promise<ArrayBuffer> {
     });
 }
 
-function findProjectRootSchematic(blobs: Record<string, string>) {
-    const filenames = Object.keys(blobs);
-
-    const projectFile = filenames.find((name) => name.endsWith(".kicad_pro"));
-
-    if (projectFile) {
+function findProjectRootSchematic(
+    blobs: Record<string, string>,
+    projectFileNames: string[],
+) {
+    // The root sheet is the one named after the `.kicad_pro` project file
+    // (the hierarchy root references it). `.kicad_pro` files are excluded
+    // from `blobs` (which only holds renderable sch/pcb sources), so the
+    // project filenames are passed in explicitly.
+    for (const projectFile of projectFileNames) {
         const basename = projectFile.slice(0, -".kicad_pro".length);
         const projectSchematic = `${basename}.kicad_sch`;
 
@@ -87,6 +90,10 @@ export async function loadProjectZip(
 
     const files: ProjectZipFile[] = [];
     const blobs: Record<string, string> = {};
+    // Basenames of `.kicad_pro` entries — needed to identify the root sheet
+    // (the sheet named after the project file) even though the project file
+    // itself is not a renderable source and is excluded from `files`/`blobs`.
+    const projectFileNames: string[] = [];
 
     for (const name in zip.files) {
         const entry = zip.files[name];
@@ -95,6 +102,11 @@ export async function loadProjectZip(
         const parts = name.split("/");
         const basename = parts[parts.length - 1] ?? name;
 
+        if (basename.endsWith(".kicad_pro")) {
+            projectFileNames.push(basename);
+            continue;
+        }
+
         if (!isKicad(basename)) continue;
 
         const content = await entry.async("text");
@@ -102,7 +114,7 @@ export async function loadProjectZip(
         blobs[basename] = content;
     }
 
-    const rootSchematic = findProjectRootSchematic(blobs);
+    const rootSchematic = findProjectRootSchematic(blobs, projectFileNames);
 
     return { files, rootSchematic };
 }

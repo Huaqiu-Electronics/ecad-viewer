@@ -35,19 +35,22 @@ async function buildZip(entries) {
 
 test("loadProjectZip extracts KiCad files and detects the root schematic from .kicad_pro", async () => {
     const buf = await buildZip({
+        // A sub-sheet that sorts BEFORE the root — a naive "first sheet" pick
+        // would render this module sheet instead of the project root.
+        "Aaa_Module.kicad_sch": "(kicad_sch (version 20231120))",
         "Demo.kicad_pro": "(kicad_pro (version 20230121))",
         "Demo.kicad_sch": "(kicad_sch (version 20231120))",
-        "Sub.kicad_sch": "(kicad_sch (version 20231120))",
         "notes.txt": "not kicad",
     });
     const loaded = await loadProjectZip(buf);
-    // Only KiCad sources, non-KiCad entries filtered out.
+    // Only KiCad sources, non-KiCad entries filtered out (incl. .kicad_pro).
     assert.deepEqual(
         loaded.files.map((f) => f.filename).sort(),
-        ["Demo.kicad_sch", "Sub.kicad_sch"],
+        ["Aaa_Module.kicad_sch", "Demo.kicad_sch"],
     );
     assert.equal(loaded.files[0].content, "(kicad_sch (version 20231120))");
-    // Root schematic = the sheet named after the .kicad_pro project file.
+    // Root schematic = the sheet named after the .kicad_pro project file,
+    // even though the sub-sheet sorts first.
     assert.equal(loaded.rootSchematic, "Demo.kicad_sch");
 });
 
