@@ -40,6 +40,8 @@ export enum LayerNames {
 
     // symbol body fill
     symbol_background = ":Symbol:Background",
+    // 网络高亮：按网络名追踪出的导线画在这里，与查看器自己用的 overlay 分开
+    net_highlight = ":NetHighlight",
     drawing_sheet = BaseLayerNames.drawing_sheet,
     grid = BaseLayerNames.grid,
     drawing_sheet_bg = ":DrawingSheet:Background",

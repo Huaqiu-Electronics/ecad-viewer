@@ -20,6 +20,7 @@ import * as schematic_items from "../../kicad/schematic";
 import { TextAttributes } from "../../kicad/text";
 import { LibText, SchField, SchText, StrokeFont } from "../../kicad/text";
 import { LayerNames, LayerSet, ViewLayer } from "./layers";
+import { NET_HIGHLIGHT, find_net, type NetHighlightTrace } from "./net-highlight";
 import { BaseSchematicPainter, SchematicItemPainter } from "./painters/base";
 import {
     GlobalLabelPainter,
@@ -811,5 +812,54 @@ export class SchematicPainter extends BaseSchematicPainter {
             new PaperPainter(this, gfx),
             new BezierPainter(this, gfx),
         ];
+    }
+
+    /**
+     * 高亮一组网络：追踪出属于这些网络的导线，用紫色"柔晕 + 加粗亮芯"
+     * 描边到 :NetHighlight 图层（颜色对齐 KiCad 内部网络高亮）。
+     *
+     * 与 board 侧的 paint_net 对应——绘制细节留在 painter，viewer 只负责协调
+     * （收拢相机）。没追踪到任何导线时返回 null。
+     */
+    paint_net(
+        doc: schematic_items.KicadSch,
+        names: string[],
+    ): NetHighlightTrace | null {
+        const net = find_net(doc, names);
+
+        if (!net.wires.length) {
+            return null;
+        }
+
+        const layer = this.layers.by_name(LayerNames.net_highlight)!;
+        layer.clear();
+
+        this.gfx.start_layer(layer.name);
+
+        // ① 标签与电源符号按原样绘制，保证文字仍然可读
+        for (const item of [...net.labels, ...net.power_symbols]) {
+            this.paint_item(layer, item);
+        }
+
+        // ② 外发光：宽而半透明的琥珀色垫底
+        for (const wire of net.wires) {
+            this.gfx.line(wire.pts, NET_HIGHLIGHT.glow_width, NET_HIGHLIGHT.glow);
+        }
+
+        // ③ 亮芯：细一档但完全不透明，压在光晕之上
+        for (const wire of net.wires) {
+            this.gfx.line(wire.pts, NET_HIGHLIGHT.width, NET_HIGHLIGHT.color);
+        }
+
+        // ④ 接入点不另画标记：加粗亮芯与柔晕在端点自然汇聚成亮斑
+
+        const graphics = this.gfx.end_layer();
+
+        if (graphics) {
+            layer.graphics = graphics;
+            graphics.composite_operation = "source-over";
+        }
+
+        return net;
     }
 }

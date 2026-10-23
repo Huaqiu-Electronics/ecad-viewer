@@ -246,6 +246,19 @@ export class ComponentERCResultEvent extends CustomEvent<ComponentERCResult> {
     }
 }
 
+/** 高亮一组网络（按网络名追踪导线）。nets 为空表示清除高亮。 */
+export interface SchematicHighlightNetDetail {
+    nets: string[];
+}
+
+export class SchematicHighlightNetEvent extends CustomEvent<SchematicHighlightNetDetail> {
+    static readonly type = "sch:highlight:net";
+
+    constructor(detail: SchematicHighlightNetDetail) {
+        super(SchematicHighlightNetEvent.type, { detail });
+    }
+}
+
 export class ProjectERCResultEvent extends CustomEvent<ProjectErcResult> {
     static readonly type = "sch:erc:project";
 
@@ -419,6 +432,7 @@ export interface KiCanvasEventMap {
     [PresetUnsetEvent.type]: PresetUnsetEvent;
     [ComponentERCResultEvent.type]: ComponentERCResultEvent;
     [ProjectERCResultEvent.type]: ProjectERCResultEvent;
+    [SchematicHighlightNetEvent.type]: SchematicHighlightNetEvent;
     [CommentClickEvent.type]: CommentClickEvent;
 }
 
@@ -439,6 +453,7 @@ declare global {
         [BoardContentReady.type]: BoardContentReady;
         [ComponentERCResultEvent.type]: ComponentERCResultEvent;
         [ProjectERCResultEvent.type]: ProjectERCResultEvent;
+        [SchematicHighlightNetEvent.type]: SchematicHighlightNetEvent;
         [CommentClickEvent.type]: CommentClickEvent;
     }
 
@@ -458,6 +473,7 @@ declare global {
         [BoardContentReady.type]: BoardContentReady;
         [ComponentERCResultEvent.type]: ComponentERCResultEvent;
         [ProjectERCResultEvent.type]: ProjectERCResultEvent;
+        [SchematicHighlightNetEvent.type]: SchematicHighlightNetEvent;
         [CommentClickEvent.type]: CommentClickEvent;
     }
 }

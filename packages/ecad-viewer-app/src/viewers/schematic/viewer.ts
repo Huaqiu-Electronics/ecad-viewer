@@ -22,6 +22,7 @@ import {
 } from "../base/events";
 import { ViewerType } from "../base/viewer";
 import { LayerNames, LayerSet } from "./layers";
+import { net_bbox, type NetHighlightResult } from "./net-highlight";
 import { SchematicPainter } from "./painter";
 import { get_symbol_transform } from "./painters/symbol";
 import { StrokeFont, TextAttributes } from "../../kicad/text";
@@ -305,6 +306,42 @@ export class SchematicViewer extends DocumentViewer<
             this.draw();
             this.paint_selected(combined_bbox);
         }
+    }
+
+    /**
+     * 按网络名高亮整条网络。
+     *
+     * 与 board/viewer 保持一致：绘制细节全部在 SchematicPainter.paint_net，
+     * 这里只负责协调——把相机收拢到网络外接框后重绘。
+     */
+    public highlight_net(names: string[]): NetHighlightResult {
+        const doc = this.document;
+
+        if (!doc) {
+            return { ok: false, reason: "no-document" };
+        }
+
+        const net = this.painter.paint_net(doc, names);
+
+        if (!net) {
+            return { ok: false, reason: "no-wire-found" };
+        }
+
+        this.viewport.camera.bbox = net_bbox(net.wires).grow(20);
+        this.draw();
+
+        return {
+            ok: true,
+            wires: net.wires.length,
+            labels: net.labels.length,
+            power_symbols: net.power_symbols.length,
+        };
+    }
+
+    /** 清除网络高亮（其余图层本就未改动，无需还原） */
+    public clear_net_highlight(): void {
+        this.layers.by_name(LayerNames.net_highlight)!.clear();
+        this.draw();
     }
 
     protected paint_erc() {
