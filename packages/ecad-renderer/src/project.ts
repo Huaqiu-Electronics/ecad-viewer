@@ -82,6 +82,12 @@ function findProjectRootSchematic(
  * Unpack a KiCad project ZIP into its schematic/PCB sources and identify the
  * root schematic. Returns only `.kicad_sch` / `.kicad_pcb` files (by basename).
  */
+// Caps guard against a malicious/corrupted zip (e.g. a "zip bomb") exhausting
+// memory once decompressed — the archive is untrusted project data that may
+// come from an attacker-controlled URL or a tampered response.
+const MAX_PROJECT_ENTRIES = 2000;
+const MAX_ENTRY_SIZE = 10 * 1024 * 1024; // 10 MiB per kicad_sch/kicad_pcb file
+
 export async function loadProjectZip(
     source: ProjectZipSource,
 ): Promise<LoadedProjectZip> {
@@ -95,9 +101,14 @@ export async function loadProjectZip(
     // itself is not a renderable source and is excluded from `files`/`blobs`.
     const projectFileNames: string[] = [];
 
+    let entryCount = 0;
     for (const name in zip.files) {
         const entry = zip.files[name];
         if (!entry || entry.dir) continue;
+
+        if (++entryCount > MAX_PROJECT_ENTRIES) {
+            throw new Error("Project zip has too many entries");
+        }
 
         const parts = name.split("/");
         const basename = parts[parts.length - 1] ?? name;
@@ -110,6 +121,11 @@ export async function loadProjectZip(
         if (!isKicad(basename)) continue;
 
         const content = await entry.async("text");
+        if (content.length > MAX_ENTRY_SIZE) {
+            throw new Error(
+                `Project zip entry "${basename}" exceeds the maximum allowed size`,
+            );
+        }
         files.push({ filename: basename, content });
         blobs[basename] = content;
     }
