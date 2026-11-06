@@ -58,14 +58,16 @@ export abstract class Renderer implements IDisposable {
         x?: number,
         y?: number,
         scale?: number,
-        ppi?: number,
     ): Image {
         let image: Image;
 
-        // Convert pixels to world units (assuming mm)
-        // 25.4 mm / 96 DPI = ~0.26458 mm per pixel.
-        // If ppi is provided, use it. Otherwise default to 300 PPI.
-        const PIXEL_TO_MM = 25.4 / (ppi ?? 300);
+        // Convert pixels to world units (assuming mm).
+        // KiCad sizes schematic bitmaps at a fixed 300 PPI: bitmap_base.cpp
+        // sets m_pixelSizeIu = 254000.0 / 300 in the constructor and never
+        // recomputes it, even when updatePPI() reads a different density out
+        // of the PNG/JPEG. Sizing from the embedded density instead made our
+        // bitmaps up to ~4x larger than KiCad's, so we always use 300 here.
+        const PIXEL_TO_MM = 25.4 / 300;
 
         if (image_or_img instanceof Image) {
             image = image_or_img;
@@ -290,7 +292,6 @@ export abstract class Renderer implements IDisposable {
         x: number,
         y: number,
         scale: number,
-        ppi?: number,
     ): void;
 
     /**

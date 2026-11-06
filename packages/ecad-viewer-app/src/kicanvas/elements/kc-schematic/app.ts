@@ -27,6 +27,7 @@ import {
     LabelClickEvent,
     NetItemSelectEvent,
     ProjectERCResultEvent,
+    SchematicHighlightNetEvent,
     SelectDesignatorEvent,
     SheetChangeEvent,
     SheetLoadEvent,
@@ -225,6 +226,27 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
                 console.warn(`ERC: Cannot find first pin's symbol instance for designator ${designator}`);
             }
         });
+
+        // 按网络名高亮整条网络。nets 为空表示清除高亮。
+        window.addEventListener(
+            SchematicHighlightNetEvent.type,
+            (e: SchematicHighlightNetEvent) => {
+                const nets = e.detail?.nets ?? [];
+
+                if (!nets.length) {
+                    this.sch_viewer.clear_net_highlight();
+                    return;
+                }
+
+                const result = this.sch_viewer.highlight_net(nets);
+
+                if (!result.ok) {
+                    console.warn(
+                        `Net highlight: ${result.reason} for ${nets.join(", ")}`,
+                    );
+                }
+            },
+        );
 
         window.addEventListener(ProjectERCResultEvent.type, (e) => {
             console.log("Project ERC Result", e.detail);

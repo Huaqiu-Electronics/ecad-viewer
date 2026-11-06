@@ -1,6 +1,8 @@
 import {
     ComponentERCResultEvent,
     ProjectERCResultEvent,
+    SchematicHighlightNetEvent,
+    SelectDesignatorEvent,
     ImageExportRequestEvent,
     ImageExportResultEvent,
     LOAD_ZIP_MESSAGE_TYPE,
@@ -109,6 +111,16 @@ export const setup_iframe_bridge = () => {
                 const evt = new CustomEvent(ProjectERCResultEvent.type, {
                     detail: msg.data.detail,
                 });
+                window.dispatchEvent(evt);
+                break;
+            }
+            case SchematicHighlightNetEvent.type: {
+                const evt = new SchematicHighlightNetEvent(msg.data.detail);
+                window.dispatchEvent(evt);
+                break;
+            }
+            case SelectDesignatorEvent.type: {
+                const evt = new SelectDesignatorEvent(msg.data.detail);
                 window.dispatchEvent(evt);
                 break;
             }

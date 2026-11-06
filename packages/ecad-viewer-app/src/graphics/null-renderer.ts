@@ -29,11 +29,8 @@ export class NullRenderer extends Renderer {
         x: number,
         y: number,
         scale: number,
-        ppi?: number,
     ): void {
-        this.#active_layer!.shapes.push(
-            super.prep_image(img, x, y, scale, ppi),
-        );
+        this.#active_layer!.shapes.push(super.prep_image(img, x, y, scale));
     }
     #active_layer: NullRenderLayer | null;
 
