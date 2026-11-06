@@ -22,6 +22,7 @@ import {
 } from "../base/events";
 import { ViewerType } from "../base/viewer";
 import { LayerNames, LayerSet } from "./layers";
+import { net_bbox, type NetHighlightResult } from "./net-highlight";
 import { SchematicPainter } from "./painter";
 import { get_symbol_transform } from "./painters/symbol";
 import { StrokeFont, TextAttributes } from "../../kicad/text";
@@ -254,18 +255,21 @@ export class SchematicViewer extends DocumentViewer<
         layer.clear();
 
         if (selected) {
-            const color = new Color(0.1, 0.2, 1, 0.2);
+            // 描边不透明、填充淡：两层都用 0.2 透明度时白底上几乎看不出选中
+            const line_color = new Color(0.1, 0.2, 1, 1);
+            const fill_color = new Color(0.1, 0.2, 1, 0.2);
             this.renderer.start_layer(layer.name);
+
+            // 先填充后描边，否则填充会盖住描边
+            this.renderer.polygon(Polygon.from_BBox(selected, fill_color));
 
             this.renderer.line(
                 Polyline.from_BBox(
                     selected,
                     SchematicViewer.InterActiveBBoxLineWidth,
-                    color,
+                    line_color,
                 ),
             );
-
-            this.renderer.polygon(Polygon.from_BBox(selected, color));
 
             layer.graphics = this.renderer.end_layer();
 
@@ -305,6 +309,45 @@ export class SchematicViewer extends DocumentViewer<
             this.draw();
             this.paint_selected(combined_bbox);
         }
+    }
+
+    /**
+     * 按网络名高亮整条网络。
+     *
+     * 与 board/viewer 保持一致：绘制细节全部在 SchematicPainter.paint_net，
+     * 这里只负责协调——把相机收拢到网络外接框后重绘。
+     */
+    public highlight_net(names: string[]): NetHighlightResult {
+        const doc = this.document;
+
+        if (!doc) {
+            return { ok: false, reason: "no-document" };
+        }
+
+        const net = this.painter.paint_net(doc, names);
+
+        if (!net) {
+            return { ok: false, reason: "no-wire-found" };
+        }
+
+        this.viewport.camera.bbox = net_bbox(net.wires).grow(20);
+        // 网络高亮与器件选中互斥，否则上一次的选中框会留在图上
+        this.layers.selection_bg.clear();
+        this.draw();
+
+        return {
+            ok: true,
+            wires: net.wires.length,
+            labels: net.labels.length,
+            power_symbols: net.power_symbols.length,
+        };
+    }
+
+    /** 清除网络高亮；同时清掉器件选中框，两者互斥 */
+    public clear_net_highlight(): void {
+        this.layers.by_name(LayerNames.net_highlight)!.clear();
+        this.layers.selection_bg.clear();
+        this.draw();
     }
 
     protected paint_erc() {

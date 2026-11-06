@@ -27,9 +27,8 @@ export class Canvas2DRenderer extends Renderer {
         x: number,
         y: number,
         scale: number,
-        ppi?: number,
     ): void {
-        const image_primitive = super.prep_image(img, x, y, scale, ppi);
+        const image_primitive = super.prep_image(img, x, y, scale);
 
         this.#active_layer?.commands.push(
             new ImageCommand(

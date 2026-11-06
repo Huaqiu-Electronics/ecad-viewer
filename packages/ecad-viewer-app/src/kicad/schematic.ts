@@ -19,7 +19,6 @@ import {
     expand_text_vars,
     unescape_string,
 } from "./common";
-import { get_image_ppi } from "./get_image_ppi";
 import { schematicProto } from "kicad-parser";
 
 /* Default values for various things found in schematics
@@ -513,7 +512,6 @@ export class Image {
     at: At;
     data: string;
     scale: number = 1;
-    ppi: number | null = null;
     #img: HTMLImageElement;
 
     get img() {
@@ -525,10 +523,6 @@ export class Image {
         this.data = data.data;
         this.scale = data.scale;
         this.uuid = data.uuid;
-
-        if (this.data) {
-            this.ppi = get_image_ppi(this.data);
-        }
 
         // Keep the model/rendering layer independent from the application's
         // custom-element helper so it can be bundled by the renderer package.

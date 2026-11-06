@@ -20,6 +20,8 @@ export enum LayerNames {
     marks = ":Marks",
     // ERC markers and text
     erc = ":ERC",
+    // 网络高亮：按网络名追踪出的导线画在这里，放在 wire 之前以便绘制在导线上方
+    net_highlight = ":NetHighlight",
     // reference, value, other symbol fields
     symbol_field = ":Symbol:Field",
     // hierarchical, global, and local labels
