@@ -18,6 +18,7 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
       - run: npm ci
+      - run: npm run build --workspace=@huaqiu/kicad-sexpr-parser
       - run: npm run build --workspace=@huaqiu/ecad-renderer
       - run: npm test --workspace=@huaqiu/ecad-renderer
       - run: npm publish --workspace=@huaqiu/ecad-renderer --provenance
