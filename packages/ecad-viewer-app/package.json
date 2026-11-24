@@ -1,6 +1,6 @@
 {
     "name": "ecad-viewer-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "ECAD Viewer Application",
     "type": "module",
     "main": "./dist/index.js",
