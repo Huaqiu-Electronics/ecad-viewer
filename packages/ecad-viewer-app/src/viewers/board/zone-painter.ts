@@ -14,7 +14,9 @@ export class ZonePainter extends BoardItemPainter {
     color_cache: Color | null = null;
 
     layers_for(z: board_items.Zone): string[] {
-        const layers = z.layers ?? [z.layer];
+        // `Zone.layers` is always an array (empty for single-layer zones), so
+        // fall back to `layer` when it has no entries.
+        const layers = z.layers?.length ? [...z.layers] : [z.layer];
 
         if (layers.length && layers[0] == "F&B.Cu") {
             layers.shift();
