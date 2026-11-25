@@ -867,8 +867,17 @@ export class LibSymbol {
                         new Polyline(d as schematicProto.I_Polyline, this),
                     );
                 } else if (
-                    ("mid" in d && (d as schematicProto.I_Arc).mid) ||
-                    ("radius" in d && (d as schematicProto.I_Arc).radius)
+                    "center" in d &&
+                    (d as schematicProto.I_Circle).center
+                ) {
+                    this.drawings.push(
+                        new Circle(d as schematicProto.I_Circle, this),
+                    );
+                } else if (
+                    "start" in d &&
+                    (d as schematicProto.I_Arc).start &&
+                    (("mid" in d && (d as schematicProto.I_Arc).mid) ||
+                        ("radius" in d && (d as schematicProto.I_Arc).radius))
                 ) {
                     this.drawings.push(
                         new Arc(d as schematicProto.I_Arc, this),
@@ -879,13 +888,6 @@ export class LibSymbol {
                 ) {
                     this.drawings.push(
                         new Rectangle(d as schematicProto.I_Rectangle, this),
-                    );
-                } else if (
-                    "center" in d &&
-                    (d as schematicProto.I_Circle).center
-                ) {
-                    this.drawings.push(
-                        new Circle(d as schematicProto.I_Circle, this),
                     );
                 } else if ("text" in d && (d as schematicProto.I_Text).text) {
                     this.drawings.push(
