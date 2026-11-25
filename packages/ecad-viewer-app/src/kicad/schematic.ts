@@ -1255,6 +1255,14 @@ export class SchematicSymbol {
             data.properties?.map((p) => [p.name, new Property(p, this)]),
         );
         this.pins = data.pins?.map((p) => new PinInstance(p, this)) ?? [];
+
+        // Some third-party converters omit the per-instance
+        // `(pin "1" (uuid ...))` entries. Pins are defined by the library
+        // symbol, so fall back to it when the instance lists none.
+        if (this.pins.length === 0) {
+            this.pins = this.#pins_from_lib_symbol();
+        }
+
         this.default_instance = data.default_instance;
 
         // Walk through all instances and flatten them.
@@ -1381,6 +1389,49 @@ export class SchematicSymbol {
             }
             return true;
         });
+    }
+
+    /**
+     * Derive pins from the library symbol (including its unit/body-style
+     * child symbols) when the instance doesn't record any.
+     */
+    #pins_from_lib_symbol(): PinInstance[] {
+        const lib = this.parent.lib_symbols?.by_name(
+            this.lib_name ?? this.lib_id,
+        );
+        if (!lib) {
+            return [];
+        }
+
+        const style = this.convert ?? 1;
+        const definitions: PinDefinition[] = [];
+
+        const collect = (symbol: LibSymbol) => {
+            definitions.push(...symbol.pins);
+            for (const child of symbol.children) {
+                if (child.style == 0 || child.style == style) {
+                    collect(child);
+                }
+            }
+        };
+        collect(lib);
+
+        return definitions
+            .filter((def) => {
+                const unit = def.unit;
+                return !this.unit || !unit || this.unit == unit;
+            })
+            .map(
+                (def) =>
+                    new PinInstance(
+                        {
+                            number: def.number.text,
+                            uuid: `${this.uuid}:${def.number.text}`,
+                            alternate: "",
+                        },
+                        this,
+                    ),
+            );
     }
 
     resolve_text_var(name: string): string | undefined {
