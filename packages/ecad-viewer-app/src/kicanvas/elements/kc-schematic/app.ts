@@ -142,11 +142,18 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
             );
             
             if (first_ref) {
-                if (first_ref.sheet_name !== this.sch_viewer.sch_name) {
-                    const sch = this.project.file_by_name(first_ref.sheet_name);
-                    if (sch instanceof KicadSch) {
-                        this.viewer.load(sch);
-                    }
+                // if (first_ref.sheet_name !== this.sch_viewer.sch_name) {
+                //     const sch = this.project.file_by_name(first_ref.sheet_name);
+                //     if (sch instanceof KicadSch) {
+                //         this.viewer.load(sch);
+                //     }
+                // }
+
+                const sch = this.project.file_by_name(first_ref.sheet_name);
+                if (sch instanceof KicadSch) {
+                    // `sheet_path` selects the right instance when the file
+                    // is used by more than one page.
+                    this.sch_viewer.load(sch, first_ref.sheet_path);
                 }
 
                 setTimeout(() => {
@@ -208,11 +215,18 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
             );
             
             if (first_ref) {
-                if (first_ref.sheet_name !== this.sch_viewer.sch_name) {
-                    const sch = this.project.file_by_name(first_ref.sheet_name);
-                    if (sch instanceof KicadSch) {
-                        this.viewer.load(sch);
-                    }
+                // if (first_ref.sheet_name !== this.sch_viewer.sch_name) {
+                //     const sch = this.project.file_by_name(first_ref.sheet_name);
+                //     if (sch instanceof KicadSch) {
+                //         this.viewer.load(sch);
+                //     }
+                // }
+
+                const sch = this.project.file_by_name(first_ref.sheet_name);
+                if (sch instanceof KicadSch) {
+                    // `sheet_path` selects the right instance when the file
+                    // is used by more than one page.
+                    this.sch_viewer.load(sch, first_ref.sheet_path);
                 }
 
                 setTimeout(() => {

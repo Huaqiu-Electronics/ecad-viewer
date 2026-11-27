@@ -77,9 +77,10 @@ export abstract class KCViewerElement<
 
     protected abstract make_viewer(): ViewerT;
 
-    override async load(src: KicadAssert) {
+    override async load(src: KicadAssert, sheet_path?: string) {
         this.loaded = false;
-        await this.viewer.load(src);
+        const viewer_load = this.viewer.load as unknown as (src : KicadAssert, sheet_path?: string) => Promise<void>;
+        await viewer_load.call(this.viewer, src, sheet_path);
     }
 
     override render() {

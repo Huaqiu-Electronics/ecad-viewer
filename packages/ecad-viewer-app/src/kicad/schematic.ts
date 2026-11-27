@@ -1342,6 +1342,11 @@ export class SchematicSymbol {
         this.set_property_text("Reference", val);
     }
 
+    reference_for(sheet_path?: string) {
+        if (!sheet_path) return this.reference;
+        return this.instances.get(sheet_path)?.reference || this.reference;
+    }
+
     get value() {
         return (
             this.get_property_text("ALTIUM_VALUE") ??

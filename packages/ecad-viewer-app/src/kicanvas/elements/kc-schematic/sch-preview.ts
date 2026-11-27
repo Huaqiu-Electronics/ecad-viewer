@@ -67,17 +67,23 @@ export class SchPreviewElement extends KCUIElement {
 
     #sch: KicadSch;
 
-    #sch_name: string;
+    // #sch_name: string;
 
-    constructor(sch: KicadSch) {
+    #sheet_path?: string;
+
+    #label: string;
+
+    constructor(sch: KicadSch, label?:string, sheet_path?:string) {
         super();
         this.#sch = sch;
-        this.#sch_name = sch.filename;
+        this.#label = label || sch.filename;
+        this.#sheet_path = sheet_path;
+        // this.#sch_name = sch.filename;
         this.#preview.classList.add("preview");
     }
 
     override initialContentCallback() {
-        this.#preview.load(this.#sch);
+        this.#preview.load(this.#sch, this.#sheet_path);
     }
 
     override render() {
@@ -86,7 +92,7 @@ export class SchPreviewElement extends KCUIElement {
                 <div class="viewer-panel">
                     <div class="view-container">${this.#preview}</div>
                     <div class="text-container">
-                        <p>${this.#sch_name}</p>
+                        <p>${this.#label}</p>
                     </div>
                 </div>
             </div>
