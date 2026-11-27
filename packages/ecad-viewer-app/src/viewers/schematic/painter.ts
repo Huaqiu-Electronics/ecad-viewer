@@ -415,9 +415,24 @@ class PropertyPainter extends SchematicItemPainter {
     }
 
     paint(layer: ViewLayer, p: schematic_items.Property) {
-        if (p.effects.hide || !p.text) {
+        if (p.effects.hide ) {
             return;
         }
+
+        const symbol = p.parent instanceof schematic_items.SchematicSymbol ? p.parent : undefined;
+
+        let text = p.shown_text;
+
+        if(symbol && p.name == "Reference"){
+            text = symbol.reference_for(this.view_painter.sheet_path);
+            if (symbol.unit) {
+                text += symbol.unit_suffix;
+            }
+        } else if (p.name == "Sheetfile") {
+            text = `File: ${text}`;
+        }
+
+        if(!text) return;
 
         let color = this.theme.fields;
         if (p.parent instanceof schematic_items.SchematicSheet) {
@@ -451,11 +466,6 @@ class PropertyPainter extends SchematicItemPainter {
         const transform = this.view_painter.current_symbol_transform;
         const matrix = transform?.matrix ?? Matrix3.identity();
 
-        let text = p.shown_text;
-
-        if (p.name == "Reference" && parent.unit) {
-            text += parent.unit_suffix;
-        } else if (p.name == "Sheetfile") text = `File: ${text}`;
 
         const schfield = new SchField(text, {
             position: parent.at.position.multiply(10000),
@@ -776,12 +786,15 @@ class TablePainter extends SchematicItemPainter {
 export class SchematicPainter extends BaseSchematicPainter {
     override theme: SchematicTheme;
 
+    public sheet_path?: string;
+
     pin_transform: Map<schematic_items.PinInstance, SymbolTransform> =
         new Map();
 
-    constructor(gfx: Renderer, layers: LayerSet, theme: SchematicTheme) {
+    constructor(gfx: Renderer, layers: LayerSet, theme: SchematicTheme, sheet_path?: string) {
         super(gfx, layers, theme);
         this.theme = theme;
+        this.sheet_path = sheet_path;
         this.painter_list = [
             new RectanglePainter(this, gfx),
             new PolylinePainter(this, gfx),

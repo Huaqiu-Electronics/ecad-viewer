@@ -596,7 +596,6 @@ export class Project extends EventTarget implements IDisposable {
             if (!seen_schematic_files.has(schematic.filename)) {
                 const page = new ProjectPage(
                     this,
-                    "schematic",
                     schematic.filename,
                     `/${schematic.uuid}`,
                     schematic.filename,

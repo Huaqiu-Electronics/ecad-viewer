@@ -66,16 +66,42 @@ export class SchematicViewer extends DocumentViewer<
     public override commentModeEnabled = false;
 
     #focus_net_item?: string;
+    #sheet_path?: string;
 
     get sch_name() {
         return this.document.filename;
+    }
+
+    get sheet_path() {
+        return this.#sheet_path;
     }
 
     set focus_net_item(ref: string | undefined) {
         this.#focus_net_item = ref;
     }
 
-    override async load(src: KicadSch) {
+    // override async load(src: KicadSch) {
+    //     this.schematic_renderer.reset_scene_bbox();
+    //     await super.load(src);
+    //     this.dispatchEvent(new SheetLoadEvent(src.filename));
+    // }
+    override async load(src: KicadSch, sheet_path?: string) {
+        if (!src) return;
+
+        const next_path = sheet_path ?? `/${src.uuid}`;
+
+        if (this.document === src) {
+            if (this.#sheet_path !== next_path) {
+                this.#sheet_path = next_path;
+                this.paint();
+                this.draw();
+            }
+            this.resolve_loaded(true);
+            this.dispatchEvent(new SheetLoadEvent(src.filename));
+            return;
+        }
+
+        this.#sheet_path = next_path;
         this.schematic_renderer.reset_scene_bbox();
         await super.load(src);
         this.dispatchEvent(new SheetLoadEvent(src.filename));
@@ -242,7 +268,7 @@ export class SchematicViewer extends DocumentViewer<
     }
 
     protected override create_painter() {
-        return new SchematicPainter(this.renderer, this.layers, this.theme);
+        return new SchematicPainter(this.renderer, this.layers, this.theme, this.#sheet_path);
     }
 
     protected override create_layer_set() {

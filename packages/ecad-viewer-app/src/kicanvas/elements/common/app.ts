@@ -28,7 +28,7 @@ export type KicadAssert = KicadPCB | KicadSch;
 
 interface ViewerElement extends HTMLElement {
     viewer: Viewer;
-    load(src: KicadAssert): Promise<void>;
+    load(src: KicadAssert, sheet_path?: string): Promise<void>;
     disableinteraction: boolean;
 }
 
@@ -179,10 +179,10 @@ export abstract class KCViewerAppElement<
 
     protected abstract can_load(src: KicadAssert): boolean;
 
-    override async load(src: KicadAssert) {
+    override async load(src: KicadAssert, sheet_path?: string) {
         await this.viewerReady;
         if (this.can_load(src)) {
-            await this.#viewer_elm.load(src);
+            await this.#viewer_elm.load(src, sheet_path);
             if (this.#content) {
                 this.#content.hidden = false;
             }

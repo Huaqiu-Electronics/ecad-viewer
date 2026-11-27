@@ -85,13 +85,26 @@ export class SchPreviewListElement extends KCUIElement {
         const vertical_layout = html`<div
             class="vertical-layout"></div>` as HTMLElement;
 
-        for (const sch of this.#project.sch_in_order()) {
+        // for (const sch of this.#project.sch_in_order()) {
+        //     if (!(sch instanceof KicadSch)) continue;
+        //     const viewer = new SchPreviewElement(sch);
+        //     this.#viewers.push(viewer);
+        //     viewer.addEventListener("click", (e) => {
+        //         this.dispatchEvent(new TabMenuVisibleChangeEvent(true));
+        //         this.#sch_viewer.load(sch);
+        //     });
+
+        for (const page of this.#project.pages) {
+            const sch = page.document;
             if (!(sch instanceof KicadSch)) continue;
-            const viewer = new SchPreviewElement(sch);
+
+            const label = page.name || sch.filename;
+
+            const viewer = new SchPreviewElement(sch, label, page.sheet_path);
             this.#viewers.push(viewer);
-            viewer.addEventListener("click", (e) => {
+            viewer.addEventListener("click", () => {
                 this.dispatchEvent(new TabMenuVisibleChangeEvent(true));
-                this.#sch_viewer.load(sch);
+                this.#sch_viewer.load(sch, page.sheet_path);
             });
 
             vertical_layout.appendChild(viewer);
