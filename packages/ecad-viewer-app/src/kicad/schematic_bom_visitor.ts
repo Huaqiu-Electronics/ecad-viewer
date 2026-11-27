@@ -1,7 +1,7 @@
 import type { DesignatorRef } from "./board_bom_visitor";
 import type { BomItem } from "./bom_item";
-import type { KicadSch, SchematicSymbol } from "./schematic";
-import { SchematicVisitorBase } from "./schematic_visitor_base";
+import type { KicadSch, SchematicSymbol, SchematicSymbolInstance } from "./schematic";
+import { SchematicVisitorBase,type SchematicVisitContext, } from "./schematic_visitor_base";
 
 export class SchematicBomVisitor extends SchematicVisitorBase {
     #bom_list: BomItem[] = [];
@@ -25,7 +25,7 @@ export class SchematicBomVisitor extends SchematicVisitorBase {
         this.#current_sch_file = sheet.filename;
     }
 
-    visitSchematicSymbol(node: SchematicSymbol) {
+    visitSchematicSymbol(node: SchematicSymbol, ctx: SchematicVisitContext = {}) {
         if (
             node.footprint.length == 0 ||
             !node.in_bom
@@ -43,7 +43,13 @@ export class SchematicBomVisitor extends SchematicVisitorBase {
             Price: 0,
         };
 
-        const Reference = node.reference;
+        // const Reference = node.reference;
+        const inst = this.#resolve_instance(node, ctx.sheet_path);
+        const Reference = inst?.reference || node.reference;
+
+        if (!Reference) {
+            return;
+        }
 
         if (Reference.endsWith("?"))
             return;
@@ -63,8 +69,25 @@ export class SchematicBomVisitor extends SchematicVisitorBase {
         existing_refs.push({
             uuid: node.uuid,
             sheet_name: this.#current_sch_file,
+            sheet_path: inst?.path ?? ctx.sheet_path,
             unit: node.unit,
         });
         this.#designator_refs.set(Reference, existing_refs);
+    }
+
+    #resolve_instance(node: SchematicSymbol,
+        sheet_path?: string,
+    ):SchematicSymbolInstance | undefined {
+        if (sheet_path) {
+            const hit = node.instances.get(sheet_path);
+            if(hit){
+                return hit;
+            }
+        }
+
+        if (node.instances.size === 1) {
+            return node.instances.values().next().value;
+        }
+        return undefined;
     }
 }

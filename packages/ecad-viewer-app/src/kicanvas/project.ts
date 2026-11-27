@@ -223,7 +223,7 @@ export class Project extends EventTarget implements IDisposable {
                 if (has_root_sch) {
                     for (const page of this.pages) {
                         const doc = page.document;
-                        if (doc instanceof KicadSch) sch_visitor.visit(doc);
+                        if (doc instanceof KicadSch) sch_visitor.visit(doc, {sheet_path: page.sheet_path});
                     }
                 } else {
                     for (const sch of this.schematics()) {
