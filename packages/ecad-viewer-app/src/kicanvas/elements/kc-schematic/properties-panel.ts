@@ -141,6 +141,13 @@ export class KCSchematicPropertiesPanelElement extends KCUIElement {
             const lib = it.lib_symbol;
 
             const properties = Array.from(it.properties.values()).map((v) => {
+                if (v.name === "Reference") {
+                    return entry(
+                        v.name,
+                        it.reference_for(this.viewer.sheet_path) +
+                            it.unit_suffix,
+                    );
+                }
                 return entry(v.name, v.text);
             });
 
