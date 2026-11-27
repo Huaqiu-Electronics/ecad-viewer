@@ -5,6 +5,7 @@ import type { BomItem } from "./bom_item";
 export interface DesignatorRef {
     uuid: string;
     sheet_name: string;
+    sheet_path?: string;
     unit?: number;
 }
 
