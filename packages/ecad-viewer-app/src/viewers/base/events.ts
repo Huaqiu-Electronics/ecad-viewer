@@ -153,7 +153,7 @@ export class TabMenuClickEvent extends CustomEvent<TabKind> {
 export class SheetChangeEvent extends CustomEvent<string> {
     static readonly type = "kicanvas:sheet:change";
 
-    constructor(fp: string) {
+    constructor(fp: string,  public readonly sheet_path?:string) {
         super(SheetChangeEvent.type, { detail: fp });
     }
 }
