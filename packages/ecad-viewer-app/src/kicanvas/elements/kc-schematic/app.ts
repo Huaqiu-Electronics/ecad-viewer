@@ -64,13 +64,18 @@ export class KCSchematicAppElement extends KCViewerAppElement<KCSchematicViewerE
         super.initialContentCallback();
         this.viewer.addEventListener(SheetChangeEvent.type, (e) => {
             const sch = this.project.file_by_name(e.detail);
-            if (sch instanceof KicadSch) this.viewer.load(sch);
+            if (sch instanceof KicadSch) this.viewer.load(sch, e.sheet_path);
         });
 
         this.viewer.addEventListener(SheetLoadEvent.type, (e) => {
             if (this.#selection_pop_menu)
                 this.#selection_pop_menu.hidden = true;
-            this.dispatchEvent(new SheetLoadEvent(e.detail));
+
+            const path = this.sch_viewer.sheet_path;
+            const page = this.project.pages.find(
+                (p) => p.sheet_path === path,
+            );
+            this.dispatchEvent(new SheetLoadEvent(page?.name ||e.detail));
         });
 
         this.viewer.addEventListener(NetItemSelectEvent.type, async (e) => {

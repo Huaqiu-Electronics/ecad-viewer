@@ -180,10 +180,12 @@ export class SchematicViewer extends DocumentViewer<
         this.paint_selected(ct.bbox);
     }
     override on_dblclick(pos: Vec2): void {
+        const parent_path = this.#sheet_path?? `/${this.document.uuid}`;
         if (this.document.sheets)
             for (const item of this.document.sheets) {
                 if (item.bbox.contains_point(pos) && item.sheetfile) {
-                    this.dispatchEvent(new SheetChangeEvent(item.sheetfile));
+                    const sheet_path = `${parent_path}/${item.uuid}`;
+                    this.dispatchEvent(new SheetChangeEvent(item.sheetfile, sheet_path));
                     break;
                 }
             }
